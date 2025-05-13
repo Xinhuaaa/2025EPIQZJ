@@ -1,0 +1,26 @@
+
+GraphedExpression="current_encoder[0]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#a00909
+OpenDocument="main.c", FilePath="d:/TKX/Core/Src/main.c", Line=54
+OpenDocument="stm32f4xx_hal_can.h", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_can.h", Line=125
+OpenDocument="bsp_can.h", FilePath="d:/TKX/bsp/can/bsp_can.h", Line=0
+OpenDocument="stm32f4xx_it.c", FilePath="d:/TKX/Core/Src/stm32f4xx_it.c", Line=89
+OpenDocument="stm32f4xx_hal_uart.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=2562
+OpenDocument="stm32f4xx_hal_can.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c", Line=1391
+OpenDocument="tasks.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3634
+OpenDocument="bsp_can.c", FilePath="d:/TKX/bsp/can/bsp_can.c", Line=94
+OpenToolbar="Debug", Floating=0, x=0, y=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=602, h=802, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=602, h=203, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=923, h=264, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=923, h=365, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=923, h=631, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="100 ms / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="0;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="696;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="712;0"
+OpenWindow="RTOS", DockArea=RIGHT, x=0, y=2, w=602, h=255, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, Showing=""
+TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[311;100;102;100;100;366]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" current_encoder[0]"], ColWidths=[100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;100;100;100;114;110;126;126]
+TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;183;513]
+TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
+TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;340]
+WatchedExpression="can_instance", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="current_encoder", Window=Watched Data 1

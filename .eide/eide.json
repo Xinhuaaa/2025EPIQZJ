@@ -1,0 +1,145 @@
+{
+  "name": "TKX",
+  "type": "ARM",
+  "dependenceList": [],
+  "srcDirs": [
+    "Core/Src",
+    "Drivers/STM32F4xx_HAL_Driver/Src",
+    "Middlewares/Third_Party/FreeRTOS/Source",
+    "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F",
+    "Application",
+    "bsp",
+    "Middlewares",
+    "modules"
+  ],
+  "virtualFolder": {
+    "name": "<virtual_root>",
+    "files": [
+      {
+        "path": "startup_stm32f407xx.s"
+      }
+    ],
+    "folders": []
+  },
+  "outDir": "build",
+  "deviceName": null,
+  "packDir": null,
+  "miscInfo": {
+    "uid": "3fc22bf67b57ef96f0d472da22b232d1"
+  },
+  "targets": {
+    "Debug": {
+      "excludeList": [
+        "Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_timebase_tim_template.c",
+        "Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_timebase_rtc_wakeup_template.c",
+        "Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_timebase_rtc_alarm_template.c",
+        "Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_msp_template.c",
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_3.c",
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c",
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR"
+      ],
+      "toolchain": "GCC",
+      "compileConfig": {
+        "cpuType": "Cortex-M4",
+        "floatingPointHardware": "single",
+        "scatterFilePath": "stm32f407vetx_flash.ld",
+        "useCustomScatterFile": true,
+        "storageLayout": {
+          "RAM": [],
+          "ROM": []
+        },
+        "options": "null"
+      },
+      "uploader": "OpenOCD",
+      "uploadConfig": {
+        "bin": "",
+        "target": "stm32f4x",
+        "interface": "cmsis-dap",
+        "baseAddr": "0x08000000"
+      },
+      "uploadConfigMap": {
+        "JLink": {
+          "bin": "",
+          "baseAddr": "",
+          "cpuInfo": {
+            "vendor": "null",
+            "cpuName": "null"
+          },
+          "proType": 1,
+          "speed": 8000,
+          "otherCmds": ""
+        },
+        "pyOCD": {
+          "bin": "",
+          "targetName": "cortex_m",
+          "baseAddr": "0x08000000",
+          "speed": "4M",
+          "config": ".eide/debug.pyocd.yaml",
+          "otherCmds": ""
+        }
+      },
+      "custom_dep": {
+        "name": "default",
+        "incList": [
+          "Drivers/STM32F4xx_HAL_Driver/Inc",
+          "Drivers/STM32F4xx_HAL_Driver/Inc/Legacy",
+          "Drivers/CMSIS/Device/ST/STM32F4xx/Include",
+          "Drivers/CMSIS/Include",
+          "Middlewares/Third_Party/FreeRTOS/Source/include",
+          "Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2",
+          "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F",
+          "Core/Inc",
+          "bsp/log",
+          "Application",
+          "modules",
+          "Middlewares/Third_Party/SEGGER",
+          "Application/Chassis",
+          "modules/Hwt101",
+          "Middlewares/Third_Party/SEGGER/RTT",
+          "modules/ADRC",
+          "modules/PID",
+          "modules/ZDT_EmmV5",
+          "Middlewares/Third_Party/SEGGER/Config",
+          "bsp/can",
+          "bsp/dwt",
+          "modules/ZDT_X42"
+        ],
+        "libList": [],
+        "defineList": [
+          "USE_HAL_DRIVER",
+          "STM32F407xx"
+        ]
+      },
+      "builderOptions": {
+        "GCC": {
+          "version": 5,
+          "beforeBuildTasks": [],
+          "afterBuildTasks": [],
+          "global": {
+            "$float-abi-type": "softfp",
+            "output-debug-info": "enable",
+            "misc-control": "--specs=nosys.specs --specs=nano.specs -g"
+          },
+          "c/cpp-compiler": {
+            "language-c": "c11",
+            "language-cpp": "c++11",
+            "optimization": "level-debug",
+            "warnings": "all-warnings",
+            "one-elf-section-per-function": true,
+            "one-elf-section-per-data": true
+          },
+          "asm-compiler": {},
+          "linker": {
+            "output-format": "elf",
+            "remove-unused-input-sections": true,
+            "LIB_FLAGS": "-lm",
+            "$toolName": "auto"
+          }
+        }
+      }
+    }
+  },
+  "version": "3.5"
+}
