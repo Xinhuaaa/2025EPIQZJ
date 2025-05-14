@@ -278,9 +278,6 @@ bool Chassis_Control_Loop(void)
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
         
-        // 限制最大速度
-        if (speed > 3000.0f) speed = 3000.0f;
-        
         // 斜率限制（RPM/s）- 平稳加减速
         uint16_t v_ramp = 1000;
         

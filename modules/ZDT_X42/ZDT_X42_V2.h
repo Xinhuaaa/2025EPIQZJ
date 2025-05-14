@@ -74,7 +74,7 @@ void ZDT_X42_V2_Receive_Data(uint8_t *rxCmd, uint8_t *rxCount); // 返回数据�
 bool ZDT_X42_V2_Init(uint8_t *motor_ids, uint8_t motor_count); // 初始化X42电机驱动
 CANInstance* ZDT_X42_V2_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can_handle); // 注册电机CAN实例
 int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr); // 读取单个电机编码器值
-void ZDT_X42_V2_Get_All_Encoders(int32_t *encoders); // 获取全部电机编码器值
+bool ZDT_X42_V2_Get_All_Encoders(int32_t *encoders); // 获取全部电机编码器值
 void ZDT_X42_V2_Set_Encoder_Zero(uint8_t addr, int32_t offset); // 设置编码器零点偏移
 void ZDT_X42_V2_Reset_Encoder_Count(uint8_t addr); // 重置编码器累计值
 

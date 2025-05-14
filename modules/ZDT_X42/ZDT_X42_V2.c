@@ -16,10 +16,11 @@
 #define ENCODER_MAX     65536  // 编码器最大值
 #define ENCODER_HALF    32768  // 编码器最大值的一半
 
-// 编码器累计值计算相关变量 - 为未来功能保留
-// static int32_t last_raw_encoder[8] = {0};     // 上一次读取的原始编码器值
-// static int32_t accumulated_encoder[8] = {0};  // 累积编码器值
-// static int32_t encoder_zero_offset[8] = {0};  // 编码器零点偏移值
+// 编码器累计值计算相关变量
+static int32_t last_raw_encoder[8] = {0};     // 上一次读取的原始编码器值
+static int32_t accumulated_encoder[8] = {0};  // 累积编码器值
+static int32_t encoder_zero_offset[8] = {0};  // 编码器零点偏移值
+static bool encoder_initialized[8] = {false}; // 是否已初始化编码器值
 
 extern CANInstance *can_instance[];
 extern uint8_t idx;
@@ -88,8 +89,7 @@ bool ZDT_X42_V2_Init(uint8_t *motor_ids, uint8_t motor_count)
     } else {
         LOGINFO("所有电机CAN实例注册成功");
     }
-    ZDT_X42_V2_Velocity_Control(5,0,0,3000,0);
-    return all_registered;
+        return all_registered;
 }
 
 /**
@@ -633,11 +633,17 @@ void ZDT_X42_V2_Origin_Interrupt(uint8_t addr)
 /**
   * @brief    读取单个电机编码器值
   * @param    addr  ：电机地址
-  * @retval   编码器值，失败返回-1
+  * @retval   编码器累计值，失败返回-1
   */
 int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
 {
     int32_t encoder_value = -1;
+    int32_t motor_index = addr - 1;  // 将电机地址映射为数组索引
+    
+    if (motor_index < 0 || motor_index >= 8) {
+        LOGERROR("[CAN] 电机索引超出范围: %d", motor_index);
+        return -1;
+    }
     
     // 查找该电机地址对应的CAN实例
     CANInstance *target = NULL;
@@ -669,10 +675,42 @@ int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
     if (target->rx_buff[0] == 0x31) // 0x31是读取编码器值的功能码
     {
         // 解析编码器值（两个字节）
-        encoder_value = (target->rx_buff[1] << 8) | target->rx_buff[2];
+        uint16_t raw_value = (target->rx_buff[1] << 8) | target->rx_buff[2];
+        
+        // 初始化编码器初始值（如果未初始化）
+        if (!encoder_initialized[motor_index]) {
+            encoder_zero_offset[motor_index] = raw_value;
+            last_raw_encoder[motor_index] = raw_value;
+            accumulated_encoder[motor_index] = 0;
+            encoder_initialized[motor_index] = true;
+            LOGINFO("[CAN] 电机地址0x%02X 编码器初始值设置为: %d", addr, raw_value);
+            return 0; // 初始位置为0
+        }
+        
+        // 计算差值，考虑编码器回绕
+        int32_t diff = raw_value - last_raw_encoder[motor_index];
+        
+        // 检测跳变
+        if (diff > ENCODER_HALF) {
+            // 从最大值跳到最小值
+            diff -= ENCODER_MAX;
+        } else if (diff < -ENCODER_HALF) {
+            // 从最小值跳到最大值
+            diff += ENCODER_MAX;
+        }
+        
+        // 更新累积值
+        accumulated_encoder[motor_index] += diff;
+        
+        // 保存当前值作为下一次的上一次值
+        last_raw_encoder[motor_index] = raw_value;
+        
+        // 返回累计编码器值
+        encoder_value = accumulated_encoder[motor_index];
         
 #if CAN_CMD_LOG_LEVEL >= 2
-        LOGINFO("[CAN] 电机地址0x%02X 编码器值: %d", addr, encoder_value);
+        LOGINFO("[CAN] 电机地址0x%02X 原始编码器值: %d, 累计编码器值: %d", 
+                addr, raw_value, encoder_value);
 #endif
     }
     else
@@ -691,7 +729,7 @@ int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
   * @param    encoders  ：存储编码器值的数组，大小应至少为4
   * @retval   是否成功读取全部编码器
   */
-void ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
+bool ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
 {
     if (encoders == NULL) {
         return false;
@@ -714,4 +752,44 @@ void ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
         }
     }
     
+    return all_success;
+}
+
+/**
+  * @brief    重置编码器累计值
+  * @param    addr  ：电机地址，如果为0则重置所有电机
+  * @retval   无
+  */
+void ZDT_X42_V2_Reset_Encoder_Count(uint8_t addr)
+{
+    if (addr == 0) {
+        // 重置所有电机的累计值
+        for (int i = 0; i < 8; i++) {
+            accumulated_encoder[i] = 0;
+            // 不重置初始值和上次值，只重置累计值
+        }
+        LOGINFO("[CAN] 已重置所有电机编码器累计值");
+    } else {
+        // 重置特定电机的累计值
+        int32_t motor_index = addr - 1;
+        if (motor_index >= 0 && motor_index < 8) {
+            accumulated_encoder[motor_index] = 0;
+            LOGINFO("[CAN] 已重置电机地址0x%02X的编码器累计值", addr);
+        }
+    }
+}
+
+/**
+  * @brief    设置编码器零点偏移
+  * @param    addr  ：电机地址
+  * @param    offset：零点偏移值
+  * @retval   无
+  */
+void ZDT_X42_V2_Set_Encoder_Zero(uint8_t addr, int32_t offset)
+{
+    int32_t motor_index = addr - 1;
+    if (motor_index >= 0 && motor_index < 8) {
+        encoder_zero_offset[motor_index] = offset;
+        LOGINFO("[CAN] 已设置电机地址0x%02X的编码器零点偏移为: %d", addr, offset);
+    }
 }
