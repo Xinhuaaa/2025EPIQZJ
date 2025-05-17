@@ -38,7 +38,10 @@
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
-        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR"
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR",
+        "modules/dji_motor",
+        "modules/ZDT_X42",
+        "modules/ZDT_EmmV5/Emm_V5.c"
       ],
       "toolchain": "GCC",
       "compileConfig": {
@@ -100,11 +103,10 @@
           "Middlewares/Third_Party/SEGGER/RTT",
           "modules/ADRC",
           "modules/PID",
-          "modules/ZDT_EmmV5",
           "Middlewares/Third_Party/SEGGER/Config",
           "bsp/can",
           "bsp/dwt",
-          "modules/ZDT_X42"
+          "modules/ZDT_EmmV5/CAN"
         ],
         "libList": [],
         "defineList": [

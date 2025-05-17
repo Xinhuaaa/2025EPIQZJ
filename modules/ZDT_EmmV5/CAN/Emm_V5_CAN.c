@@ -2,7 +2,7 @@
 #include "cmsis_os2.h"
 #include "string.h"
 #include "bsp_log.h"  
-#include "ZDT_X42_V2.h"
+#include "Emm_V5_CAN.h"
 #include "stdbool.h"
 #include "bsp_dwt.h"  
 
@@ -31,7 +31,7 @@ extern uint8_t idx;
  * @param can_handle CAN句柄
  * @return CANInstance* 注册的实例指针，NULL表示失败
  */
-CANInstance* ZDT_X42_V2_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can_handle)
+CANInstance* Emm_V5_CAN_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can_handle)
 {
     if (motor_addr < 1 || motor_addr > 8) {
         LOGERROR("电机地址无效: %d (有效范围: 1-8)", motor_addr);
@@ -73,7 +73,7 @@ CANInstance* ZDT_X42_V2_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can
  * @param motor_count 电机数量
  * @return bool 是否初始化成功
  */
-bool ZDT_X42_V2_Init(uint8_t *motor_ids, uint8_t motor_count)
+bool Emm_V5_Init(uint8_t *motor_ids, uint8_t motor_count)
 {
     bool all_registered = true;
     
@@ -84,7 +84,7 @@ bool ZDT_X42_V2_Init(uint8_t *motor_ids, uint8_t motor_count)
     // 注册所有电机的CAN实例
     for (uint8_t i = 0; i < motor_count; i++) {
         uint8_t motor_addr = motor_ids[i];
-        if (ZDT_X42_V2_RegisterMotor(motor_addr, &hcan1) == NULL) {
+        if (Emm_V5_CAN_RegisterMotor(motor_addr, &hcan1) == NULL) {
             all_registered = false;
         }
     }
@@ -208,13 +208,12 @@ void can_SendCmd(uint8_t *cmd, uint16_t len)
     LOGINFO("[CAN] 命令发送成功，ID:0x%02X", addr);
 #endif
 }
-
 /**
   * @brief    将当前位置清零
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Reset_CurPos_To_Zero(uint8_t addr)
+void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -233,7 +232,7 @@ void ZDT_X42_V2_Reset_CurPos_To_Zero(uint8_t addr)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Reset_Clog_Pro(uint8_t addr)
+void Emm_V5_Reset_Clog_Pro(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -253,65 +252,37 @@ void ZDT_X42_V2_Reset_Clog_Pro(uint8_t addr)
   * @param    s     ：系统参数类型
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Read_Sys_Params(uint8_t addr, SysParams_t s)
+void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
 {
+  uint8_t i = 0;
   uint8_t cmd[16] = {0};
   
   // 装载命令
-  cmd[0] =  addr;                       // 地址
+  cmd[i] = addr; ++i;                   // 地址
 
   switch(s)                             // 功能码
   {
-    case S_VER   : cmd[1] = 0x1F; break;                  /* 读取固件版本和对应的硬件版本 */
-    case S_RL    : cmd[1] = 0x20; break;                  /* 读取读取相电阻和相电感 */
-    case S_PID   : cmd[1] = 0x21; break;                  /* 读取PID参数 */
-    case S_ORG   : cmd[1] = 0x22; break;                  /* 读取回零参数 */
-    case S_VBUS  : cmd[1] = 0x24; break;                  /* 读取总线电压 */
-    case S_CBUS  : cmd[1] = 0x26; break;                  /* 读取总线电流 */
-    case S_CPHA  : cmd[1] = 0x27; break;                  /* 读取相电流 */
-    case S_ENC   : cmd[1] = 0x29; break;                  /* 读取编码器原始值 */
-    case S_CPUL  : cmd[1] = 0x30; break;                  /* 读取实时脉冲数（根据实时位置计算得到的脉冲数） */
-    case S_ENCL  : cmd[1] = 0x31; break;                  /* 读取经过线性化校准后的编码器值 */
-    case S_TPUL  : cmd[1] = 0x32; break;                  /* 读取输入脉冲数 */
-    case S_TPOS  : cmd[1] = 0x33; break;                  /* 读取电机目标位置 */
-    case S_OPOS  : cmd[1] = 0x34; break;                  /* 读取电机实时设定的目标位置（开环模式的实时位置） */
-    case S_VEL   : cmd[1] = 0x35; break;                  /* 读取电机实时转速 */
-    case S_CPOS  : cmd[1] = 0x36; break;                  /* 读取电机实时位置（基于角度编码器累加的电机实时位置） */
-    case S_PERR  : cmd[1] = 0x37; break;                  /* 读取电机位置误差 */
-    case S_TEMP  : cmd[1] = 0x39; break;                  /* 读取电机实时温度 */
-    case S_SFLAG : cmd[1] = 0x3A; break;                  /* 读取状态标志位 */
-    case S_OFLAG : cmd[1] = 0x3B; break;                  /* 读取回零状态标志位 */
-    case S_Conf  : cmd[1] = 0x42; cmd[2] = 0x6C; break;   /* 读取驱动参数 */
-    case S_State : cmd[1] = 0x43; cmd[2] = 0x7A; break;   /* 读取系统状态参数 */
+    case S_VER  : cmd[i] = 0x1F; ++i; break;
+    case S_RL   : cmd[i] = 0x20; ++i; break;
+    case S_PID  : cmd[i] = 0x21; ++i; break;
+    case S_VBUS : cmd[i] = 0x24; ++i; break;
+    case S_CPHA : cmd[i] = 0x27; ++i; break;
+    case S_ENCL : cmd[i] = 0x31; ++i; break;
+    case S_TPOS : cmd[i] = 0x33; ++i; break;
+    case S_VEL  : cmd[i] = 0x35; ++i; break;
+    case S_CPOS : cmd[i] = 0x36; ++i; break;
+    case S_PERR : cmd[i] = 0x37; ++i; break;
+    case S_FLAG : cmd[i] = 0x3A; ++i; break;
+    case S_ORG  : cmd[i] = 0x3B; ++i; break;
+    case S_Conf : cmd[i] = 0x42; ++i; cmd[i] = 0x6C; ++i; break;
+    case S_State: cmd[i] = 0x43; ++i; cmd[i] = 0x7A; ++i; break;
     default: break;
   }
-  
-  // 记录最后发送的命令类型，用于后续匹配
-  if (s == S_ENCL) {
-      // 查找该电机地址对应的实例，并设置一个标志表示正在请求编码器值
-      for (size_t i = 0; i < idx; ++i) {
-          uint8_t can_addr = (can_instance[i]->rx_id >> 8) & 0xFF;
-          if (can_addr == addr) {
-              // 标记正在读取编码器
-              // LOGINFO("[SYS_PARAMS] 电机ID:0x%02X 正在请求编码器值", addr);
-              break;
-          }
-      }
-  }
 
+  cmd[i] = 0x6B; ++i;                   // 校验字节
+  
   // 发送命令
-  if(s >= S_Conf)
-  {
-    cmd[3] = 0x6B; 
-    // LOGINFO("[SYS_PARAMS] 发送命令: 地址=0x%02X, 功能=0x%02X 0x%02X", cmd[0], cmd[1], cmd[2]);
-    can_SendCmd(cmd, 4);
-  }
-  else
-  {
-    cmd[2] = 0x6B; 
-    // LOGINFO("[SYS_PARAMS] 发送命令: 地址=0x%02X, 功能=0x%02X", cmd[0], cmd[1]);
-    can_SendCmd(cmd, 3);
-  }
+  can_SendCmd(cmd, i);
 }
 
 /**
@@ -321,7 +292,7 @@ void ZDT_X42_V2_Read_Sys_Params(uint8_t addr, SysParams_t s)
   * @param    ctrl_mode：控制模式（对应屏幕上的P_Pul菜单），0是关闭脉冲输入引脚，1是开环模式，2是闭环模式，3是让En端口复用为多圈限位开关输入引脚，Dir端口复用为到位输出高电平功能
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
+void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
 {
   uint8_t cmd[16] = {0};
   
@@ -330,7 +301,7 @@ void ZDT_X42_V2_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   cmd[1] =  0x46;                       // 功能码
   cmd[2] =  0x69;                       // 辅助码
   cmd[3] =  svF;                        // 是否存储标志，false为不存储，true为存储
-  cmd[4] =  ctrl_mode;                  // 控制模式（对应屏幕上的Ctrl_Mode菜单），0是开环模式，1是FOC矢量闭环模式
+  cmd[4] =  ctrl_mode;                  // 控制模式（对应屏幕上的P_Pul菜单），0是关闭脉冲输入引脚，1是开环模式，2是闭环模式，3是让En端口复用为多圈限位开关输入引脚，Dir端口复用为到位输出高电平功能
   cmd[5] =  0x6B;                       // 校验字节
   
   // 发送命令
@@ -341,10 +312,10 @@ void ZDT_X42_V2_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   * @brief    使能信号控制
   * @param    addr  ：电机地址
   * @param    state ：使能状态     ，true为使能电机，false为关闭电机
-  * @param    snF   ：多机同步标志 ，0为不启用，其余值启用
+  * @param    snF   ：多机同步标志 ，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_En_Control(uint8_t addr, bool state, uint8_t snF)
+void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -361,147 +332,73 @@ void ZDT_X42_V2_En_Control(uint8_t addr, bool state, uint8_t snF)
 }
 
 /**
-  * @brief    力矩模式
-  * @param    addr  ：电机地址
-  * @param    sign  ：符号         ，0为正，其余值为负
-  * @param    t_ramp：斜率(Ma/s)   ，范围0 - 65535Ma/s
-  * @param    torque：力矩(Ma)     ，范围0 - 4000Ma
-  * @param    snF   ：多机同步标志 ，0为不启用，其余值启用
+  * @brief    速度模式
+  * @param    addr：电机地址
+  * @param    dir ：方向       ，0为CW，其余值为CCW
+  * @param    vel ：速度       ，范围0 - 5000RPM
+  * @param    acc ：加速度     ，范围0 - 255，注意：0是直接启动
+  * @param    snF ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Torque_Control(uint8_t addr, uint8_t sign, uint16_t t_ramp, uint16_t torque, uint8_t snF)
+void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 {
   uint8_t cmd[16] = {0};
-  
-  // 装载命令
-  cmd[0] =  addr;                       // 地址
-  cmd[1] =  0xF5;                       // 功能码
-  cmd[2] =  sign;                       // 符号（方向）
-  cmd[3] =  (uint8_t)(t_ramp >> 8);     // 力矩斜率(Ma/s)高8位字节
-  cmd[4] =  (uint8_t)(t_ramp >> 0);     // 力矩斜率(Ma/s)低8位字节
-  cmd[5] =  (uint8_t)(torque >> 8);     // 力矩(Ma)高8位字节
-  cmd[6] =  (uint8_t)(torque >> 0);     // 力矩(Ma)低8位字节
-  cmd[7] =  snF;                        // 多机同步运动标志
-  cmd[8] =  0x6B;                       // 校验字节
-  
-  // 发送命令
-  can_SendCmd(cmd, 9);
-}
-
-/**
-  * @brief    速度模式
-  * @param    addr  	：电机地址
-  * @param    dir     ：方向         ，0为CW，其余值为CCW
-  * @param    v_ramp  ：斜率(RPM/s)  ，范围0 - 65535RPM/s
-  * @param    velocity：速度(RPM)    ，范围0.0 - 4000.0RPM
-  * @param    snF     ：多机同步标志 ，0为不启用，其余值启用
-  * @retval   地址 + 功能码 + 命令状态 + 校验字节
-  */
-void ZDT_X42_V2_Velocity_Control(uint8_t addr, uint8_t dir, uint16_t v_ramp, float velocity, uint8_t snF)
-{
-  uint8_t cmd[16] = {0}; uint16_t vel = 0;
-
-  // 将速度放大10倍发送过去
-  vel = (uint16_t)ABS(velocity * 10.0f);
 
   // 装载命令
   cmd[0] =  addr;                       // 地址
   cmd[1] =  0xF6;                       // 功能码
-  cmd[2] =  dir;                        // 符号（方向）
-  cmd[3] =  (uint8_t)(v_ramp >> 8);     // 速度斜率(RPM/s)高8位字节
-  cmd[4] =  (uint8_t)(v_ramp >> 0);     // 速度斜率(RPM/s)低8位字节
-  cmd[5] =  (uint8_t)(vel >> 8);        // 速度(RPM)高8位字节
-  cmd[6] =  (uint8_t)(vel >> 0);        // 速度(RPM)低8位字节  cmd[7] =  snF;                        // 多机同步运动标志
-  cmd[8] =  0x6B;                       // 校验字节
-  LOGINFO("Motor %d: Speed = %u.%u RPM, Direction = %d\r\n", addr, vel/10, vel%10, dir);
+  cmd[2] =  dir;                        // 方向
+  cmd[3] =  (uint8_t)(vel >> 8);        // 速度(RPM)高8位字节
+  cmd[4] =  (uint8_t)(vel >> 0);        // 速度(RPM)低8位字节
+  cmd[5] =  acc;                        // 加速度，注意：0是直接启动
+  cmd[6] =  snF;                        // 多机同步运动标志
+  cmd[7] =  0x6B;                       // 校验字节
 
   // 发送命令
-  can_SendCmd(cmd, 9);
+  can_SendCmd(cmd, 8);
 }
 
 /**
-  * @brief    直通限速位置模式
-  * @param    addr  	：电机地址
-  * @param    dir     ：方向										，0为CW，其余值为CCW
-  * @param    velocity：最大速度(RPM)					，范围0.0 - 4000.0RPM
-  * @param    position：位置(°)								，范围0.0°- (2^32 - 1)°
-  * @param    raf     ：相位位置/绝对位置标志	，0为相对位置，其余值为绝对位置
-  * @param    snF     ：多机同步标志						，0为不启用，其余值启用
+  * @brief    位置模式
+  * @param    addr：电机地址
+  * @param    dir ：方向        ，0为CW，其余值为CCW
+  * @param    vel ：速度(RPM)   ，范围0 - 5000RPM
+  * @param    acc ：加速度      ，范围0 - 255，注意：0是直接启动
+  * @param    clk ：脉冲数      ，范围0- (2^32 - 1)个
+  * @param    raF ：相位/绝对标志，false为相对运动，true为绝对值运动
+  * @param    snF ：多机同步标志 ，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Bypass_Position_LV_Control(uint8_t addr, uint8_t dir, float velocity, float position, uint8_t raf, uint8_t snF)
+void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, bool raF, bool snF)
 {
-  uint8_t cmd[16] = {0}; uint16_t vel = 0; uint32_t pos = 0;
-
-  // 将速度和位置放大10倍发送过去
-  vel = (uint16_t)ABS(velocity * 10.0f); pos = (uint32_t)ABS(position * 10.0f);
-
-  // 装载命令
-  cmd[0]  =  addr;                      // 地址
-  cmd[1]  =  0xFB;                      // 功能码
-  cmd[2]  =  dir;                       // 符号（方向）
-  cmd[3]  =  (uint8_t)(vel >> 8);       // 最大速度(RPM)高8位字节
-  cmd[4]  =  (uint8_t)(vel >> 0);       // 最大速度(RPM)低8位字节 
-  cmd[5]  =  (uint8_t)(pos >> 24);      // 位置(bit24 - bit31)
-  cmd[6]  =  (uint8_t)(pos >> 16);      // 位置(bit16 - bit23)
-  cmd[7]  =  (uint8_t)(pos >> 8);       // 位置(bit8  - bit15)
-  cmd[8]  =  (uint8_t)(pos >> 0);       // 位置(bit0  - bit7 )
-  cmd[9]  =  raf;                       // 相位位置/绝对位置标志
-  cmd[10] =  snF;                       // 多机同步运动标志
-  cmd[11] =  0x6B;                      // 校验字节
-  
-  // 发送命令
-  can_SendCmd(cmd, 12);
-}
-
-/**
-  * @brief    梯形曲线位置模式
-  * @param    addr  	：电机地址
-  * @param    dir     ：方向										，0为CW，其余值为CCW
-  * @param    acc     ：加速加速度(RPM/s)			，0为CW，其余值为CCW
-  * @param    dec     ：减速加速度(RPM/s)			，0为CW，其余值为CCW
-  * @param    velocity：最大速度(RPM)					，范围0.0 - 4000.0RPM
-  * @param    position：位置(°)								，范围0.0°- (2^32 - 1)°
-  * @param    raf     ：相位位置/绝对位置标志	，0为相对位置，其余值为绝对位置
-  * @param    snF     ：多机同步标志						，0为不启用，其余值启用
-  * @retval   地址 + 功能码 + 命令状态 + 校验字节
-  */
-void ZDT_X42_V2_Traj_Position_Control(uint8_t addr, uint8_t dir, uint16_t acc, uint16_t dec, float velocity, float position, uint8_t raf, uint8_t snF)
-{
-  uint8_t cmd[32] = {0}; uint16_t vel = 0; uint32_t pos = 0;
-
-  // 将速度和位置放大10倍发送过去
-  vel = (uint16_t)ABS(velocity * 10.0f); pos = (uint32_t)ABS(position * 10.0f);
+  uint8_t cmd[16] = {0};
 
   // 装载命令
   cmd[0]  =  addr;                      // 地址
   cmd[1]  =  0xFD;                      // 功能码
-  cmd[2]  =  dir;                       // 符号（方向）
-  cmd[3]  =  (uint8_t)(acc >> 8);       // 加速加速度(RPM/s)高8位字节
-  cmd[4]  =  (uint8_t)(acc >> 0);       // 加速加速度(RPM/s)低8位字节  
-  cmd[5]  =  (uint8_t)(dec >> 8);       // 减速加速度(RPM/s)高8位字节
-  cmd[6]  =  (uint8_t)(dec >> 0);       // 减速加速度(RPM/s)低8位字节  
-  cmd[7]  =  (uint8_t)(vel >> 8);       // 最大速度(RPM)高8位字节
-  cmd[8]  =  (uint8_t)(vel >> 0);       // 最大速度(RPM)低8位字节 
-  cmd[9]  =  (uint8_t)(pos >> 24);      // 位置(bit24 - bit31)
-  cmd[10] =  (uint8_t)(pos >> 16);      // 位置(bit16 - bit23)
-  cmd[11] =  (uint8_t)(pos >> 8);       // 位置(bit8  - bit15)
-  cmd[12] =  (uint8_t)(pos >> 0);       // 位置(bit0  - bit7 )
-  cmd[13] =  raf;                       // 相位位置/绝对位置标志
-  cmd[14] =  snF;                       // 多机同步运动标志
-  cmd[15] =  0x6B;                      // 校验字节
+  cmd[2]  =  dir;                       // 方向
+  cmd[3]  =  (uint8_t)(vel >> 8);       // 速度(RPM)高8位字节
+  cmd[4]  =  (uint8_t)(vel >> 0);       // 速度(RPM)低8位字节 
+  cmd[5]  =  acc;                       // 加速度，注意：0是直接启动
+  cmd[6]  =  (uint8_t)(clk >> 24);      // 脉冲数(bit24 - bit31)
+  cmd[7]  =  (uint8_t)(clk >> 16);      // 脉冲数(bit16 - bit23)
+  cmd[8]  =  (uint8_t)(clk >> 8);       // 脉冲数(bit8  - bit15)
+  cmd[9]  =  (uint8_t)(clk >> 0);       // 脉冲数(bit0  - bit7 )
+  cmd[10] =  raF;                       // 相位/绝对标志，false为相对运动，true为绝对值运动
+  cmd[11] =  snF;                       // 多机同步运动标志，false为不启用，true为启用
+  cmd[12] =  0x6B;                      // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 16);
+  can_SendCmd(cmd, 13);
 }
 
 /**
   * @brief    立即停止（所有控制模式都通用）
   * @param    addr  ：电机地址
-  * @param    snF   ：多机同步标志，0为不启用，其余值启用
+  * @param    snF   ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Stop_Now(uint8_t addr, uint8_t snF)
+void Emm_V5_Stop_Now(uint8_t addr, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -521,7 +418,7 @@ void ZDT_X42_V2_Stop_Now(uint8_t addr, uint8_t snF)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Synchronous_motion(uint8_t addr)
+void Emm_V5_Synchronous_motion(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -541,7 +438,7 @@ void ZDT_X42_V2_Synchronous_motion(uint8_t addr)
   * @param    svF   ：是否存储标志，false为不存储，true为存储
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Origin_Set_O(uint8_t addr, bool svF)
+void Emm_V5_Origin_Set_O(uint8_t addr, bool svF)
 {
   uint8_t cmd[16] = {0};
   
@@ -558,8 +455,8 @@ void ZDT_X42_V2_Origin_Set_O(uint8_t addr, bool svF)
 
 /**
   * @brief    修改回零参数
-  * @param    addr   ：电机地址
-  * @param    svF    ：是否存储标志，false为不存储，true为存储
+  * @param    addr  ：电机地址
+  * @param    svF   ：是否存储标志，false为不存储，true为存储
   * @param    o_mode ：回零模式，0为单圈就近回零，1为单圈方向回零，2为多圈无限位碰撞回零，3为多圈有限位开关回零
   * @param    o_dir  ：回零方向，0为CW，其余值为CCW
   * @param    o_vel  ：回零速度，单位：RPM（转/分钟）
@@ -570,7 +467,7 @@ void ZDT_X42_V2_Origin_Set_O(uint8_t addr, bool svF)
   * @param    potF   ：上电自动触发回零，false为不使能，true为使能
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
+void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
 {
   uint8_t cmd[32] = {0};
   
@@ -604,10 +501,10 @@ void ZDT_X42_V2_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uin
   * @brief    触发回零
   * @param    addr   ：电机地址
   * @param    o_mode ：回零模式，0为单圈就近回零，1为单圈方向回零，2为多圈无限位碰撞回零，3为多圈有限位开关回零
-  * @param    snF    ：多机同步标志，false为不启用，true为启用
+  * @param    snF   ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
+void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -627,7 +524,7 @@ void ZDT_X42_V2_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void ZDT_X42_V2_Origin_Interrupt(uint8_t addr)
+void Emm_V5_Origin_Interrupt(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -635,16 +532,17 @@ void ZDT_X42_V2_Origin_Interrupt(uint8_t addr)
   cmd[0] =  addr;                       // 地址
   cmd[1] =  0x9C;                       // 功能码
   cmd[2] =  0x48;                       // 辅助码
-  cmd[3] =  0x6B;                       // 校验字节    // 发送命令
+  cmd[3] =  0x6B;                       // 校验字节
+  
+  // 发送命令
   can_SendCmd(cmd, 4);
 }
-
 /**
   * @brief    读取单个电机编码器值
   * @param    addr  ：电机地址
   * @retval   编码器累计值，失败返回-1
   */
-int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
+int32_t Emm_V5_Read_Encoder(uint8_t addr)
 {
     int32_t encoder_value = -1;
     int32_t motor_index = addr - 1;  // 将电机地址映射为数组索引
@@ -675,7 +573,7 @@ int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
     }
     
     // 发送读取编码器命令
-    ZDT_X42_V2_Read_Sys_Params(addr, S_ENCL);
+    Emm_V5_Read_Sys_Params(addr, S_ENCL);
     
     // 等待一段时间，让电机有时间响应
     osDelay(5);
@@ -738,7 +636,7 @@ int32_t ZDT_X42_V2_Read_Encoder(uint8_t addr)
   * @param    encoders  ：存储编码器值的数组，大小应至少为4
   * @retval   是否成功读取全部编码器
   */
-bool ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
+bool Emm_V5_Get_All_Encoders(int32_t *encoders)
 {
     if (encoders == NULL) {
         return false;
@@ -749,7 +647,7 @@ bool ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
     
     for (uint8_t i = 0; i < 4; i++)
     {
-        int32_t value = ZDT_X42_V2_Read_Encoder(motor_ids[i]);
+        int32_t value = Emm_V5_Read_Encoder(motor_ids[i]);
         if (value == -1)
         {
             all_success = false;
@@ -769,7 +667,7 @@ bool ZDT_X42_V2_Get_All_Encoders(int32_t *encoders)
   * @param    addr  ：电机地址，如果为0则重置所有电机
   * @retval   无
   */
-void ZDT_X42_V2_Reset_Encoder_Count(uint8_t addr)
+void Emm_V5_Reset_Encoder_Count(uint8_t addr)
 {
     if (addr == 0) {
         // 重置所有电机的累计值
@@ -798,7 +696,7 @@ void ZDT_X42_V2_Reset_Encoder_Count(uint8_t addr)
   * @param    offset：零点偏移值
   * @retval   无
   */
-void ZDT_X42_V2_Set_Encoder_Zero(uint8_t addr, int32_t offset)
+void Emm_V5_Set_Encoder_Zero(uint8_t addr, int32_t offset)
 {
     int32_t motor_index = addr - 1;
     if (motor_index >= 0 && motor_index < 8) {

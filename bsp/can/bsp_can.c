@@ -9,7 +9,7 @@
 
 #define CAN_RX_QUEUE_SIZE 8
 #define CAN_MX_REGISTER_CNT 16
-#define CAN_DEBUG
+#define CAN_DEBUG 0
 /* CAN 接收消息结构 */
 typedef struct {
     CAN_HandleTypeDef *hcan;
@@ -44,7 +44,7 @@ if (_instance->use_ext_id)
     can_filter_conf.FilterMaskIdLow  = CAN_ID_EXT;        // IDE 必须为1（扩展帧）
     
     // 调试信息
-    LOGINFO("[CAN] 配置扩展帧过滤器, 仅匹配高8位地址: 0x%02X, ID=0x%08X", addr, _instance->rx_id);
+    // LOGINFO("[CAN] 配置扩展帧过滤器, 仅匹配高8位地址: 0x%02X, ID=0x%08X", addr, _instance->rx_id);
     
     can_filter_conf.FilterActivation = ENABLE;
 }
@@ -77,7 +77,7 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
     if (!idx)
     {
         CANServiceInit();
-        LOGINFO("[bsp_can] CAN Service Init");
+        // LOGINFO("[bsp_can] CAN Service Init");
     }
     if (idx >= CAN_MX_REGISTER_CNT)
     {
@@ -179,10 +179,10 @@ static void CANFIFOxCallback(CAN_HandleTypeDef *_hcan, uint32_t fifox)
                     match = (rxconf.ExtId == can_instance[i]->rx_id);
                     #ifdef CAN_DEBUG
                     if (match) {
-                        LOGINFO("[CAN] 匹配到扩展帧: ID=0x%08X, 实际数据:", rxconf.ExtId);
-                        for (int j = 0; j < rxconf.DLC; j++) {
-                            LOGINFO("  can_rx_buff[%d]=0x%02X", j, can_rx_buff[j]);
-                        }
+                        // LOGINFO("[CAN] 匹配到扩展帧: ID=0x%08X, 实际数据:", rxconf.ExtId);
+                        // for (int j = 0; j < rxconf.DLC; j++) {
+                        //     LOGINFO("  can_rx_buff[%d]=0x%02X", j, can_rx_buff[j]);
+                        // }
                     }
                     #endif
                 }

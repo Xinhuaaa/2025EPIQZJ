@@ -21,7 +21,7 @@
   #include "usart.h"
   #include "chassis.h"
   #include "Hwt101.h"
-  #include "Emm_V5.h"
+  #include "Emm_V5_CAN.h"
   
   /* 任务句柄 */
   osThreadId_t chassisTaskHandle;
@@ -39,10 +39,10 @@
   
   /* 预定义导航路径点 */
   const NavigationPoint_t predefinedPath[] = {
-      {0.4f, 0.0f, 0.0f},     // 向前移动1米
-      {0.0f, 0.4f, 90.0f},    // 向右移动1米并旋转90度
-      {0.4f, 0.4f, 180.0f},   // 向后移动1米并旋转到180度
-      {0.0f, 0.0f, 270.0f}      // 回到原点并恢复0度方向
+      {1.6f, 0.0f, 0.0f},     // 向前移动1米
+      {1.6f, 0.0f, 0.0f},    // 向右移动1米并旋转90度
+      {1.6f, 0.0f, 0.0f},   // 向后移动1米并旋转到180度
+      {1.6f, 0.0f, 0.0f}      // 回到原点并恢复0度方向
   };
   
   /**
@@ -81,7 +81,7 @@
           }
           
           // 周期性执行，确保实时控制
-          vTaskDelay(pdMS_TO_TICKS(20));
+          vTaskDelay(pdMS_TO_TICKS(10));
       }
   }
   

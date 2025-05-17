@@ -14,10 +14,11 @@
 #include "chassis.h"
 #include "PID.h"
 #include "Hwt101.h"
-#include "ZDT_X42_V2.h"  
+#include "Emm_V5_CAN.h"  
 #include <math.h>
 #include "FreeRTOS.h"
 #include "task.h"
+#include "bsp_log.h"
 
 /* 外部声明 */
 extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
@@ -28,9 +29,9 @@ extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
 #define RAD_TO_DEG(x)         ((x) * 180.0f / PI)
 
 /* 底盘物理参数 */
-#define CHASSIS_WIDTH         0.19f    // 底盘宽度，单位m
-#define CHASSIS_LENGTH        0.2f    // 底盘长度，单位m
-#define WHEEL_DIAMETER        0.077f   // 麦轮直径，单位m
+#define CHASSIS_WIDTH         0.435f    // 底盘宽度，单位m
+#define CHASSIS_LENGTH        0.51f    // 底盘长度，单位m
+#define WHEEL_DIAMETER        0.078f   // 麦轮直径，单位m
 #define CHASSIS_WHEEL_RADIUS  (WHEEL_DIAMETER / 2.0f)
 #define MECANUM_FACTOR        (CHASSIS_WIDTH + CHASSIS_LENGTH)
 #define ENCODER_COUNTS_PER_REV 65536.0f  // 编码器一圈的计数值
@@ -91,21 +92,21 @@ void Chassis_Init(void)
     // 定义电机ID数组
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
-    // 初始化ZDT_X42_V2电机驱动
-    if (!ZDT_X42_V2_Init(motor_ids, 4)) {
+    // 初始化Emm_V5电机驱动
+    if (!Emm_V5_Init(motor_ids, 4)) {
         printf("X42电机驱动初始化失败！\r\n");
         return;  // 如果初始化失败，直接返回
     }
     
     // 配置X、Y方向PID控制器（相同参数）
     PID_Init_Config_s pid_config_xy = {
-        .Kp = 0.5f,               // 比例系数
-        .Ki = 0.0f,              // 积分系数
+        .Kp = 0.82f,               // 比例系数
+        .Ki = 0.05f,              // 积分系数
         .Kd = 0.0f,               // 微分系数9
         .MaxOut = 1.0f,           // 最大速度0.5m/s
         .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Integral_Limit ,
-        .IntegralLimit = 1.0f,    // 积分限幅
+        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
         .MaxAccel = 0.0f,
         .MaxJerk = 0.0f,
@@ -115,7 +116,7 @@ void Chassis_Init(void)
     
     // 配置偏航角PID控制器
     PID_Init_Config_s pid_config_yaw = {
-        .Kp = 2.0f,               // 比例系数
+        .Kp = 0.0f,               // 比例系数
         .Ki = 0.0f,               // 积分系数
         .Kd = 0.00f,              // 微分系数
         .MaxOut = 10.0f,          // 最大角速度30度/s
@@ -131,22 +132,16 @@ void Chassis_Init(void)
         uint8_t motor_id = motor_ids[i];
         
         // 使能电机
-        ZDT_X42_V2_En_Control(motor_id, true, 0);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_En_Control(motor_id, true, 0);
         
         // 设置闭环模式
-        ZDT_X42_V2_Modify_Ctrl_Mode(motor_id, true, 2); // 2 = 闭环模式
-        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Modify_Ctrl_Mode(motor_id, true, 2); // 2 = 闭环模式
         
         // 清零位置
-        ZDT_X42_V2_Reset_CurPos_To_Zero(motor_id);
-        vTaskDelay(pdMS_TO_TICKS(10));
+        Emm_V5_Reset_CurPos_To_Zero(motor_id);
         
         // 初始化清除故障
-        ZDT_X42_V2_Reset_Clog_Pro(motor_id);
-        vTaskDelay(pdMS_TO_TICKS(10));
-        
-        printf("初始化电机ID: %d\r\n", motor_id);
+        Emm_V5_Reset_Clog_Pro(motor_id);
     }
     
     
@@ -216,7 +211,7 @@ bool Chassis_Control_Loop(void)
     g_current_pos.yaw = NormalizeAngleDeg(Angle);
     
     // 读取电机编码器值
-    ZDT_X42_V2_Get_All_Encoders(current_encoder);
+    Emm_V5_Get_All_Encoders(current_encoder);
     
     // 计算每个轮子的位移（米）
     float wheel_delta[4] = {0};    
@@ -271,18 +266,13 @@ bool Chassis_Control_Loop(void)
     }
     
     // 4. 控制电机
-    
-    // 将线速度转换为RPM并控制电机
+      // 将线速度转换为RPM并控制电机
     for (int i = 0; i < 4; i++) {
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
-        
-        // 斜率限制（RPM/s）- 平稳加减速
-        uint16_t v_ramp = 1000;
-        
-        // 设置电机速度，使用ZDT_X42_V2的速度控制接口
-        ZDT_X42_V2_Velocity_Control(motor_ids[i], dir, v_ramp, speed, 0);
+        uint16_t acc = 0; 
+        Emm_V5_Vel_Control(motor_ids[i], dir, speed , acc , 0 );
     }
     
     // 5. 判断是否到达目标位置
@@ -302,7 +292,7 @@ void Chassis_EmergencyStop(void)
     
     for (int i = 0; i < 4; i++) {
         // 使用X42电机的立即停止功能
-        ZDT_X42_V2_Stop_Now(motor_ids[i], 0);
+        Emm_V5_Stop_Now(motor_ids[i], 0);
     }
 }
 

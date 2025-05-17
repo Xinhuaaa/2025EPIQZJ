@@ -18,13 +18,13 @@
 // 0 - 不输出日志
 // 1 - 只输出错误日志
 // 2 - 输出所有日志（包括成功和错误）
-#define CAN_CMD_LOG_LEVEL 2
+#define CAN_CMD_LOG_LEVEL 0
 
 // 调试选项：是否输出CAN数据接收日志
 // 0 - 不输出日志
 // 1 - 只输出错误日志
 // 2 - 输出所有日志（包括成功和错误）
-#define CAN_RX_LOG_LEVEL 2
+#define CAN_RX_LOG_LEVEL 0
 
 #define		ABS(x)		((x) > 0 ? (x) : -(x)) 
 

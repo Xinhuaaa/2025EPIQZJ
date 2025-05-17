@@ -76,6 +76,7 @@ typedef struct
     float Target_Speed;      // 目标速度
     float Current_Speed;     // 当前速度
     float Current_Accel;     // 当前加速度
+    float SmoothRef;
 
     //-----------------------------------
     // for calculating
@@ -124,6 +125,8 @@ typedef struct // config parameter
     // S型加减速参数
     float MaxAccel;      // 最大加速度
     float MaxJerk;       // 最大加加速度（急动度）
+    float SmoothRef;
+
 } PID_Init_Config_s;
 
 /**
