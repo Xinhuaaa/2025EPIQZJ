@@ -13,6 +13,7 @@
 #include "stm32f4xx_hal.h"     
 #include "chassis.h"
 #include "PID.h"
+#include "ADRC.h"  // 添加ADRC头文件
 #include "Hwt101.h"
 #include "Emm_V5_CAN.h"  
 #include <math.h>
@@ -63,10 +64,18 @@ typedef struct {
     PIDInstance    yaw;    // 偏航角PID控制器
 } ChassisPID_t;
 
+// 底盘ADRC控制器结构体
+typedef struct {
+    ADRC_Controller x;     // X方向ADRC控制器
+    ADRC_Controller y;     // Y方向ADRC控制器
+    ADRC_Controller yaw;   // 偏航角ADRC控制器
+} ChassisADRC_t;
+
 /* 全局变量 */
 static ChassisState_t  g_current_pos = {0};     // 当前位置
 static ChassisState_t  g_target_pos = {0};      // 目标位置
-static ChassisPID_t    g_pid = {0};             // PID控制器
+static ChassisPID_t    g_pid = {0};             // PID控制器（保留用于兼容）
+static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
 static uint16_t        g_encoder_values[4] = {0}; // 编码器值
 static TaskHandle_t    g_chassis_task_handle = NULL;
 static bool            g_chassis_task_running = false;
@@ -98,34 +107,71 @@ void Chassis_Init(void)
         return;  // 如果初始化失败，直接返回
     }
     
-    // 配置X、Y方向PID控制器（相同参数）
-    PID_Init_Config_s pid_config_xy = {
-        .Kp = 0.82f,               // 比例系数
-        .Ki = 0.05f,              // 积分系数
-        .Kd = 0.0f,               // 微分系数9
-        .MaxOut = 1.0f,           // 最大速度0.5m/s
-        .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Integral_Limit |PID_OutputFilter,
-        .IntegralLimit = 0.35f,    // 积分限幅
-        .Output_LPF_RC = 0.0f,     // 低通滤波常数
-        .MaxAccel = 0.0f,
-        .MaxJerk = 0.0f,
-    };
-    PIDInit(&g_pid.x, &pid_config_xy);
-    PIDInit(&g_pid.y, &pid_config_xy);
+    // // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
+    // PID_Init_Config_s pid_config_xy = {
+    //     .Kp = 0.82f,               // 比例系数
+    //     .Ki = 0.05f,              // 积分系数
+    //     .Kd = 0.0f,               // 微分系数
+    //     .MaxOut = 1.0f,           // 最大速度0.5m/s
+    //     .DeadBand = 0.00f,        // 1cm死区
+    //     .Improve = PID_Integral_Limit |PID_OutputFilter,
+    //     .IntegralLimit = 0.35f,    // 积分限幅
+    //     .Output_LPF_RC = 0.0f,     // 低通滤波常数
+    //     .MaxAccel = 0.0f,
+    //     .MaxJerk = 0.0f,
+    // };
+    // PIDInit(&g_pid.x, &pid_config_xy);
+    // PIDInit(&g_pid.y, &pid_config_xy);
     
-    // 配置偏航角PID控制器
-    PID_Init_Config_s pid_config_yaw = {
-        .Kp = 0.0f,               // 比例系数
-        .Ki = 0.0f,               // 积分系数
-        .Kd = 0.00f,              // 微分系数
-        .MaxOut = 10.0f,          // 最大角速度30度/s
-        .DeadBand = 0.5f,         // 0.5度死区
-        .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
-        .IntegralLimit = 0.0f,   // 积分限幅（度）
-        .Output_LPF_RC = 0.0f     // 低通滤波常数
+    // // 配置偏航角PID控制器（保留但不使用，用于兼容）
+    // PID_Init_Config_s pid_config_yaw = {
+    //     .Kp = 0.0f,               // 比例系数
+    //     .Ki = 0.0f,               // 积分系数
+    //     .Kd = 0.00f,              // 微分系数
+    //     .MaxOut = 10.0f,          // 最大角速度10度/s
+    //     .DeadBand = 0.5f,         // 0.5度死区
+    //     .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
+    //     .IntegralLimit = 0.0f,    // 积分限幅（度）
+    //     .Output_LPF_RC = 0.0f     // 低通滤波常数
+    // };
+    // PIDInit(&g_pid.yaw, &pid_config_yaw)
+    
+      // 初始化ADRC控制器
+    float h = 0.01f;  // 控制周期（和CHASSIS_TASK_PERIOD相同，单位s）    // 创建XY方向ADRC配置结构体
+    ADRC_Init_Config_t adrc_config_xy = {
+        .r = 1.5f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
+        .b0 = 0.8f,              // 系统增益（降低以减少过冲）
+        .max_output = 0.5f,       // 最大输出速度0.5m/s
+        .beta01 = 20.0f,          // ESO参数（降低以减缓观测器响应速度）
+        .beta02 = 60.0f,
+        .beta03 = 200.0f,
+        .beta1 = 0.5f,            // NLSEF参数
+        .beta2 = 0.7f,
+        .alpha1 = 0.75f,
+        .alpha2 = 1.5f,
+        .delta = 0.1f
     };
-    PIDInit(&g_pid.yaw, &pid_config_yaw);
+      // 创建偏航角ADRC配置结构体
+    ADRC_Init_Config_t adrc_config_yaw = {
+        .r = 0.8f,               // 跟踪速度因子（降低以减缓响应）
+        .h = CHASSIS_TASK_PERIOD/ 1000.0f,                   // 积分步长
+        .b0 = 0.4f,               // 系统增益（降低以减少过冲）
+        .max_output = 10.0f,      // 最大输出角速度10度/s
+        .beta01 = 40.0f,         // ESO参数（降低以平滑响应）
+        .beta02 = 120.0f,
+        .beta03 = 400.0f,
+        .beta1 = 0.45f,            // NLSEF参数（略微调整）
+        .beta2 = 0.7f,
+        .alpha1 = 0.7f,
+        .alpha2 = 1.4f,
+        .delta = 0.1f
+    };
+    
+    // 初始化控制器
+    ADRC_Init(&g_adrc.x, &adrc_config_xy);
+    ADRC_Init(&g_adrc.y, &adrc_config_xy);
+    ADRC_Init(&g_adrc.yaw, &adrc_config_yaw);
     
     // 电机初始化：使能、设置模式、清零编码器
     for (uint8_t i = 0; i < 4; i++) {
@@ -237,14 +283,15 @@ bool Chassis_Control_Loop(void)
     g_current_pos.y += global_dy;
     
     // 2. 计算位置误差并控制
-    
-    // 计算控制误差
+      // 计算控制误差
     float error_x = g_target_pos.x - g_current_pos.x;
     float error_y = g_target_pos.y - g_current_pos.y;
     float error_yaw = NormalizeAngleDeg(g_target_pos.yaw - g_current_pos.yaw);
-    float vx = PIDCalculate(&g_pid.x, g_target_pos.x, g_current_pos.x);
-    float vy = PIDCalculate(&g_pid.y, g_target_pos.y, g_current_pos.y);  
-    float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
+    
+    // 使用ADRC控制器计算控制量
+    float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
+    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_current_pos.yaw, g_target_pos.yaw);
     
     // 3. 计算轮子速度
     
@@ -272,7 +319,7 @@ bool Chassis_Control_Loop(void)
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
         uint16_t acc = 0; 
-        Emm_V5_Vel_Control(motor_ids[i], dir, speed , acc , 0 );
+        Emm_V5_Vel_Control(motor_ids[i],dir,speed,acc,0);
     }
     
     // 5. 判断是否到达目标位置
@@ -326,6 +373,62 @@ void Chassis_SetPIDParams(float kp_xy, float ki_xy, float kd_xy,
     g_pid.yaw.Kp = kp_yaw;
     g_pid.yaw.Ki = ki_yaw;
     g_pid.yaw.Kd = kd_yaw;
+}
+
+/**
+  * @brief  设置底盘ADRC控制器基本参数
+  * @param  r_xy XY方向跟踪速度因子
+  * @param  b0_xy XY方向系统增益
+  * @param  r_yaw 偏航角跟踪速度因子
+  * @param  b0_yaw 偏航角系统增益
+  * @retval 无
+  */
+void Chassis_SetADRCParams(float r_xy, float b0_xy, float r_yaw, float b0_yaw)
+{
+    // 更新XY方向ADRC参数
+    ADRC_SetTD(&g_adrc.x, r_xy);
+    g_adrc.x.b0 = b0_xy;
+    
+    ADRC_SetTD(&g_adrc.y, r_xy);
+    g_adrc.y.b0 = b0_xy;
+    
+    // 更新偏航角ADRC参数
+    ADRC_SetTD(&g_adrc.yaw, r_yaw);
+    g_adrc.yaw.b0 = b0_yaw;
+}
+
+/**
+  * @brief  设置底盘ADRC观测器参数
+  * @param  beta01_xy XY方向ESO反馈增益1
+  * @param  beta02_xy XY方向ESO反馈增益2
+  * @param  beta03_xy XY方向ESO反馈增益3
+  * @param  beta01_yaw 偏航角ESO反馈增益1
+  * @param  beta02_yaw 偏航角ESO反馈增益2
+  * @param  beta03_yaw 偏航角ESO反馈增益3
+  * @retval 无
+  */
+void Chassis_SetADRCESOParams(float beta01_xy, float beta02_xy, float beta03_xy,
+                             float beta01_yaw, float beta02_yaw, float beta03_yaw)
+{
+    // 更新XY方向ESO参数
+    ADRC_SetESO(&g_adrc.x, beta01_xy, beta02_xy, beta03_xy);
+    ADRC_SetESO(&g_adrc.y, beta01_xy, beta02_xy, beta03_xy);
+    
+    // 更新偏航角ESO参数
+    ADRC_SetESO(&g_adrc.yaw, beta01_yaw, beta02_yaw, beta03_yaw);
+}
+
+/**
+  * @brief  重置底盘控制器状态
+  * @note   清空控制器内部状态，包括积分项、观测器状态等
+  * @retval 无
+  */
+void Chassis_ResetController(void)
+{
+    // 重置ADRC控制器状态
+    ADRC_Reset(&g_adrc.x);
+    ADRC_Reset(&g_adrc.y);
+    ADRC_Reset(&g_adrc.yaw);
 }
 
 /**

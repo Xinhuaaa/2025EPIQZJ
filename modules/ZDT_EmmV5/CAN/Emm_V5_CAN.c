@@ -6,8 +6,8 @@
 #include "stdbool.h"
 #include "bsp_dwt.h"  
 
-#define CAN_SEND_DELAY_MS   1
-#define CAN_TX_TIMEOUT_MS   5.0f
+#define CAN_SEND_DELAY_MS   3
+#define CAN_TX_TIMEOUT_MS   10.0f
 #define MOTOR_LF_ID 5  // 左前轮ID
 #define MOTOR_RF_ID 6  // 右前轮ID
 #define MOTOR_LB_ID 7  // 左后轮ID
@@ -15,7 +15,7 @@
 // 编码器相关常量
 #define ENCODER_MAX     65536  // 编码器最大值
 #define ENCODER_HALF    32768  // 编码器最大值的一半
-
+#define CAN_CMD_LOG_LEVEL 2
 // 编码器累计值计算相关变量
 static int32_t last_raw_encoder[8] = {0};     // 上一次读取的原始编码器值
 static int32_t accumulated_encoder[8] = {0};  // 累积编码器值

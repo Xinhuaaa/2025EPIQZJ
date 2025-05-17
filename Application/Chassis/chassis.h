@@ -15,6 +15,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "ADRC.h" // 添加ADRC控制器头文件
 
 #define HWT101_ANGLE_RANGE     360.0f  // HWT101角度传感器范围
 
@@ -62,7 +63,7 @@ void Chassis_EmergencyStop(void);
 void Chassis_ResetPosition(void);
 
 /**
-  * @brief  设置底盘PID控制参数
+  * @brief  设置底盘PID控制参数 (保留用于兼容)
   * @param  kp_xy XY方向PID比例系数
   * @param  ki_xy XY方向PID积分系数
   * @param  kd_xy XY方向PID微分系数
@@ -73,6 +74,36 @@ void Chassis_ResetPosition(void);
   */
 void Chassis_SetPIDParams(float kp_xy, float ki_xy, float kd_xy, 
                          float kp_yaw, float ki_yaw, float kd_yaw);
+                         
+/**
+  * @brief  设置底盘ADRC控制器基本参数
+  * @param  r_xy XY方向跟踪速度因子
+  * @param  b0_xy XY方向系统增益
+  * @param  r_yaw 偏航角跟踪速度因子
+  * @param  b0_yaw 偏航角系统增益
+  * @retval 无
+  */
+void Chassis_SetADRCParams(float r_xy, float b0_xy, float r_yaw, float b0_yaw);
+
+/**
+  * @brief  设置底盘ADRC观测器参数
+  * @param  beta01_xy XY方向ESO反馈增益1
+  * @param  beta02_xy XY方向ESO反馈增益2
+  * @param  beta03_xy XY方向ESO反馈增益3
+  * @param  beta01_yaw 偏航角ESO反馈增益1
+  * @param  beta02_yaw 偏航角ESO反馈增益2
+  * @param  beta03_yaw 偏航角ESO反馈增益3
+  * @retval 无
+  */
+void Chassis_SetADRCESOParams(float beta01_xy, float beta02_xy, float beta03_xy,
+                             float beta01_yaw, float beta02_yaw, float beta03_yaw);
+
+/**
+  * @brief  重置底盘控制器状态
+  * @note   清空控制器内部状态，包括积分项、观测器状态等
+  * @retval 无
+  */
+void Chassis_ResetController(void);
 
 /* 函数声明别名 - 用于兼容性 */
 #define EMM_V5_Init           Emm_V5_Init

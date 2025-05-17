@@ -9,12 +9,12 @@ static float fal(float e, float alpha, float delta);
 /**
  * @brief 创建并初始化ADRC控制器
  */
-void ADRC_Init(ADRC_Controller *adrc, float r, float h, float b0, float max_output) {
+void ADRC_Init(ADRC_Controller *adrc, ADRC_Init_Config_t *config) {
     /* 基本参数设置 */
-    adrc->r = r;
-    adrc->h = h;
-    adrc->b0 = b0;
-    adrc->max_output = max_output;
+    adrc->r = config->r;
+    adrc->h = config->h;
+    adrc->b0 = config->b0;
+    adrc->max_output = config->max_output;
 
     /* TD参数初始化 */
     adrc->v1 = 0.0f;
@@ -22,20 +22,20 @@ void ADRC_Init(ADRC_Controller *adrc, float r, float h, float b0, float max_outp
     adrc->z1 = 0.0f;
     adrc->z2 = 0.0f;
 
-    /* ESO参数初始化 - 这些值需根据具体系统调整 */
-    adrc->beta01 = 100.0f;
-    adrc->beta02 = 300.0f;
-    adrc->beta03 = 1000.0f;
+    /* ESO参数初始化 */
+    adrc->beta01 = config->beta01;
+    adrc->beta02 = config->beta02;
+    adrc->beta03 = config->beta03;
     adrc->z01 = 0.0f;
     adrc->z02 = 0.0f;
     adrc->z03 = 0.0f;
 
     /* NLSEF参数初始化 */
-    adrc->beta1 = 0.5f;
-    adrc->beta2 = 0.8f;
-    adrc->alpha1 = 0.75f;
-    adrc->alpha2 = 1.5f;
-    adrc->delta = 0.1f;
+    adrc->beta1 = config->beta1;
+    adrc->beta2 = config->beta2;
+    adrc->alpha1 = config->alpha1;
+    adrc->alpha2 = config->alpha2;
+    adrc->delta = config->delta;
 
     /* 其他控制相关数据初始化 */
     adrc->u = 0.0f;
@@ -131,6 +131,34 @@ void ADRC_Reset(ADRC_Controller *adrc) {
     adrc->fh = 0.0f;
     adrc->e1 = 0.0f;
     adrc->e2 = 0.0f;
+}
+
+/**
+ * @brief 创建并初始化ADRC控制器(旧接口，保留兼容性)
+ */
+void ADRC_Init_Legacy(ADRC_Controller *adrc, float r, float h, float b0, float max_output) {
+    ADRC_Init_Config_t config;
+    
+    /* 设置基本参数 */
+    config.r = r;
+    config.h = h;
+    config.b0 = b0;
+    config.max_output = max_output;
+    
+    /* 默认ESO参数 */
+    config.beta01 = 100.0f;
+    config.beta02 = 300.0f;
+    config.beta03 = 1000.0f;
+    
+    /* 默认NLSEF参数 */
+    config.beta1 = 0.5f;
+    config.beta2 = 0.8f;
+    config.alpha1 = 0.75f;
+    config.alpha2 = 1.5f;
+    config.delta = 0.1f;
+    
+    /* 调用新的初始化函数 */
+    ADRC_Init(adrc, &config);
 }
 
 /**

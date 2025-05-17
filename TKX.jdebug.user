@@ -1,27 +1,28 @@
 
-GraphedExpression="((g_pid).x).Output", Color=#a00909
-GraphedExpression="current_encoder[0]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#09a01b
-GraphedExpression="current_encoder[1]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#09a087
-GraphedExpression="current_encoder[2]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#0984a0
-GraphedExpression="current_encoder[3]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#0964a0
-GraphedExpression="(g_current_pos).x", Color=#094fa0
-OpenDocument="main.c", FilePath="d:/TKX/Core/Src/main.c", Line=54
+GraphedExpression="current_encoder[0]", DisplayFormat=DISPLAY_FORMAT_DEC, Color=#a00909
+GraphedExpression="(g_current_pos).x", Color=#09a01b
+GraphedExpression="(g_current_pos).yaw", Color=#09a087
 OpenDocument="stm32f4xx_hal_can.h", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_can.h", Line=125
+OpenDocument="stm32f4xx_hal.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c", Line=141
+OpenDocument="main.c", FilePath="d:/TKX/Core/Src/main.c", Line=54
+OpenDocument="tasks.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3618
+OpenDocument="queue.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/queue.c", Line=1107
+OpenDocument="bsp_dwt.c", FilePath="d:/TKX/bsp/dwt/bsp_dwt.c", Line=48
 OpenDocument="bsp_can.h", FilePath="d:/TKX/bsp/can/bsp_can.h", Line=0
-OpenDocument="stm32f4xx_it.c", FilePath="d:/TKX/Core/Src/stm32f4xx_it.c", Line=89
+OpenDocument="stm32f4xx_it.c", FilePath="d:/TKX/Core/Src/stm32f4xx_it.c", Line=81
 OpenDocument="stm32f4xx_hal_uart.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=2562
+OpenDocument="core_cm4.h", FilePath="d:/TKX/Drivers/CMSIS/Include/core_cm4.h", Line=1641
 OpenDocument="stm32f4xx_hal_can.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c", Line=1391
-OpenDocument="tasks.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3633
-OpenDocument="bsp_can.c", FilePath="d:/TKX/bsp/can/bsp_can.c", Line=94
+OpenDocument="bsp_can.c", FilePath="d:/TKX/bsp/can/bsp_can.c", Line=118
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=602, h=145, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=602, h=860, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=1252, h=133, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=1252, h=476, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=1252, h=651, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="5 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=1, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="0;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="695;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="711;0"
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=602, h=437, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=602, h=568, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=1252, h=146, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=1252, h=473, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=1252, h=641, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="10 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="0;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1025;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="1041;0"
 OpenWindow="RTOS", DockArea=RIGHT, x=0, y=2, w=602, h=255, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, Showing=""
 TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[311;100;102;100;100;100]
-TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" ((g_pid).x).Output";" current_encoder[0]";" current_encoder[1]";" current_encoder[2]";" current_encoder[3]";" (g_current_pos).x"], ColWidths=[100;100;100;100;100;100;100;100]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" current_encoder[0]";" (g_current_pos).x";" (g_current_pos).yaw"], ColWidths=[100;100;100;100;100]
 TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;100;100;100;100;110;126;126]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
 TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;183;842]
@@ -33,3 +34,7 @@ WatchedExpression="90", Window=Watched Data 1
 WatchedExpression="g_target_pos", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="g_pid", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="g_target_pos", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="g_adrc", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="20", Window=Watched Data 1
+WatchedExpression="30", Window=Watched Data 1
+WatchedExpression="150", Window=Watched Data 1
