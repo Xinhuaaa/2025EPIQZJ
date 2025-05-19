@@ -23,16 +23,16 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("STM32F407VE");
-  Project.SetHostIF ("IP", "192.168.1.100");
+  Project.SetHostIF ("USB", "59102855");
   Project.SetTargetIF ("SWD");
-  Project.SetTIFSpeed ("4 MHz");
+  Project.SetTIFSpeed ("10 MHz");
   Project.AddPathSubstitute ("D:/TKX", "$(ProjectDir)");
   Project.AddPathSubstitute ("d:/tkx", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   //
   // User settings
   //
-  Edit.SysVar (VAR_HSS_SPEED, FREQ_5_KHZ);
+  Edit.SysVar (VAR_HSS_SPEED, FREQ_10_KHZ);
   File.Open ("$(ProjectDir)/build/Debug/TKX.elf");
 }
 

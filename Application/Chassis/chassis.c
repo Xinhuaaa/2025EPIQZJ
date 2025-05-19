@@ -103,7 +103,6 @@ void Chassis_Init(void)
     
     // 初始化Emm_V5电机驱动
     if (!Emm_V5_Init(motor_ids, 4)) {
-        printf("X42电机驱动初始化失败！\r\n");
         return;  // 如果初始化失败，直接返回
     }
     
@@ -137,19 +136,20 @@ void Chassis_Init(void)
     // PIDInit(&g_pid.yaw, &pid_config_yaw)
     
       // 初始化ADRC控制器
-    float h = 0.01f;  // 控制周期（和CHASSIS_TASK_PERIOD相同，单位s）    // 创建XY方向ADRC配置结构体
+  float h = 0.01f;  // 控制周期（和CHASSIS_TASK_PERIOD相同，单位s）    // 创建XY方向ADRC配置结构体
     ADRC_Init_Config_t adrc_config_xy = {
-        .r = 1.5f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .r = 0.75f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 0.8f,              // 系统增益（降低以减少过冲）
-        .max_output = 0.5f,       // 最大输出速度0.5m/s
-        .beta01 = 20.0f,          // ESO参数（降低以减缓观测器响应速度）
-        .beta02 = 60.0f,
-        .beta03 = 200.0f,
+        .b0 = 0.85f,              // 系统增益（降低以减少过冲）
+        .max_output = 0.35f,       // 最大输出速度0.5m/s
+        .w0 = 0.43f,
+        .beta01 = 3 * adrc_config_xy.w0,          // ESO 
+        .beta02 = 3 * adrc_config_xy.w0 * adrc_config_xy.w0,
+        .beta03 =adrc_config_xy.w0 * adrc_config_xy.w0 * adrc_config_xy.w0,
         .beta1 = 0.5f,            // NLSEF参数
         .beta2 = 0.7f,
-        .alpha1 = 0.75f,
-        .alpha2 = 1.5f,
+        .alpha1 = 0.31f,
+        .alpha2 = 0.75f,
         .delta = 0.1f
     };
       // 创建偏航角ADRC配置结构体
@@ -181,7 +181,7 @@ void Chassis_Init(void)
         Emm_V5_En_Control(motor_id, true, 0);
         
         // 设置闭环模式
-        Emm_V5_Modify_Ctrl_Mode(motor_id, true, 2); // 2 = 闭环模式
+        Emm_V5_Modify_Ctrl_Mode(motor_id, true, 2); 
         
         // 清零位置
         Emm_V5_Reset_CurPos_To_Zero(motor_id);
@@ -290,8 +290,10 @@ bool Chassis_Control_Loop(void)
     
     // 使用ADRC控制器计算控制量
     float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
-    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
-    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_current_pos.yaw, g_target_pos.yaw);
+    // float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    float vy = 0;
+    // float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_current_pos.yaw, g_target_pos.yaw);
+    float vyaw_deg = 0;
     
     // 3. 计算轮子速度
     

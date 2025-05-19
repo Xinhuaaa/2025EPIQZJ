@@ -14,6 +14,7 @@ typedef struct {
     float max_output;  // 控制器最大输出
     
     /* ESO参数 - 扩张状态观测器 */
+    float w0;       // ESO增益
     float beta01;      // ESO反馈增益1
     float beta02;      // ESO反馈增益2
     float beta03;      // ESO反馈增益3
@@ -42,6 +43,7 @@ typedef struct {
     float z2;       // TD中间变量
     
     /* ESO参数 - 扩张状态观测器 */
+    float w0;      // ESO增益    
     float beta01;   // ESO反馈增益1
     float beta02;   // ESO反馈增益2
     float beta03;   // ESO反馈增益3
