@@ -91,7 +91,6 @@ static const float g_mecanum_matrix[4][3] = {
 
 /* 前向声明 */
 static void Chassis_Task(void *argument);
-static float NormalizeAngleDeg(float angle_deg);
 
 /**
   * @brief  底盘初始化函数
@@ -138,33 +137,34 @@ void Chassis_Init(void)
       // 初始化ADRC控制器
   float h = 0.01f;  // 控制周期（和CHASSIS_TASK_PERIOD相同，单位s）    // 创建XY方向ADRC配置结构体
     ADRC_Init_Config_t adrc_config_xy = {
-        .r = 0.75f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 0.85f,              // 系统增益（降低以减少过冲）
-        .max_output = 0.35f,       // 最大输出速度0.5m/s
-        .w0 = 0.43f,
-        .beta01 = 3 * adrc_config_xy.w0,          // ESO 
-        .beta02 = 3 * adrc_config_xy.w0 * adrc_config_xy.w0,
-        .beta03 =adrc_config_xy.w0 * adrc_config_xy.w0 * adrc_config_xy.w0,
-        .beta1 = 0.5f,            // NLSEF参数
-        .beta2 = 0.7f,
+        .b0 = 1.5f,              // 系统增益（降低以减少过冲）
+        .max_output = 0.5f,       // 最大输出速度0.5m/s
+        .w0 = 0.30f,
+        .beta01 = 40,          // ESO 
+        .beta02 = 40,
+        .beta03 =0.01,
+        .beta1 = 0.15f,            // NLSEF参数
+        .beta2 = 1.5f,
         .alpha1 = 0.31f,
         .alpha2 = 0.75f,
         .delta = 0.1f
     };
       // 创建偏航角ADRC配置结构体
     ADRC_Init_Config_t adrc_config_yaw = {
-        .r = 0.8f,               // 跟踪速度因子（降低以减缓响应）
-        .h = CHASSIS_TASK_PERIOD/ 1000.0f,                   // 积分步长
-        .b0 = 0.4f,               // 系统增益（降低以减少过冲）
-        .max_output = 10.0f,      // 最大输出角速度10度/s
-        .beta01 = 40.0f,         // ESO参数（降低以平滑响应）
-        .beta02 = 120.0f,
-        .beta03 = 400.0f,
-        .beta1 = 0.45f,            // NLSEF参数（略微调整）
-        .beta2 = 0.7f,
-        .alpha1 = 0.7f,
-        .alpha2 = 1.4f,
+        .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
+        .b0 = 0.18f,              // 系统增益（降低以减少过冲）
+        .max_output = 10.0f,       // 最大输出速度0.5m/s
+        .w0 = 0.30f,
+        .beta01 = 40,          // ESO 
+        .beta02 = 40,
+        .beta03 =0.01,
+        .beta1 = 1.5f,            // NLSEF参数
+        .beta2 = 0.31f,
+        .alpha1 = 0.31f,
+        .alpha2 = 0.75f,
         .delta = 0.1f
     };
     
@@ -209,7 +209,7 @@ void  Chassis_SetTargetPosition(float x, float y, float yaw)
 {
     g_target_pos.x = x;
     g_target_pos.y = y;
-    g_target_pos.yaw = NormalizeAngleDeg(yaw); // 标准化目标角度
+    g_target_pos.yaw = yaw; // 标准化目标角度
 }
 
 /**
@@ -254,7 +254,7 @@ bool Chassis_Control_Loop(void)
     // 1. 更新底盘位置
     
     // 更新底盘朝向角度（来自陀螺仪）
-    g_current_pos.yaw = NormalizeAngleDeg(Angle);
+    g_current_pos.yaw = Angle;
     
     // 读取电机编码器值
     Emm_V5_Get_All_Encoders(current_encoder);
@@ -286,14 +286,12 @@ bool Chassis_Control_Loop(void)
       // 计算控制误差
     float error_x = g_target_pos.x - g_current_pos.x;
     float error_y = g_target_pos.y - g_current_pos.y;
-    float error_yaw = NormalizeAngleDeg(g_target_pos.yaw - g_current_pos.yaw);
+    float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
     
     // 使用ADRC控制器计算控制量
     float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
-    // float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
-    float vy = 0;
-    // float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_current_pos.yaw, g_target_pos.yaw);
-    float vyaw_deg = 0;
+    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
     
     // 3. 计算轮子速度
     
@@ -431,16 +429,4 @@ void Chassis_ResetController(void)
     ADRC_Reset(&g_adrc.x);
     ADRC_Reset(&g_adrc.y);
     ADRC_Reset(&g_adrc.yaw);
-}
-
-/**
-  * @brief  规范化角度到[-180, 180]度
-  * @param  angle_deg 输入角度（度）
-  * @retval 规范化后的角度（度）
-  */
-static float NormalizeAngleDeg(float angle_deg)
-{
-    while (angle_deg > 180.0f) angle_deg -= 360.0f;
-    while (angle_deg <= -180.0f) angle_deg += 360.0f;
-    return angle_deg;
 }

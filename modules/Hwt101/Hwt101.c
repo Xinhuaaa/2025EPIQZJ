@@ -12,7 +12,9 @@ SemaphoreHandle_t HWT101_DataReadySemaphore = NULL;
 TaskHandle_t HWT101_TaskHandle = NULL;
 
 uint8_t DMA_buf[30] = {0};
-float Angle = 0;  // Z轴角度
+float Angle = 0;  // Z轴累计角度
+float PrevRawAngle = 0; // 上一次的原始角度值
+float TotalAngle = 0;   // 累计角度值
 
 // Z轴角度归零命令
 uint8_t CALIYAW[] = {0xFF,0xAA,0x76,0x00,0x00};
@@ -24,6 +26,10 @@ uint8_t CALIYAW[] = {0xFF,0xAA,0x76,0x00,0x00};
  */
 void HWT101_Init(void)
 {
+    // 初始化角度相关变量
+    Angle = 0.0f;
+    PrevRawAngle = 0.0f;
+    TotalAngle = 0.0f;
     
     // 创建信号量
     HWT101_DataReadySemaphore = xSemaphoreCreateBinary();
@@ -50,13 +56,36 @@ void HWT101_Init(void)
  */
 void HWT101_Data_Proc(void)
 {
-    // 计算角度，将原始数据转换为角度值
-    Angle = (float)((DMA_buf[18]<<8)|DMA_buf[17])/32768*180;
-    // 将角度范围转换为-180到180度
-    if (Angle > 180.0f)
-    {
-        Angle = Angle - 360.0f;
+    // 计算当前原始角度，将原始数据转换为角度值
+    float currentRawAngle = (float)((DMA_buf[18]<<8)|DMA_buf[17])/32768*180;
+    
+    // 将原始角度标准化至[-180, 180]范围内（如果传感器没有这样做的话）
+    if (currentRawAngle > 180.0f) {
+        currentRawAngle -= 360.0f;
     }
+    
+    // 首次运行时初始化PrevRawAngle
+    if (PrevRawAngle == 0 && TotalAngle == 0) {
+        PrevRawAngle = currentRawAngle;
+    }
+    
+    // 计算角度变化值
+    float deltaAngle = currentRawAngle - PrevRawAngle;
+    
+    // 处理角度穿越问题（例如从179度到-179度的变化）
+    if (deltaAngle > 180.0f) {
+        deltaAngle -= 360.0f;
+    } else if (deltaAngle < -180.0f) {
+        deltaAngle += 360.0f;
+    }
+    
+    // 更新累计角度
+    TotalAngle += deltaAngle;
+    
+    // 更新Angle和PrevRawAngle变量
+    Angle = TotalAngle;
+    PrevRawAngle = currentRawAngle;
+    
     // 校验和
     if(DMA_buf[21] != (uint8_t)(0x55+0x53+DMA_buf[17]+DMA_buf[18]+DMA_buf[19]+DMA_buf[20]))
     {

@@ -20,7 +20,9 @@ extern SemaphoreHandle_t HWT101_DataReadySemaphore;
 extern TaskHandle_t HWT101_TaskHandle;
 
 /* 角度数据 */
-extern float Angle;
+extern float Angle;        // Z轴累计角度
+extern float PrevRawAngle; // 上一次的原始角度值
+extern float TotalAngle;   // 累计角度值
 
 /* 函数声明 */
 void HWT101_Init(void);

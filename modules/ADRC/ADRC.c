@@ -23,8 +23,6 @@ void ADRC_Init(ADRC_Controller *adrc, ADRC_Init_Config_t *config) {
     adrc->z2 = 0.0f;
 
     /* ESO参数初始化 */
-
-    adrc->w0 = config->w0;
     adrc->beta01 = config->beta01;
     adrc->beta02 = config->beta02;
     adrc->beta03 = config->beta03;

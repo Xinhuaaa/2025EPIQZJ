@@ -39,10 +39,10 @@
   
   /* 预定义导航路径点 */
   const NavigationPoint_t predefinedPath[] = {
-      {1.6f, 0.0f, 0.0f},     // 向前移动1米
-      {1.6f, 0.0f, 0.0f},    // 向右移动1米并旋转90度
-      {0.0f, 0.0f, 0.0f},   // 向后移动1米并旋转到180度
-      {0.0f, 0.0f, 0.0f}      // 回到原点并恢复0度方向
+      {0.0f, 0.0f, 0.0f},     // 向前移动1米
+      {0.0f, 0.0f, 90.0f},    // 向右移动1米并旋转90度
+      {0.0f, 0.0f, 180.0f},   // 向后移动1米并旋转到180度
+      {0.0f, 0.0f, 270.0f}      // 回到原点并恢复0度方向
   };
   
   /**
@@ -136,7 +136,7 @@
               if (distanceError < 0.02f && yawError < 1.5f)
               {
                   printf("到达导航点 %d\r\n", currentPointIndex + 1);
-                  osDelay(pdMS_TO_TICKS(3000)); // 等待1秒钟
+                  osDelay(pdMS_TO_TICKS(5000)); // 等待1秒钟
               if (distanceError < 0.02f && yawError < 1.5f)
               {
                   // 前往下一个导航点
