@@ -160,9 +160,9 @@ void Chassis_Init(void)
         .w0 = 0.00f,
         .beta01 = 50,          // ESO 
         .beta02 = 40,
-        .beta03 =0.01,
-        .beta1 = 2.0f,            // NLSEF参数
-        .beta2 = 5.0f,
+        .beta03 =0.9,
+        .beta1 = 1.0f         // NLSEF参数
+        .beta2 = 3.0f,
         .alpha1 = 2.2f,
         .alpha2 = 0.5f,
         .delta = 0.1f

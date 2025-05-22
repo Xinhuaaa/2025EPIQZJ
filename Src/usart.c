@@ -19,9 +19,55 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "usart.h"
+#include <stdbool.h>  // 添加stdbool.h头文件
 
 /* USER CODE BEGIN 0 */
+// 声明从ZDT_X42_V2.c导入的变量
+extern volatile bool rxFrameFlag;
+extern uint8_t u_rxCmd[64];
+extern uint8_t u_rxCount;
 
+// UART接收缓冲区
+uint8_t rx_buffer[64];
+
+void Custom_UART_Start_Receive_DMA(UART_HandleTypeDef *huart)
+{
+    // 开启UART的IDLE中断
+    __HAL_UART_ENABLE_IT(huart, UART_IT_IDLE);
+    
+    // 启动DMA接收
+    HAL_UART_Receive_DMA(huart, rx_buffer, sizeof(rx_buffer));
+}
+
+// UART空闲中断回调函数
+void UART_IDLE_Callback(UART_HandleTypeDef *huart)
+{
+    // 判断是否是USART2的空闲中断（用于电机控制）
+    if(huart->Instance == USART2)
+    {
+        // 清除空闲中断标志
+        __HAL_UART_CLEAR_IDLEFLAG(huart);
+        
+        // 停止DMA接收
+        HAL_UART_DMAStop(huart);
+        
+        // 计算接收到的数据长度
+        u_rxCount = sizeof(rx_buffer) - __HAL_DMA_GET_COUNTER(huart->hdmarx);
+        
+        // 将接收到的数据拷贝到命令缓冲区
+        if(u_rxCount > 0 && u_rxCount <= sizeof(rx_buffer))
+        {
+            for(uint8_t i = 0; i < u_rxCount; i++)
+            {
+                u_rxCmd[i] = rx_buffer[i];
+            }
+            rxFrameFlag = true;  // 设置帧接收完成标志
+        }
+        
+        // 重新启动DMA接收
+        HAL_UART_Receive_DMA(huart, rx_buffer, sizeof(rx_buffer));
+    }
+}
 /* USER CODE END 0 */
 
 UART_HandleTypeDef huart2;
@@ -56,7 +102,8 @@ void MX_USART2_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART2_Init 2 */
-
+  // 启动UART2的DMA接收模式
+  Custom_UART_Start_Receive_DMA(&huart2);
   /* USER CODE END USART2_Init 2 */
 
 }
@@ -85,7 +132,8 @@ void MX_USART6_UART_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN USART6_Init 2 */
-
+  // 启动UART6的DMA接收模式，用于ZDT_X42_V2步进闭环控制器通信
+  Custom_UART_Start_Receive_DMA(&huart6);
   /* USER CODE END USART6_Init 2 */
 
 }
