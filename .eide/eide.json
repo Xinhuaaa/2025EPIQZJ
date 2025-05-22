@@ -3,14 +3,12 @@
   "type": "ARM",
   "dependenceList": [],
   "srcDirs": [
-    "Drivers/STM32F4xx_HAL_Driver/Src",
-    "Middlewares/Third_Party/FreeRTOS/Source",
-    "Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F",
     "Application",
     "bsp",
     "Middlewares",
     "modules",
-    "Src"
+    "Src",
+    "Drivers"
   ],
   "virtualFolder": {
     "name": "<virtual_root>",
