@@ -39,9 +39,9 @@
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR",
-        "modules/dji_motor",
         "modules/ZDT_X42",
-        "modules/ZDT_EmmV5/Emm_V5.c"
+        "modules/ZDT_EmmV5/Emm_V5.c",
+        "modules/dji_motor"
       ],
       "toolchain": "GCC",
       "compileConfig": {

@@ -153,18 +153,18 @@ void Chassis_Init(void)
     };
       // 创建偏航角ADRC配置结构体
     ADRC_Init_Config_t adrc_config_yaw = {
-        .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .r = 2.0f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 0.18f,              // 系统增益（降低以减少过冲）
+        .b0 = 0.1f,              // 系统增益（降低以减少过冲）
         .max_output = 10.0f,       // 最大输出速度0.5m/s
-        .w0 = 0.30f,
-        .beta01 = 40,          // ESO 
+        .w0 = 0.00f,
+        .beta01 = 50,          // ESO 
         .beta02 = 40,
         .beta03 =0.01,
-        .beta1 = 1.5f,            // NLSEF参数
-        .beta2 = 0.31f,
-        .alpha1 = 0.31f,
-        .alpha2 = 0.75f,
+        .beta1 = 2.0f,            // NLSEF参数
+        .beta2 = 5.0f,
+        .alpha1 = 2.2f,
+        .alpha2 = 0.5f,
         .delta = 0.1f
     };
     

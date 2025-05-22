@@ -1,9 +1,12 @@
 #include "dji_motor.h"
-#include "general_def.h"
 #include "bsp_dwt.h"
 #include "bsp_log.h"
+#include "bsp_can.h"
+#include "can.h"
 
-static uint8_t idx = 0; // register idx,是该文件的全局电机索引,在注册时使用
+// RPM转为角速度的系数 (度/秒)
+#define RPM_2_ANGLE_PER_SEC (360.0f/60.0f)
+static uint8_t motor_idx = 0; // register idx,是该文件的全局电机索引,在注册时使用
 /* DJI电机的实例,此处仅保存指针,内存的分配将通过电机实例初始化时通过malloc()进行 */
 static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在control任务中遍历该指针数组进行pid计算
 
@@ -12,20 +15,12 @@ static DJIMotorInstance *dji_motor_instance[DJI_MOTOR_CNT] = {NULL}; // 会在co
  *        该变量将在 DJIMotorControl() 中使用,分组在 MotorSenderGrouping()中进行
  *
  * @note  因为只用于发送,所以不需要在bsp_can中注册
- *
- * C610(m2006)/C620(m3508):0x1ff,0x200;
- * GM6020:0x1ff,0x2ff
- * 反馈(rx_id): GM6020: 0x204+id ; C610/C620: 0x200+id
- * can1: [0]:0x1FF,[1]:0x200,[2]:0x2FF
- * can2: [3]:0x1FF,[4]:0x200,[5]:0x2FF
+ * @note  该变量的tx_buff在DJIMotorControl()中进行赋值,并在CANTransmit()中进行发送
  */
-static CANInstance sender_assignment[6] = {
+static CANInstance sender_assignment[3] = {
     [0] = {.can_handle = &hcan1, .txconf.StdId = 0x1ff, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
     [1] = {.can_handle = &hcan1, .txconf.StdId = 0x200, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
     [2] = {.can_handle = &hcan1, .txconf.StdId = 0x2ff, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
-    [3] = {.can_handle = &hcan2, .txconf.StdId = 0x1ff, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
-    [4] = {.can_handle = &hcan2, .txconf.StdId = 0x200, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
-    [5] = {.can_handle = &hcan2, .txconf.StdId = 0x2ff, .txconf.IDE = CAN_ID_STD, .txconf.RTR = CAN_RTR_DATA, .txconf.DLC = 0x08, .tx_buff = {0}},
 };
 
 /**
@@ -44,72 +39,31 @@ static void MotorSenderGrouping(DJIMotorInstance *motor, CAN_Init_Config_s *conf
     uint8_t motor_send_num;
     uint8_t motor_grouping;
 
-    switch (motor->motor_type)
+    if (motor_id < 4) // 根据ID分组
     {
-    case M2006:
-    case M3508:
-        if (motor_id < 4) // 根据ID分组
-        {
-            motor_send_num = motor_id;
-            motor_grouping = config->can_handle == &hcan1 ? 1 : 4;
-        }
-        else
-        {
-            motor_send_num = motor_id - 4;
-            motor_grouping = config->can_handle == &hcan1 ? 0 : 3;
-        }
+        motor_send_num = motor_id;
+        motor_grouping = config->can_handle == &hcan1 ? 1 : 4;
+    }
+    else
+    {
+        motor_send_num = motor_id - 4;
+        motor_grouping = config->can_handle == &hcan1 ? 0 : 3;
+    }
 
-        // 计算接收id并设置分组发送id
-        config->rx_id = 0x200 + motor_id + 1;   // 把ID+1,进行分组设置
-        sender_enable_flag[motor_grouping] = 1; // 设置发送标志位,防止发送空帧
-        motor->message_num = motor_send_num;
-        motor->sender_group = motor_grouping;
-
-        // 检查是否发生id冲突
-        for (size_t i = 0; i < idx; ++i)
+    // 计算接收id并设置分组发送id
+    config->rx_id = 0x200 + motor_id + 1;   // 把ID+1,进行分组设置
+    sender_enable_flag[motor_grouping] = 1; // 设置发送标志位,防止发送空帧
+    motor->message_num = motor_send_num;
+    motor->sender_group = motor_grouping;    // 检查是否发生id冲突
+    for (size_t i = 0; i < motor_idx; ++i)
+    {
+        if (dji_motor_instance[i]->motor_can_instance->can_handle == config->can_handle && dji_motor_instance[i]->motor_can_instance->rx_id == config->rx_id)
         {
-            if (dji_motor_instance[i]->motor_can_instance->can_handle == config->can_handle && dji_motor_instance[i]->motor_can_instance->rx_id == config->rx_id)
-            {
-                LOGERROR("[dji_motor] ID crash. Check in debug mode, add dji_motor_instance to watch to get more information.");
-                uint16_t can_bus = config->can_handle == &hcan1 ? 1 : 2;
-                while (1) // 6020的id 1-4和2006/3508的id 5-8会发生冲突(若有注册,即1!5,2!6,3!7,4!8) (1!5!,LTC! (((不是)
-                    LOGERROR("[dji_motor] id [%d], can_bus [%d]", config->rx_id, can_bus);
-            }
+            LOGERROR("[dji_motor] ID crash. Check in debug mode, add dji_motor_instance to watch to get more information.");
+            uint16_t can_bus = config->can_handle == &hcan1 ? 1 : 2;
+            while (1)
+                LOGERROR("[dji_motor] id [%d], can_bus [%d]", config->rx_id, can_bus);
         }
-        break;
-
-    case GM6020:
-        if (motor_id < 4)
-        {
-            motor_send_num = motor_id;
-            motor_grouping = config->can_handle == &hcan1 ? 0 : 3;
-        }
-        else
-        {
-            motor_send_num = motor_id - 4;
-            motor_grouping = config->can_handle == &hcan1 ? 2 : 5;
-        }
-
-        config->rx_id = 0x204 + motor_id + 1;   // 把ID+1,进行分组设置
-        sender_enable_flag[motor_grouping] = 1; // 只要有电机注册到这个分组,置为1;在发送函数中会通过此标志判断是否有电机注册
-        motor->message_num = motor_send_num;
-        motor->sender_group = motor_grouping;
-
-        for (size_t i = 0; i < idx; ++i)
-        {
-            if (dji_motor_instance[i]->motor_can_instance->can_handle == config->can_handle && dji_motor_instance[i]->motor_can_instance->rx_id == config->rx_id)
-            {
-                LOGERROR("[dji_motor] ID crash. Check in debug mode, add dji_motor_instance to watch to get more information.");
-                uint16_t can_bus = config->can_handle == &hcan1 ? 1 : 2;
-                while (1) // 6020的id 1-4和2006/3508的id 5-8会发生冲突(若有注册,即1!5,2!6,3!7,4!8) (1!5!,LTC! (((不是)
-                    LOGERROR("[dji_motor] id [%d], can_bus [%d]", config->rx_id, can_bus);
-            }
-        }
-        break;
-
-    default: // other motors should not be registered here
-        while (1)
-            LOGERROR("[dji_motor]You must not register other motors using the API of DJI motor."); // 其他电机不应该在这里注册
     }
 }
 
@@ -125,10 +79,7 @@ static void DecodeDJIMotor(CANInstance *_instance)
     // _instance指针指向的id是对应电机instance的地址,通过强制转换为电机instance的指针,再通过->运算符访问电机的成员motor_measure,最后取地址获得指针
     uint8_t *rxbuff = _instance->rx_buff;
     DJIMotorInstance *motor = (DJIMotorInstance *)_instance->id;
-    DJI_Motor_Measure_s *measure = &motor->measure; // measure要多次使用,保存指针减小访存开销
-
-    DaemonReload(motor->daemon);
-    motor->dt = DWT_GetDeltaT(&motor->feed_cnt);
+    DJI_Motor_Measure_s *measure = &motor->measure; // measure要多次使用,保存指针减小访存开销    motor->dt = DWT_GetDeltaT(&motor->feed_cnt);
 
     // 解析数据并对电流和速度进行滤波,电机的反馈报文具体格式见电机说明手册
     measure->last_ecd = measure->ecd;
@@ -148,21 +99,14 @@ static void DecodeDJIMotor(CANInstance *_instance)
     measure->total_angle = measure->total_round * 360 + measure->angle_single_round;
 }
 
-static void DJIMotorLostCallback(void *motor_ptr)
-{
-    DJIMotorInstance *motor = (DJIMotorInstance *)motor_ptr;
-    uint16_t can_bus = motor->motor_can_instance->can_handle == &hcan1 ? 1 : 2;
-    LOGWARNING("[dji_motor] Motor lost, can bus [%d] , id [%d]", can_bus, motor->motor_can_instance->tx_id);
-}
+// 移除了守护进程相关功能
 
 // 电机初始化,返回一个电机实例
 DJIMotorInstance *DJIMotorInit(Motor_Init_Config_s *config)
 {
     DJIMotorInstance *instance = (DJIMotorInstance *)malloc(sizeof(DJIMotorInstance));
-    memset(instance, 0, sizeof(DJIMotorInstance));
-
-    // motor basic setting 电机基本设置
-    instance->motor_type = config->motor_type;                         // 6020 or 2006 or 3508
+    memset(instance, 0, sizeof(DJIMotorInstance));    // motor basic setting 电机基本设置
+    instance->motor_type = config->motor_type;                         // M2006(C610)
     instance->motor_settings = config->controller_setting_init_config; // 正反转,闭环类型等
 
     // motor controller init 电机控制器初始化
@@ -181,18 +125,8 @@ DJIMotorInstance *DJIMotorInit(Motor_Init_Config_s *config)
     // 注册电机到CAN总线
     config->can_init_config.can_module_callback = DecodeDJIMotor; // set callback
     config->can_init_config.id = instance;                        // set id,eq to address(it is identity)
-    instance->motor_can_instance = CANRegister(&config->can_init_config);
-
-    // 注册守护线程
-    Daemon_Init_Config_s daemon_config = {
-        .callback = DJIMotorLostCallback,
-        .owner_id = instance,
-        .reload_count = 2, // 20ms未收到数据则丢失
-    };
-    instance->daemon = DaemonRegister(&daemon_config);
-
-    DJIMotorEnable(instance);
-    dji_motor_instance[idx++] = instance;
+    instance->motor_can_instance = CANRegister(&config->can_init_config);    // 移除了守护进程注册功能    DJIMotorEnable(instance);
+    dji_motor_instance[motor_idx++] = instance;
     return instance;
 }
 
@@ -232,17 +166,15 @@ void DJIMotorSetRef(DJIMotorInstance *motor, float ref)
 // 为所有电机实例计算三环PID,发送控制报文
 void DJIMotorControl()
 {
-    // 直接保存一次指针引用从而减小访存的开销,同样可以提高可读性
     uint8_t group, num; // 电机组号和组内编号
     int16_t set;        // 电机控制CAN发送设定值
     DJIMotorInstance *motor;
     Motor_Control_Setting_s *motor_setting; // 电机控制参数
     Motor_Controller_s *motor_controller;   // 电机控制器
-    DJI_Motor_Measure_s *measure;           // 电机测量值
-    float pid_measure, pid_ref;             // 电机PID测量值和设定值
+    DJI_Motor_Measure_s *measure;           // 电机测量值    float pid_measure, pid_ref;             // 电机PID测量值和设定值
 
     // 遍历所有电机实例,进行串级PID的计算并设置发送报文的值
-    for (size_t i = 0; i < idx; ++i)
+    for (size_t i = 0; i < motor_idx; ++i)
     { // 减小访存开销,先保存指针引用
         motor = dji_motor_instance[i];
         motor_setting = &motor->motor_settings;
