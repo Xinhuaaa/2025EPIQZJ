@@ -9,7 +9,6 @@
 
 #define CAN_RX_QUEUE_SIZE 8
 #define CAN_MX_REGISTER_CNT 16
-#define CAN_DEBUG 0
 /* CAN 接收消息结构 */
 typedef struct {
     CAN_HandleTypeDef *hcan;
@@ -81,15 +80,21 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
     }
     if (idx >= CAN_MX_REGISTER_CNT)
     {
-        while (1)
+        
+         #ifdef CAN_DEBUG
+         while (1)
             LOGERROR("[bsp_can] CAN instance exceeded MAX num");
+            #endif
     }
     for (size_t i = 0; i < idx; i++)
     {
         if (can_instance[i]->rx_id == config->rx_id && can_instance[i]->can_handle == config->can_handle)
         {
-            while (1)
+            
+             #ifdef CAN_DEBUG
+             while (1)
                 LOGERROR("[bsp_can] CAN id crash, tx [%d] or rx [%d] already registered", config->tx_id, config->rx_id);
+                #endif
         }
     }    CANInstance *instance = (CANInstance *)malloc(sizeof(CANInstance));
     memset(instance, 0, sizeof(CANInstance));
@@ -115,9 +120,10 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
     instance->rx_counter = 0; // 初始化接收计数器
     
     // 打印实例初始化信息
+    #ifdef CAN_DEBUG
     LOGINFO("[bsp_can] 注册CAN实例: rx_id=0x%08X, tx_id=0x%08X, use_ext_id=%d", 
           instance->rx_id, instance->tx_id, instance->use_ext_id);
-
+    #endif
     CANAddFilter(instance);
     can_instance[idx++] = instance;
 
@@ -134,7 +140,9 @@ uint8_t CANTransmit(CANInstance *_instance, float timeout)
     {
         if (DWT_GetTimeline_ms() - dwt_start > timeout)
         {
+            #ifdef CAN_DEBUG
             LOGWARNING("[bsp_can] CAN MAILbox full! Cnt [%d]", busy_count);
+            #endif
             busy_count++;
             osMutexRelease(can_tx_mutex);
             return 0;
@@ -143,7 +151,9 @@ uint8_t CANTransmit(CANInstance *_instance, float timeout)
 
     if (HAL_CAN_AddTxMessage(_instance->can_handle, &_instance->txconf, _instance->tx_buff, &_instance->tx_mailbox))
     {
+        #ifdef CAN_DEBUG
         LOGWARNING("[bsp_can] CAN bus BUS! cnt:%d", busy_count);
+        #endif
         busy_count++;
         osMutexRelease(can_tx_mutex);
         return 0;
@@ -179,10 +189,10 @@ static void CANFIFOxCallback(CAN_HandleTypeDef *_hcan, uint32_t fifox)
                     match = (rxconf.ExtId == can_instance[i]->rx_id);
                     #ifdef CAN_DEBUG
                     if (match) {
-                        // LOGINFO("[CAN] 匹配到扩展帧: ID=0x%08X, 实际数据:", rxconf.ExtId);
-                        // for (int j = 0; j < rxconf.DLC; j++) {
-                        //     LOGINFO("  can_rx_buff[%d]=0x%02X", j, can_rx_buff[j]);
-                        // }
+                        LOGINFO("[CAN] 匹配到扩展帧: ID=0x%08X, 实际数据:", rxconf.ExtId);
+                        for (int j = 0; j < rxconf.DLC; j++) {
+                            LOGINFO("  can_rx_buff[%d]=0x%02X", j, can_rx_buff[j]);
+                        }
                     }
                     #endif
                 }
@@ -192,18 +202,19 @@ static void CANFIFOxCallback(CAN_HandleTypeDef *_hcan, uint32_t fifox)
                     match = (rxconf.StdId == can_instance[i]->rx_id);
                 }
             }
-            
-            if (match)
+              if (match)
             {
+                can_instance[i]->rx_len = rxconf.DLC;                      // 保存接收到的数据长度
+                memcpy(can_instance[i]->rx_buff, can_rx_buff, rxconf.DLC); // 消息拷贝到对应实例                    
+                // 更新接收计数器和事件标志
+                can_instance[i]->rx_counter++;
+                if (can_instance[i]->rx_event) {
+                    osEventFlagsSet(can_instance[i]->rx_event, 0x01);
+                }
+                
                 if (can_instance[i]->can_module_callback != NULL) // 回调函数不为空就调用
                 {
-                    can_instance[i]->rx_len = rxconf.DLC;                      // 保存接收到的数据长度
-                    memcpy(can_instance[i]->rx_buff, can_rx_buff, rxconf.DLC); // 消息拷贝到对应实例                    
-                    // 更新接收计数器和事件标志
-                    can_instance[i]->rx_counter++;
-                    if (can_instance[i]->rx_event) {
-                        osEventFlagsSet(can_instance[i]->rx_event, 0x01);
-                    }
+                    can_instance[i]->can_module_callback(can_instance[i]); // 调用回调函数
                 }
                 return;
             }

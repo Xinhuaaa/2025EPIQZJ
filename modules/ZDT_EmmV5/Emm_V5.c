@@ -71,7 +71,7 @@ void Emm_V5_Reset_Clog_Pro(uint8_t addr)
   * @param    s     ：系统参数类型
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
+void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t1 s)
 {
   uint8_t i = 0;
   uint8_t cmd[16] = {0};

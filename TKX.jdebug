@@ -4,7 +4,7 @@
 *                         www.segger.com                             *
 **********************************************************************
 
-File          : D:/TKX/TKX.jdebug
+File          : 
 Created       : 22 May 2025 18:42
 Ozone Version : V3.24
 */
@@ -22,12 +22,12 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("D:/TKX", "$(ProjectDir)");
-  Project.AddPathSubstitute ("d:/tkx", "$(ProjectDir)");
   Project.SetDevice ("STM32F407VE");
-  Project.SetHostIF ("USB", "1040849617");
+  Project.SetHostIF ("USB", "59102855");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
+  Project.AddPathSubstitute ("D:/TKX", "$(ProjectDir)");
+  Project.AddPathSubstitute ("d:/tkx", "$(ProjectDir)");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M4F.svd");
   //
   // User settings

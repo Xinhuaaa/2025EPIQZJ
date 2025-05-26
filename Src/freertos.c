@@ -28,6 +28,7 @@
 #include "hwt101.h"  // 添加HWT101头文件
 #include "bsp_log.h"
 #include "Robot_task.h"  // 添加机器人任务头文件
+#include "Lift.h"  // 添加升降结构头文件
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

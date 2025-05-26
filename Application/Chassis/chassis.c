@@ -100,8 +100,8 @@ void Chassis_Init(void)
     // 定义电机ID数组
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
-    // 初始化Emm_V5电机驱动
-    if (!Emm_V5_Init(motor_ids, 4)) {
+    // 初始化EmmV5_CAN电机驱动
+    if (!Emm_V5_CAN_Init(motor_ids, 4)) {
         return;  // 如果初始化失败，直接返回
     }
     
@@ -153,18 +153,18 @@ void Chassis_Init(void)
     };
       // 创建偏航角ADRC配置结构体
     ADRC_Init_Config_t adrc_config_yaw = {
-        .r = 2.0f,               // 跟踪速度因子（降低以减缓跟踪速度）
+        .r = 3.8f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 0.1f,              // 系统增益（降低以减少过冲）
-        .max_output = 10.0f,       // 最大输出速度0.5m/s
+        .b0 = 0.05f,              // 系统增益（降低以减少过冲）
+        .max_output = 15.0f,       // 最大输出速度0.5m/s
         .w0 = 0.00f,
-        .beta01 = 50,          // ESO 
-        .beta02 = 40,
+        .beta01 = 75.0,          // ESO 
+        .beta02 = 65.0,
         .beta03 =0.9,
-        .beta1 = 1.0f         // NLSEF参数
+        .beta1 = 1.3f,         // NLSEF参数
         .beta2 = 3.0f,
-        .alpha1 = 2.2f,
-        .alpha2 = 0.5f,
+        .alpha1 = 1.8f,
+        .alpha2 = 0.37f,
         .delta = 0.1f
     };
     
@@ -178,16 +178,16 @@ void Chassis_Init(void)
         uint8_t motor_id = motor_ids[i];
         
         // 使能电机
-        Emm_V5_En_Control(motor_id, true, 0);
+        Emm_V5_CAN_En_Control(motor_id, true, 0);
         
         // 设置闭环模式
-        Emm_V5_Modify_Ctrl_Mode(motor_id, true, 2); 
+        Emm_V5_CAN_Modify_Ctrl_Mode(motor_id, true, 2); 
         
         // 清零位置
-        Emm_V5_Reset_CurPos_To_Zero(motor_id);
+        Emm_V5_CAN_Reset_CurPos_To_Zero(motor_id);
         
         // 初始化清除故障
-        Emm_V5_Reset_Clog_Pro(motor_id);
+        Emm_V5_CAN_Reset_Clog_Pro(motor_id);
     }
     
     
@@ -257,7 +257,7 @@ bool Chassis_Control_Loop(void)
     g_current_pos.yaw = Angle;
     
     // 读取电机编码器值
-    Emm_V5_Get_All_Encoders(current_encoder);
+    Emm_V5_CAN_Get_All_Encoders(current_encoder);
     
     // 计算每个轮子的位移（米）
     float wheel_delta[4] = {0};    
@@ -319,7 +319,7 @@ bool Chassis_Control_Loop(void)
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
         uint16_t acc = 0; 
-        Emm_V5_Vel_Control(motor_ids[i],dir,speed,acc,0);
+        Emm_V5_CAN_Vel_Control(motor_ids[i],dir,speed,acc,0);
     }
     
     // 5. 判断是否到达目标位置
@@ -339,7 +339,7 @@ void Chassis_EmergencyStop(void)
     
     for (int i = 0; i < 4; i++) {
         // 使用X42电机的立即停止功能
-        Emm_V5_Stop_Now(motor_ids[i], 0);
+        Emm_V5_CAN_Stop_Now(motor_ids[i], 0);
     }
 }
 

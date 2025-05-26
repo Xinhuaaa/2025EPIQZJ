@@ -36,10 +36,7 @@
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
-        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR",
-        "modules/ZDT_X42",
-        "modules/ZDT_EmmV5/Emm_V5.c",
-        "modules/dji_motor"
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR"
       ],
       "toolchain": "GCC",
       "compileConfig": {
@@ -107,7 +104,9 @@
           "modules/ZDT_EmmV5/CAN",
           "Inc",
           "Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc",
-          "Middlewares/ST/STM32_USB_Device_Library/Core/Inc"
+          "Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
+          "Application/Lift",
+          "modules/dji_motor"
         ],
         "libList": [],
         "defineList": [

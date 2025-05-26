@@ -1,7 +1,8 @@
-#ifndef __EMM_V5_H
-#define __EMM_V5_H
+#ifndef __Emm_V5_CAN_H
+#define __Emm_V5_CAN_H
 
 #include "can.h"
+#include "stdbool.h"
 
 /**********************************************************
 ***	Emm_V5.0步进闭环控制例程
@@ -35,25 +36,25 @@ typedef enum {
 /**********************************************************
 *** 注意：每个函数的参数的具体说明，请查阅对应函数的注释说明
 **********************************************************/
-void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr); // 将当前位置清零
-void Emm_V5_Reset_Clog_Pro(uint8_t addr); // 解除堵转保护
-void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s); // 读取参数
-void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode); // 发送命令修改开环/闭环控制模式
-void Emm_V5_En_Control(uint8_t addr, bool state, bool snF); // 电机使能控制
-void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF); // 速度模式控制
-void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, bool raF, bool snF); // 位置模式控制
-void Emm_V5_Stop_Now(uint8_t addr, bool snF); // 让电机立即停止运动
-void Emm_V5_Synchronous_motion(uint8_t addr); // 触发多机同步开始运动
-void Emm_V5_Origin_Set_O(uint8_t addr, bool svF); // 设置挡圈回零的零点位置
-void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF); // 修改回零参数
-void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF); // 发送命令触发回零
-void Emm_V5_Origin_Interrupt(uint8_t addr); // 强制中断并退出回零
-bool Emm_V5_Init(uint8_t *motor_ids, uint8_t motor_count);
-void can_SendCmd(uint8_t *cmd, uint16_t len);
-int32_t Emm_V5_Read_Encoder(uint8_t addr);
-bool Emm_V5_Get_All_Encoders(int32_t *encoders);
-void Emm_V5_Reset_Encoder_Count(uint8_t addr);
-void Emm_V5_Set_Encoder_Zero(uint8_t addr, int32_t offset);
+void Emm_V5_CAN_Reset_CurPos_To_Zero(uint8_t addr); // 将当前位置清零
+void Emm_V5_CAN_Reset_Clog_Pro(uint8_t addr); // 解除堵转保护
+void Emm_V5_CAN_Read_Sys_Params(uint8_t addr, SysParams_t s); // 读取参数
+void Emm_V5_CAN_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode); // 发送命令修改开环/闭环控制模式
+void Emm_V5_CAN_En_Control(uint8_t addr, bool state, bool snF); // 电机使能控制
+void Emm_V5_CAN_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF); // 速度模式控制
+void Emm_V5_CAN_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, bool raF, bool snF); // 位置模式控制
+void Emm_V5_CAN_Stop_Now(uint8_t addr, bool snF); // 让电机立即停止运动
+void Emm_V5_CAN_Synchronous_motion(uint8_t addr); // 触发多机同步开始运动
+void Emm_V5_CAN_Origin_Set_O(uint8_t addr, bool svF); // 设置挡圈回零的零点位置
+void Emm_V5_CAN_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF); // 修改回零参数
+void Emm_V5_CAN_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF); // 发送命令触发回零
+void Emm_V5_CAN_Origin_Interrupt(uint8_t addr); // 强制中断并退出回零
+bool Emm_V5_CAN_Init(uint8_t *motor_ids, uint8_t motor_count);
+void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len);
+int32_t Emm_V5_CAN_Read_Encoder(uint8_t addr);
+bool Emm_V5_CAN_Get_All_Encoders(int32_t *encoders);
+void Emm_V5_CAN_Reset_Encoder_Count(uint8_t addr);
+void Emm_V5_CAN_Set_Encoder_Zero(uint8_t addr, int32_t offset);
 
 
 

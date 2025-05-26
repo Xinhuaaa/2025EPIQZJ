@@ -15,7 +15,7 @@
 // 编码器相关常量
 #define ENCODER_MAX     65536  // 编码器最大值
 #define ENCODER_HALF    32768  // 编码器最大值的一半
-#define CAN_CMD_LOG_LEVEL 2
+#define CAN_CMD_LOG_LEVEL 0
 // 编码器累计值计算相关变量
 static int32_t last_raw_encoder[8] = {0};     // 上一次读取的原始编码器值
 static int32_t accumulated_encoder[8] = {0};  // 累积编码器值
@@ -40,14 +40,13 @@ CANInstance* Emm_V5_CAN_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can
     
     uint32_t tx_id = (motor_addr << 8); // 发送ID: 高8位是电机地址
     uint32_t rx_id = (motor_addr << 8); // 接收ID: 高8位是电机地址
-    
-    // 创建CAN配置
+      // 创建CAN配置
     CAN_Init_Config_s can_config = {
         .can_handle = can_handle,
         .tx_id = tx_id,
         .rx_id = rx_id,
         .use_ext_id = 1, // 使用扩展帧
-        .can_module_callback = 1 // 可以根据需要设置回调函数
+        .can_module_callback = NULL // 暂时不使用回调函数
     };
       // 注册CAN实例
     CANInstance *instance = CANRegister(&can_config);
@@ -73,7 +72,7 @@ CANInstance* Emm_V5_CAN_RegisterMotor(uint8_t motor_addr, CAN_HandleTypeDef *can
  * @param motor_count 电机数量
  * @return bool 是否初始化成功
  */
-bool Emm_V5_Init(uint8_t *motor_ids, uint8_t motor_count)
+bool Emm_V5_CAN_Init(uint8_t *motor_ids, uint8_t motor_count)
 {
     bool all_registered = true;
     
@@ -106,7 +105,7 @@ bool Emm_V5_Init(uint8_t *motor_ids, uint8_t motor_count)
  * @param  cmd     命令数据，cmd[0] 必须是电机地址
  * @param  len     命令长度
  */
-void can_SendCmd(uint8_t *cmd, uint16_t len)
+void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 {
     if (len == 0 || len > 64) {
 #if CAN_CMD_LOG_LEVEL >= 1
@@ -213,7 +212,7 @@ void can_SendCmd(uint8_t *cmd, uint16_t len)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr)
+void Emm_V5_CAN_Reset_CurPos_To_Zero(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -224,7 +223,7 @@ void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 4);
+  EmmV5_CAN_SendCmd(cmd, 4);
 }
 
 /**
@@ -232,7 +231,7 @@ void Emm_V5_Reset_CurPos_To_Zero(uint8_t addr)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Reset_Clog_Pro(uint8_t addr)
+void Emm_V5_CAN_Reset_Clog_Pro(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -243,7 +242,7 @@ void Emm_V5_Reset_Clog_Pro(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 4);
+  EmmV5_CAN_SendCmd(cmd, 4);
 }
 
 /**
@@ -252,7 +251,7 @@ void Emm_V5_Reset_Clog_Pro(uint8_t addr)
   * @param    s     ：系统参数类型
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
+void Emm_V5_CAN_Read_Sys_Params(uint8_t addr, SysParams_t s)
 {
   uint8_t i = 0;
   uint8_t cmd[16] = {0};
@@ -282,7 +281,7 @@ void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
   cmd[i] = 0x6B; ++i;                   // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, i);
+  EmmV5_CAN_SendCmd(cmd, i);
 }
 
 /**
@@ -292,7 +291,7 @@ void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t s)
   * @param    ctrl_mode：控制模式（对应屏幕上的P_Pul菜单），0是关闭脉冲输入引脚，1是开环模式，2是闭环模式，3是让En端口复用为多圈限位开关输入引脚，Dir端口复用为到位输出高电平功能
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
+void Emm_V5_CAN_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
 {
   uint8_t cmd[16] = {0};
   
@@ -305,7 +304,7 @@ void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   cmd[5] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 6);
+  EmmV5_CAN_SendCmd(cmd, 6);
 }
 
 /**
@@ -315,7 +314,7 @@ void Emm_V5_Modify_Ctrl_Mode(uint8_t addr, bool svF, uint8_t ctrl_mode)
   * @param    snF   ：多机同步标志 ，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
+void Emm_V5_CAN_En_Control(uint8_t addr, bool state, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -328,7 +327,7 @@ void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
   cmd[5] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 6);
+  EmmV5_CAN_SendCmd(cmd, 6);
 }
 
 /**
@@ -340,7 +339,7 @@ void Emm_V5_En_Control(uint8_t addr, bool state, bool snF)
   * @param    snF ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
+void Emm_V5_CAN_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 {
   uint8_t cmd[16] = {0};
 
@@ -355,7 +354,7 @@ void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bo
   cmd[7] =  0x6B;                       // 校验字节
 
   // 发送命令
-  can_SendCmd(cmd, 8);
+  EmmV5_CAN_SendCmd(cmd, 8);
 }
 
 /**
@@ -369,7 +368,7 @@ void Emm_V5_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bo
   * @param    snF ：多机同步标志 ，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, bool raF, bool snF)
+void Emm_V5_CAN_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, uint32_t clk, bool raF, bool snF)
 {
   uint8_t cmd[16] = {0};
 
@@ -389,7 +388,7 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   cmd[12] =  0x6B;                      // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 13);
+  EmmV5_CAN_SendCmd(cmd, 13);
 }
 
 /**
@@ -398,7 +397,7 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   * @param    snF   ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Stop_Now(uint8_t addr, bool snF)
+void Emm_V5_CAN_Stop_Now(uint8_t addr, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -410,7 +409,7 @@ void Emm_V5_Stop_Now(uint8_t addr, bool snF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 5);
+  EmmV5_CAN_SendCmd(cmd, 5);
 }
 
 /**
@@ -418,7 +417,7 @@ void Emm_V5_Stop_Now(uint8_t addr, bool snF)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Synchronous_motion(uint8_t addr)
+void Emm_V5_CAN_Synchronous_motion(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -429,7 +428,7 @@ void Emm_V5_Synchronous_motion(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 4);
+  EmmV5_CAN_SendCmd(cmd, 4);
 }
 
 /**
@@ -438,7 +437,7 @@ void Emm_V5_Synchronous_motion(uint8_t addr)
   * @param    svF   ：是否存储标志，false为不存储，true为存储
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Origin_Set_O(uint8_t addr, bool svF)
+void Emm_V5_CAN_Origin_Set_O(uint8_t addr, bool svF)
 {
   uint8_t cmd[16] = {0};
   
@@ -450,7 +449,7 @@ void Emm_V5_Origin_Set_O(uint8_t addr, bool svF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 5);
+  EmmV5_CAN_SendCmd(cmd, 5);
 }
 
 /**
@@ -467,7 +466,7 @@ void Emm_V5_Origin_Set_O(uint8_t addr, bool svF)
   * @param    potF   ：上电自动触发回零，false为不使能，true为使能
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
+void Emm_V5_CAN_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t o_dir, uint16_t o_vel, uint32_t o_tm, uint16_t sl_vel, uint16_t sl_ma, uint16_t sl_ms, bool potF)
 {
   uint8_t cmd[32] = {0};
   
@@ -494,7 +493,7 @@ void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t
   cmd[19] =  0x6B;                      // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 20);
+  EmmV5_CAN_SendCmd(cmd, 20);
 }
 
 /**
@@ -504,7 +503,7 @@ void Emm_V5_Origin_Modify_Params(uint8_t addr, bool svF, uint8_t o_mode, uint8_t
   * @param    snF   ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
+void Emm_V5_CAN_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
 {
   uint8_t cmd[16] = {0};
   
@@ -516,7 +515,7 @@ void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
   cmd[4] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 5);
+  EmmV5_CAN_SendCmd(cmd, 5);
 }
 
 /**
@@ -524,7 +523,7 @@ void Emm_V5_Origin_Trigger_Return(uint8_t addr, uint8_t o_mode, bool snF)
   * @param    addr  ：电机地址
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_Origin_Interrupt(uint8_t addr)
+void Emm_V5_CAN_Origin_Interrupt(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -535,14 +534,14 @@ void Emm_V5_Origin_Interrupt(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  can_SendCmd(cmd, 4);
+  EmmV5_CAN_SendCmd(cmd, 4);
 }
 /**
   * @brief    读取单个电机编码器值
   * @param    addr  ：电机地址
   * @retval   编码器累计值，失败返回-1
   */
-int32_t Emm_V5_Read_Encoder(uint8_t addr)
+int32_t Emm_V5_CAN_Read_Encoder(uint8_t addr)
 {
     int32_t encoder_value = -1;
     int32_t motor_index = addr - 1;  // 将电机地址映射为数组索引
@@ -573,7 +572,7 @@ int32_t Emm_V5_Read_Encoder(uint8_t addr)
     }
     
     // 发送读取编码器命令
-    Emm_V5_Read_Sys_Params(addr, S_ENCL);
+    Emm_V5_CAN_Read_Sys_Params(addr, S_ENCL);
     
     // 等待一段时间，让电机有时间响应
     osDelay(5);
@@ -636,7 +635,7 @@ int32_t Emm_V5_Read_Encoder(uint8_t addr)
   * @param    encoders  ：存储编码器值的数组，大小应至少为4
   * @retval   是否成功读取全部编码器
   */
-bool Emm_V5_Get_All_Encoders(int32_t *encoders)
+bool Emm_V5_CAN_Get_All_Encoders(int32_t *encoders)
 {
     if (encoders == NULL) {
         return false;
@@ -647,7 +646,7 @@ bool Emm_V5_Get_All_Encoders(int32_t *encoders)
     
     for (uint8_t i = 0; i < 4; i++)
     {
-        int32_t value = Emm_V5_Read_Encoder(motor_ids[i]);
+        int32_t value = Emm_V5_CAN_Read_Encoder(motor_ids[i]);
         if (value == -1)
         {
             all_success = false;
@@ -667,7 +666,7 @@ bool Emm_V5_Get_All_Encoders(int32_t *encoders)
   * @param    addr  ：电机地址，如果为0则重置所有电机
   * @retval   无
   */
-void Emm_V5_Reset_Encoder_Count(uint8_t addr)
+void Emm_V5_CAN_Reset_Encoder_Count(uint8_t addr)
 {
     if (addr == 0) {
         // 重置所有电机的累计值
@@ -696,7 +695,7 @@ void Emm_V5_Reset_Encoder_Count(uint8_t addr)
   * @param    offset：零点偏移值
   * @retval   无
   */
-void Emm_V5_Set_Encoder_Zero(uint8_t addr, int32_t offset)
+void Emm_V5_CAN_Set_Encoder_Zero(uint8_t addr, int32_t offset)
 {
     int32_t motor_index = addr - 1;
     if (motor_index >= 0 && motor_index < 8) {
