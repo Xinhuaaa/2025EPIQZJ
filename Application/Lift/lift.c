@@ -1,17 +1,15 @@
 /**
- ******************************************************************************
- * @file    lift.c
- * @author  TKX Team
- * @version V1.0.0
- * @date    2024-01-01
- * @brief   升降系统控制模块实现 - 基于4个DJI M2006电机
- ******************************************************************************
  * @attention
- * 
- * 该模块控制车辆升降结构，使用4个M2006电机：
- * - 左侧电机组：ID 1, 2 (同步控制)
- * - 右侧电机组：ID 3, 4 (同步控制)
- * 支持位置控制和手动控制两种模式
+ *
+ * 极简化的升降系统，使用4个M2006电机：
+ * - 只保留基本的上升/下降运动功能
+ * - 控制单位：位移（厘米），负值表示向下运动
+ * - 机械参数：主动轮直径12cm，36:1减速比
+ *
+ * 使用示例：
+ * Lift_Up(5.0f);          // 以5cm/s速度上升
+ * Lift_Down(0.0f);        // 以默认速度下降
+ * Lift_Stop();            // 停止运动
  *
  ******************************************************************************
  */
@@ -24,57 +22,49 @@
 #include "can.h"
 
 /* 全局变量定义 */
-DJIMotorInstance *lift_motor_left_1 = NULL;
-DJIMotorInstance *lift_motor_left_2 = NULL;
-DJIMotorInstance *lift_motor_right_1 = NULL;
-DJIMotorInstance *lift_motor_right_2 = NULL;
-
+DJIMotorInstance *lift_motors[4] = {NULL, NULL, NULL, NULL};
 Lift_Status_t lift_status;
-Lift_Config_t lift_config;
 osThreadId_t liftTaskHandle = NULL;
 
 /* 私有函数声明 */
-static float Lift_PositionToAngle(Lift_Position_e position);
-static Lift_Position_e Lift_AngleToPosition(float angle);
-static void Lift_UpdateCurrentAngles(void);
-static void Lift_UpdateStates(void);
+static float Lift_AngleToDisplacement(float angle);
+static float Lift_DisplacementToAngle(float displacement);
+static void Lift_UpdateCurrentDisplacement(void);
+static void Lift_UpdateCurrentSpeed(void);
 static void Lift_ControlMotors(void);
 static int Lift_InitMotors(void);
+static bool Lift_IsAtTarget(void);
+static void Lift_CalculateSyncCompensation(void);
+static void Lift_UpdateMotorTargets(void);
 
 /**
  * @brief 升降系统初始化
- * @param config 配置参数指针，传入NULL使用默认配置
  * @retval 0: 成功, -1: 失败
  */
-int Lift_Init(Lift_Config_t *config)
+int Lift_Init(void)
 {
-    // 配置参数初始化
-    if (config != NULL) {
-        lift_config = *config;
-    } else {
-        // 使用默认配置
-        lift_config.position_tolerance = LIFT_DEFAULT_TOLERANCE;
-        lift_config.max_speed = LIFT_DEFAULT_MAX_SPEED;
-        lift_config.task_period = LIFT_TASK_PERIOD;
-        lift_config.enable_sync = true;
-    }
-    
     // 状态初始化
     memset(&lift_status, 0, sizeof(Lift_Status_t));
-    lift_status.left_state = LIFT_IDLE;
-    lift_status.right_state = LIFT_IDLE;
-    lift_status.left_position = LIFT_BOTTOM;
-    lift_status.right_position = LIFT_BOTTOM;
-    lift_status.mode = LIFT_MODE_POSITION;
-    lift_status.left_enabled = true;
-    lift_status.right_enabled = true;
+    lift_status.enabled = true;
+    lift_status.current_displacement = 0.0f;
+    lift_status.target_displacement = 0.0f;
+    lift_status.speed = 0.0f;
+    lift_status.is_moving = false;
     
+    // 初始化同步补偿数组
+    for (int i = 0; i < 4; i++)
+    {
+        lift_status.sync_compensation[i] = 0.0f;
+        lift_status.motor_target_angles[i] = 0.0f;
+    }
+
     // 初始化电机
-    if (Lift_InitMotors() != 0) {
+    if (Lift_InitMotors() != 0)
+    {
         printf("升降系统电机初始化失败!\r\n");
         return -1;
     }
-    
+
     printf("升降系统初始化完成!\r\n");
     return 0;
 }
@@ -93,68 +83,59 @@ static int Lift_InitMotors(void)
         .motor_type = M2006,
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 8.0f, .Ki = 0.0f, .Kd = 0.5f, .MaxOut = 60.0f,
-                .DeadBand = 1.0f, .Improve = PID_Integral_Limit | PID_DerivativeFilter,
-                .IntegralLimit = 10.0f, .Derivative_LPF_RC = 0.01f
-            },
+                .Kp = 8.0f, 
+                .Ki = 0.3f, 
+                .Kd = 0.0f, 
+                .MaxOut = 30000.0f, 
+                .DeadBand = 1.0f, 
+                .Improve = PID_Integral_Limit | PID_DerivativeFilter, 
+                .IntegralLimit = 10.0f, 
+                .Derivative_LPF_RC = 0.01f
+            }, 
             .speed_PID = {
-                .Kp = 15.0f, .Ki = 0.2f, .Kd = 0.0f, .MaxOut = 8000.0f,
-                .DeadBand = 0.5f, .Improve = PID_Integral_Limit,
+                .Kp = 0.28f, 
+                .Ki = 0.01f, 
+                .Kd = 0.0f, 
+                .MaxOut = 30000.0f, 
+                .DeadBand = 0.5f, 
+                .Improve = PID_Integral_Limit, 
                 .IntegralLimit = 3000.0f
-            },
-            .current_PID = {
-                .Kp = 1.5f, .Ki = 0.1f, .Kd = 0.0f, .MaxOut = 10000.0f,
-                .DeadBand = 0.0f, .Improve = PID_Integral_Limit,
-                .IntegralLimit = 5000.0f
             }
         },
         .controller_setting_init_config = {
-            .close_loop_type = ANGLE_LOOP | SPEED_LOOP | CURRENT_LOOP,
+            .close_loop_type =  SPEED_LOOP | ANGLE_LOOP, // 使用速度和角度闭环
             .outer_loop_type = ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
             .feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
-            .angle_feedback_source = MOTOR_FEED,
-            .speed_feedback_source = MOTOR_FEED,
+            .angle_feedback_source = MOTOR_FEED, 
+            .speed_feedback_source = MOTOR_FEED, 
             .feedforward_flag = FEEDFORWARD_NONE
         }
-    };
-    
-    // 初始化左侧电机1
-    m2006_config.can_init_config.tx_id = LIFT_MOTOR_LEFT_1_ID;
-    lift_motor_left_1 = DJIMotorInit(&m2006_config);
-    if (lift_motor_left_1 == NULL) {
-        printf("左侧电机1初始化失败!\r\n");
+    };    // 初始化4个电机
+    for (int i = 0; i < 4; i++)
+    {
+        m2006_config.can_init_config.tx_id = LIFT_MOTOR_1_ID + i;
+        
+        // 设置ID为1和3的电机反向转动
+        if (i == 0 || i == 2) // ID 1和3的电机 (数组索引0和2)
+        {
+            m2006_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_REVERSE;
+        }
+        else
+        {
+            m2006_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+        }
+        
+        lift_motors[i] = DJIMotorInit(&m2006_config);
+        if (lift_motors[i] == NULL)
+        {
         return -1;
+        }
+        
+        // 使能电机
+        DJIMotorEnable(lift_motors[i]);
     }
-    
-    // 初始化左侧电机2
-    m2006_config.can_init_config.tx_id = LIFT_MOTOR_LEFT_2_ID;
-    lift_motor_left_2 = DJIMotorInit(&m2006_config);
-    if (lift_motor_left_2 == NULL) {
-        printf("左侧电机2初始化失败!\r\n");
-        return -1;
-    }
-    
-    // 初始化右侧电机1
-    m2006_config.can_init_config.tx_id = LIFT_MOTOR_RIGHT_1_ID;
-    lift_motor_right_1 = DJIMotorInit(&m2006_config);
-    if (lift_motor_right_1 == NULL) {
-        printf("右侧电机1初始化失败!\r\n");
-        return -1;
-    }
-    
-    // 初始化右侧电机2
-    m2006_config.can_init_config.tx_id = LIFT_MOTOR_RIGHT_2_ID;
-    lift_motor_right_2 = DJIMotorInit(&m2006_config);
-    if (lift_motor_right_2 == NULL) {
-        printf("右侧电机2初始化失败!\r\n");
-        return -1;
-    }
-    
-    printf("升降电机初始化成功: 左侧(ID:%d,%d) 右侧(ID:%d,%d)\r\n", 
-           LIFT_MOTOR_LEFT_1_ID, LIFT_MOTOR_LEFT_2_ID,
-           LIFT_MOTOR_RIGHT_1_ID, LIFT_MOTOR_RIGHT_2_ID);
-    
+
     return 0;
 }
 
@@ -169,14 +150,13 @@ int Lift_CreateTask(void)
         .stack_size = LIFT_TASK_STACK_SIZE * 4,
         .priority = (osPriority_t)LIFT_TASK_PRIORITY,
     };
-    
+
     liftTaskHandle = osThreadNew(LiftTask, NULL, &liftTask_attributes);
-    if (liftTaskHandle == NULL) {
-        printf("升降任务创建失败!\r\n");
+    if (liftTaskHandle == NULL)
+    {
         return -1;
     }
-    
-    printf("升降任务创建成功!\r\n");
+
     return 0;
 }
 
@@ -186,326 +166,174 @@ int Lift_CreateTask(void)
  */
 void LiftTask(void *argument)
 {
-    // 等待系统启动稳定
-    osDelay(pdMS_TO_TICKS(1000));
-    
-    printf("升降控制任务启动!\r\n");
-    
-    // 任务主循环
-    for(;;) {
-        // 更新当前角度
-        Lift_UpdateCurrentAngles();
+    printf("升降任务启动\r\n");
+
+    while (1)
+    {
+        // 更新当前位移
+        Lift_UpdateCurrentDisplacement();
         
-        // 更新状态
-        Lift_UpdateStates();
+        // 计算同步补偿
+        Lift_CalculateSyncCompensation();
+        
+        // 更新各电机目标角度
+        Lift_UpdateMotorTargets();
+        
+        // 更新当前速度（用于监控）
+        Lift_UpdateCurrentSpeed();
         
         // 控制电机
         Lift_ControlMotors();
         
-        // 周期性延时
-        osDelay(pdMS_TO_TICKS(lift_config.task_period));
+        // 延时
+        osDelay(pdMS_TO_TICKS(LIFT_TASK_PERIOD));
     }
 }
 
 /**
- * @brief 更新当前角度
+ * @brief 更新当前位移
  */
-static void Lift_UpdateCurrentAngles(void)
+static void Lift_UpdateCurrentDisplacement(void)
 {
-    if (lift_motor_left_1 && lift_motor_left_2) {
-        // 左侧取两个电机角度的平均值
-        float left_angle_1 = lift_motor_left_1->measure.total_angle;
-        float left_angle_2 = lift_motor_left_2->measure.total_angle;
-        lift_status.left_current_angle = (left_angle_1 + left_angle_2) / 2.0f;
-    }
-    
-    if (lift_motor_right_1 && lift_motor_right_2) {
-        // 右侧取两个电机角度的平均值
-        float right_angle_1 = lift_motor_right_1->measure.total_angle;
-        float right_angle_2 = lift_motor_right_2->measure.total_angle;
-        lift_status.right_current_angle = (right_angle_1 + right_angle_2) / 2.0f;
-    }
-}
+    if (!lift_status.enabled) return;
 
-/**
- * @brief 更新状态
- */
-static void Lift_UpdateStates(void)
-{
-    // 检查左侧是否到达目标
-    if (lift_status.left_state == LIFT_MOVING) {
-        float left_error = fabsf(lift_status.left_target_angle - lift_status.left_current_angle);
-        if (left_error <= lift_config.position_tolerance) {
-            lift_status.left_state = LIFT_REACHED;
+    float total_angle = 0.0f;
+    int valid_motors = 0;
+
+    // 记录每个电机的角度和位移
+    for (int i = 0; i < 4; i++)
+    {
+        if (lift_motors[i])
+        {
+            lift_status.motor_angles[i] = lift_motors[i]->measure.total_angle;
+            lift_status.motor_displacements[i] = Lift_AngleToDisplacement(lift_status.motor_angles[i]);
+            total_angle += lift_status.motor_angles[i];
+            valid_motors++;
+        }
+        else
+        {
+            lift_status.motor_angles[i] = 0.0f;
+            lift_status.motor_displacements[i] = 0.0f;
         }
     }
-    
-    // 检查右侧是否到达目标
-    if (lift_status.right_state == LIFT_MOVING) {
-        float right_error = fabsf(lift_status.right_target_angle - lift_status.right_current_angle);
-        if (right_error <= lift_config.position_tolerance) {
-            lift_status.right_state = LIFT_REACHED;
-        }
+
+    if (valid_motors > 0)
+    {
+        float avg_angle = total_angle / valid_motors;
+        lift_status.current_displacement = Lift_AngleToDisplacement(avg_angle);
     }
 }
 
-/**
+/** 
  * @brief 控制电机
  */
 static void Lift_ControlMotors(void)
 {
-    // 位置控制模式
-    if (lift_status.mode == LIFT_MODE_POSITION) {
-        // 控制左侧电机
-        if (lift_status.left_enabled && lift_status.left_state == LIFT_MOVING) {
-            if (lift_motor_left_1) {
-                DJIMotorSetRef(lift_motor_left_1, lift_status.left_target_angle);
-            }
-            if (lift_motor_left_2) {
-                DJIMotorSetRef(lift_motor_left_2, lift_status.left_target_angle);
-            }
+    if (!lift_status.enabled) return;
+
+    // 为每个电机设置独立的目标角度（已包含同步补偿）
+    for (int i = 0; i < 4; i++)
+    {
+        if (lift_motors[i])
+        {
+            DJIMotorSetRef(lift_motors[i], lift_status.motor_target_angles[i]);
         }
-        
-        // 控制右侧电机
-        if (lift_status.right_enabled && lift_status.right_state == LIFT_MOVING) {
-            if (lift_motor_right_1) {
-                DJIMotorSetRef(lift_motor_right_1, lift_status.right_target_angle);
-            }
-            if (lift_motor_right_2) {
-                DJIMotorSetRef(lift_motor_right_2, lift_status.right_target_angle);
-            }
+    }
+    
+    // 检查是否到达目标位置
+    if (Lift_IsAtTarget())
+    {
+        if (lift_status.is_moving)
+        {
+            lift_status.is_moving = false;
+            printf("到达目标位移: %.2fcm\r\n", lift_status.current_displacement);
         }
     }
 }
 
 /**
- * @brief 设置升降位置
- * @param side 控制侧面
- * @param position 目标位置
+ * @brief 升降向上移动
+ * @param displacement 目标位移 (cm)，相对于当前位置的增量
  * @retval 0: 成功, -1: 失败
  */
-int Lift_SetPosition(Lift_Side_e side, Lift_Position_e position)
+int Lift_Up(float displacement)
 {
-    float target_angle = Lift_PositionToAngle(position);
-    return Lift_SetAngle(side, target_angle);
-}
-
-/**
- * @brief 设置升降角度
- * @param side 控制侧面
- * @param angle 目标角度 (度)
- * @retval 0: 成功, -1: 失败
- */
-int Lift_SetAngle(Lift_Side_e side, float angle)
-{
-    // 角度范围检查
-    if (angle < LIFT_ANGLE_BOTTOM || angle > LIFT_ANGLE_TOP) {
-        printf("升降角度超出范围: %.1f度 (范围: %.1f-%.1f度)\r\n", 
-               angle, LIFT_ANGLE_BOTTOM, LIFT_ANGLE_TOP);
+    if (!lift_status.enabled)
+    {
+        printf("升降系统未使能!\r\n");
         return -1;
     }
-    
-    // 设置控制模式为位置控制
-    lift_status.mode = LIFT_MODE_POSITION;
-    
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            lift_status.left_target_angle = angle;
-            lift_status.left_position = Lift_AngleToPosition(angle);
-            lift_status.left_state = LIFT_MOVING;
-            printf("设置左侧升降目标角度: %.1f度\r\n", angle);
-            break;
-            
-        case LIFT_SIDE_RIGHT:
-            lift_status.right_target_angle = angle;
-            lift_status.right_position = Lift_AngleToPosition(angle);
-            lift_status.right_state = LIFT_MOVING;
-            printf("设置右侧升降目标角度: %.1f度\r\n", angle);
-            break;
-            
-        case LIFT_SIDE_BOTH:
-            lift_status.left_target_angle = angle;
-            lift_status.right_target_angle = angle;
-            lift_status.left_position = Lift_AngleToPosition(angle);
-            lift_status.right_position = Lift_AngleToPosition(angle);
-            lift_status.left_state = LIFT_MOVING;
-            lift_status.right_state = LIFT_MOVING;
-            printf("设置双侧升降目标角度: %.1f度\r\n", angle);
-            break;
-            
-        default:
-            return -1;
+
+    // 使用默认位移
+    if (displacement <= 0.0f)
+    {
+        displacement = 5.0f; // 默认上升5cm
     }
-    
+
+    // 计算新的目标位移
+    float new_target = lift_status.current_displacement + displacement;
+
+    // 位移限制检查
+    if (new_target > LIFT_MAX_DISPLACEMENT)
+    {
+        new_target = LIFT_MAX_DISPLACEMENT;
+        printf("位移限制到最大值: %.1fcm\r\n", LIFT_MAX_DISPLACEMENT);
+    }
+
+    lift_status.target_displacement = new_target;
+    lift_status.is_moving = true;
+
+    printf("升降开始上升到位移: %.2fcm (增量: %.2fcm)\r\n", new_target, displacement);
     return 0;
 }
 
 /**
- * @brief 手动控制升降速度
- * @param side 控制侧面
- * @param speed 控制速度 (度/秒), 正值上升，负值下降
+ * @brief 升降向下移动
+ * @param displacement 目标位移 (cm)，相对于当前位置的增量（正值）
  * @retval 0: 成功, -1: 失败
  */
-int Lift_ManualControl(Lift_Side_e side, float speed)
+int Lift_Down(float displacement)
 {
-    // 速度限制
-    if (fabsf(speed) > lift_config.max_speed) {
-        speed = (speed > 0) ? lift_config.max_speed : -lift_config.max_speed;
+    if (!lift_status.enabled)
+    {
+        printf("升降系统未使能!\r\n");
+        return -1;
     }
-    
-    // 设置控制模式为手动控制
-    lift_status.mode = LIFT_MODE_MANUAL;
-    
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            if (lift_status.left_enabled) {
-                // 计算目标角度 (当前角度 + 速度 * 控制周期)
-                float dt = lift_config.task_period / 1000.0f; // 转换为秒
-                lift_status.left_target_angle = lift_status.left_current_angle + speed * dt;
-                
-                // 角度限制
-                if (lift_status.left_target_angle < LIFT_ANGLE_BOTTOM) {
-                    lift_status.left_target_angle = LIFT_ANGLE_BOTTOM;
-                } else if (lift_status.left_target_angle > LIFT_ANGLE_TOP) {
-                    lift_status.left_target_angle = LIFT_ANGLE_TOP;
-                }
-                
-                lift_status.left_state = LIFT_MOVING;
-            }
-            break;
-            
-        case LIFT_SIDE_RIGHT:
-            if (lift_status.right_enabled) {
-                float dt = lift_config.task_period / 1000.0f;
-                lift_status.right_target_angle = lift_status.right_current_angle + speed * dt;
-                
-                if (lift_status.right_target_angle < LIFT_ANGLE_BOTTOM) {
-                    lift_status.right_target_angle = LIFT_ANGLE_BOTTOM;
-                } else if (lift_status.right_target_angle > LIFT_ANGLE_TOP) {
-                    lift_status.right_target_angle = LIFT_ANGLE_TOP;
-                }
-                
-                lift_status.right_state = LIFT_MOVING;
-            }
-            break;
-            
-        case LIFT_SIDE_BOTH:
-            if (lift_status.left_enabled && lift_status.right_enabled) {
-                float dt = lift_config.task_period / 1000.0f;
-                
-                lift_status.left_target_angle = lift_status.left_current_angle + speed * dt;
-                lift_status.right_target_angle = lift_status.right_current_angle + speed * dt;
-                
-                // 左侧角度限制
-                if (lift_status.left_target_angle < LIFT_ANGLE_BOTTOM) {
-                    lift_status.left_target_angle = LIFT_ANGLE_BOTTOM;
-                } else if (lift_status.left_target_angle > LIFT_ANGLE_TOP) {
-                    lift_status.left_target_angle = LIFT_ANGLE_TOP;
-                }
-                
-                // 右侧角度限制
-                if (lift_status.right_target_angle < LIFT_ANGLE_BOTTOM) {
-                    lift_status.right_target_angle = LIFT_ANGLE_BOTTOM;
-                } else if (lift_status.right_target_angle > LIFT_ANGLE_TOP) {
-                    lift_status.right_target_angle = LIFT_ANGLE_TOP;
-                }
-                
-                lift_status.left_state = LIFT_MOVING;
-                lift_status.right_state = LIFT_MOVING;
-            }
-            break;
-            
-        default:
-            return -1;
+
+    // 使用默认位移
+    if (displacement <= 0.0f)
+    {
+        displacement = 5.0f; // 默认下降5cm
     }
-    
+
+    // 计算新的目标位移（向下为负值）
+    float new_target = lift_status.current_displacement - displacement;
+
+    // 位移限制检查
+    if (new_target < LIFT_MIN_DISPLACEMENT)
+    {
+        new_target = LIFT_MIN_DISPLACEMENT;
+        printf("位移限制到最小值: %.1fcm\r\n", LIFT_MIN_DISPLACEMENT);
+    }
+
+    lift_status.target_displacement = new_target;
+    lift_status.is_moving = true;
+
+    printf("升降开始下降到位移: %.2fcm (增量: %.2fcm)\r\n", new_target, displacement);
     return 0;
 }
 
 /**
  * @brief 停止升降运动
- * @param side 控制侧面
  * @retval 0: 成功, -1: 失败
  */
-int Lift_Stop(Lift_Side_e side)
+int Lift_Stop(void)
 {
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            lift_status.left_state = LIFT_IDLE;
-            lift_status.left_target_angle = lift_status.left_current_angle;
-            break;
-            
-        case LIFT_SIDE_RIGHT:
-            lift_status.right_state = LIFT_IDLE;
-            lift_status.right_target_angle = lift_status.right_current_angle;
-            break;
-            
-        case LIFT_SIDE_BOTH:
-            lift_status.left_state = LIFT_IDLE;
-            lift_status.right_state = LIFT_IDLE;
-            lift_status.left_target_angle = lift_status.left_current_angle;
-            lift_status.right_target_angle = lift_status.right_current_angle;
-            break;
-            
-        default:
-            return -1;
-    }
-    
-    printf("升降运动已停止\r\n");
-    return 0;
-}
+    // 设置目标位移为当前位移，停止运动
+    lift_status.target_displacement = lift_status.current_displacement;
+    lift_status.is_moving = false;
 
-/**
- * @brief 使能/禁用升降电机
- * @param side 控制侧面
- * @param enable true: 使能, false: 禁用
- * @retval 0: 成功, -1: 失败
- */
-int Lift_Enable(Lift_Side_e side, bool enable)
-{
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            lift_status.left_enabled = enable;
-            if (lift_motor_left_1) {
-                DJIMotorEnable(lift_motor_left_1);
-            }
-            if (lift_motor_left_2) {
-                DJIMotorEnable(lift_motor_left_2);
-            }
-            break;
-            
-        case LIFT_SIDE_RIGHT:
-            lift_status.right_enabled = enable;
-            if (lift_motor_right_1) {
-                DJIMotorEnable(lift_motor_right_1);
-            }
-            if (lift_motor_right_2) {
-                DJIMotorEnable(lift_motor_right_2);
-            }
-            break;
-            
-        case LIFT_SIDE_BOTH:
-            lift_status.left_enabled = enable;
-            lift_status.right_enabled = enable;
-            if (lift_motor_left_1) {
-                DJIMotorEnable(lift_motor_left_1);
-            }
-            if (lift_motor_left_2) {
-                DJIMotorEnable(lift_motor_left_2);
-            }
-            if (lift_motor_right_1) {
-                DJIMotorEnable(lift_motor_right_1);
-            }
-            if (lift_motor_right_2) {
-                DJIMotorEnable(lift_motor_right_2);
-            }
-            break;
-            
-        default:
-            return -1;
-    }
-    
-    printf("升降电机使能状态已设置: %s\r\n", enable ? "开启" : "关闭");
+    printf("升降运动已停止在位移: %.2fcm\r\n", lift_status.current_displacement);
     return 0;
 }
 
@@ -513,102 +341,214 @@ int Lift_Enable(Lift_Side_e side, bool enable)
  * @brief 获取升降状态
  * @return 升降状态结构体指针
  */
-Lift_Status_t* Lift_GetStatus(void)
+Lift_Status_t *Lift_GetStatus(void)
 {
     return &lift_status;
 }
 
 /**
- * @brief 获取当前位置
- * @param side 查询侧面
- * @return 当前角度 (度)
+ * @brief 获取当前位移
+ * @return 当前位移 (cm)，负值表示向下位移
  */
-float Lift_GetCurrentAngle(Lift_Side_e side)
+float Lift_GetCurrentDisplacement(void)
 {
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            return lift_status.left_current_angle;
-            
-        case LIFT_SIDE_RIGHT:
-            return lift_status.right_current_angle;
-            
-        case LIFT_SIDE_BOTH:
-            // 返回双侧的平均值
-            return (lift_status.left_current_angle + lift_status.right_current_angle) / 2.0f;
-            
-        default:
-            return 0.0f;
+    return lift_status.current_displacement;
+}
+
+/**
+ * @brief 电机角度转换为位移
+ * @param angle 电机角度 (度)
+ * @return 对应的位移 (cm)
+ * @note 计算公式: 位移 = (角度 / 360度 / 减速比) * 主动轮周长 * 100
+ */
+static float Lift_AngleToDisplacement(float angle)
+{
+    // 角度转换为位移，考虑36:1减速比
+    // 位移[m] = (角度 / 360度 / 减速比) * 轮周长[m]
+    float displacement_m = (angle / 360.0f / LIFT_GEAR_RATIO) * LIFT_WHEEL_CIRCUMFERENCE;
+    return displacement_m * 100.0f; // m转换为cm
+}
+
+/**
+ * @brief 位移转换为电机角度
+ * @param displacement 位移 (cm)
+ * @return 对应的电机角度 (度)
+ * @note 计算公式: 角度 = (位移[m] / 轮周长[m]) * 360度 * 减速比
+ */
+static float Lift_DisplacementToAngle(float displacement)
+{
+    // 位移转换为角度，考虑36:1减速比
+    // 角度 = (位移[m] / 轮周长[m]) * 360度 * 减速比
+    float displacement_m = displacement / 100.0f; // cm转换为m
+    float angle = (displacement_m / LIFT_WHEEL_CIRCUMFERENCE) * 360.0f * LIFT_GEAR_RATIO;
+    return angle;
+}
+
+/**
+ * @brief 更新当前速度（用于状态监控）
+ */
+static void Lift_UpdateCurrentSpeed(void)
+{
+    if (!lift_status.enabled) return;
+    
+    static float last_displacement = 0.0f;
+    static uint32_t last_time = 0;
+    
+    uint32_t current_time = HAL_GetTick();
+    
+    // 初始化或时间间隔太小时跳过计算
+    if (last_time == 0 || (current_time - last_time) < LIFT_TASK_PERIOD)
+    {
+        last_displacement = lift_status.current_displacement;
+        last_time = current_time;
+        return;
     }
+    
+    // 计算速度 = 位移变化 / 时间间隔
+    float displacement_change = lift_status.current_displacement - last_displacement;
+    float time_interval = (current_time - last_time) / 1000.0f; // ms转换为s
+    
+    lift_status.speed = displacement_change / time_interval; // cm/s
+    
+    last_displacement = lift_status.current_displacement;
+    last_time = current_time;
 }
 
 /**
  * @brief 检查是否到达目标位置
- * @param side 检查侧面
  * @return true: 已到达, false: 未到达
  */
-bool Lift_IsReached(Lift_Side_e side)
+static bool Lift_IsAtTarget(void)
 {
-    switch (side) {
-        case LIFT_SIDE_LEFT:
-            return (lift_status.left_state == LIFT_REACHED);
-            
-        case LIFT_SIDE_RIGHT:
-            return (lift_status.right_state == LIFT_REACHED);
-            
-        case LIFT_SIDE_BOTH:
-            return (lift_status.left_state == LIFT_REACHED && 
-                    lift_status.right_state == LIFT_REACHED);
-            
-        default:
-            return false;
-    }
+    const float tolerance = 0.5f; // 位移容差 0.5cm
+    float error = fabsf(lift_status.current_displacement - lift_status.target_displacement);
+    return (error <= tolerance);
 }
 
 /**
- * @brief 升降系统复位到底部位置
+ * @brief 移动到指定位置
+ * @param target_displacement 目标绝对位移 (cm)，负值表示向下位移
  * @retval 0: 成功, -1: 失败
  */
-int Lift_Reset(void)
+int Lift_MoveTo(float target_displacement)
 {
-    printf("升降系统复位到底部位置...\r\n");
-    return Lift_SetPosition(LIFT_SIDE_BOTH, LIFT_BOTTOM);
+    if (!lift_status.enabled)
+    {
+        printf("升降系统未使能!\r\n");
+        return -1;
+    }
+
+    // 位移限制检查
+    if (target_displacement > LIFT_MAX_DISPLACEMENT)
+    {
+        target_displacement = LIFT_MAX_DISPLACEMENT;
+        printf("目标位移限制到最大值: %.1fcm\r\n", LIFT_MAX_DISPLACEMENT);
+    }
+    else if (target_displacement < LIFT_MIN_DISPLACEMENT)
+    {
+        target_displacement = LIFT_MIN_DISPLACEMENT;
+        printf("目标位移限制到最小值: %.1fcm\r\n", LIFT_MIN_DISPLACEMENT);
+    }
+
+    lift_status.target_displacement = target_displacement;
+    lift_status.is_moving = true;
+
+    printf("升降移动到目标位移: %.2fcm\r\n", target_displacement);
+    return 0;
 }
 
 /**
- * @brief 位置枚举转换为角度
- * @param position 位置枚举
- * @return 对应角度 (度)
+ * @brief 计算同步补偿
  */
-static float Lift_PositionToAngle(Lift_Position_e position)
+static void Lift_CalculateSyncCompensation(void)
 {
-    switch (position) {
-        case LIFT_BOTTOM:
-            return LIFT_ANGLE_BOTTOM;
-        case LIFT_MIDDLE:
-            return LIFT_ANGLE_MIDDLE;
-        case LIFT_TOP:
-            return LIFT_ANGLE_TOP;
-        default:
-            return LIFT_ANGLE_BOTTOM;
+    if (!lift_status.enabled) return;
+    
+    // 计算平均位移作为同步目标
+    float avg_displacement = lift_status.current_displacement;
+    
+    static uint32_t debug_counter = 0;
+    bool has_compensation = false;
+    
+    // 为每个电机计算同步补偿量
+    for (int i = 0; i < 4; i++)
+    {
+        if (lift_motors[i])
+        {
+            // 计算当前电机与平均位移的偏差
+            float displacement_error = avg_displacement - lift_status.motor_displacements[i];
+            
+            // 只有偏差超过死区才进行补偿
+            if (fabsf(displacement_error) > LIFT_SYNC_DEADBAND)
+            {
+                // 比例控制计算补偿量
+                float compensation = displacement_error * LIFT_SYNC_KP;
+                
+                // 限制补偿量范围
+                if (compensation > LIFT_SYNC_MAX_COMPENSATION)
+                    compensation = LIFT_SYNC_MAX_COMPENSATION;
+                else if (compensation < -LIFT_SYNC_MAX_COMPENSATION)
+                    compensation = -LIFT_SYNC_MAX_COMPENSATION;
+                
+                lift_status.sync_compensation[i] = compensation;
+                has_compensation = true;
+            }
+            else
+            {
+                lift_status.sync_compensation[i] = 0.0f;
+            }
+        }
+        else
+        {
+            lift_status.sync_compensation[i] = 0.0f;
+        }
+    }
+    
+    // 定期输出同步状态
+    debug_counter++;
+    if (debug_counter % 100 == 0 && (has_compensation || lift_status.is_moving))
+    {
+        printf("同步状态: 位移[%.2f,%.2f,%.2f,%.2f] 补偿[%.2f,%.2f,%.2f,%.2f]\r\n",
+               lift_status.motor_displacements[0], lift_status.motor_displacements[1],
+               lift_status.motor_displacements[2], lift_status.motor_displacements[3],
+               lift_status.sync_compensation[0], lift_status.sync_compensation[1],
+               lift_status.sync_compensation[2], lift_status.sync_compensation[3]);
     }
 }
 
 /**
- * @brief 角度转换为位置枚举
- * @param angle 角度 (度)
- * @return 最接近的位置枚举
+ * @brief 更新各电机目标角度
  */
-static Lift_Position_e Lift_AngleToPosition(float angle)
+static void Lift_UpdateMotorTargets(void)
 {
-    float bottom_diff = fabsf(angle - LIFT_ANGLE_BOTTOM);
-    float middle_diff = fabsf(angle - LIFT_ANGLE_MIDDLE);
-    float top_diff = fabsf(angle - LIFT_ANGLE_TOP);
+    if (!lift_status.enabled) return;
     
-    if (bottom_diff <= middle_diff && bottom_diff <= top_diff) {
-        return LIFT_BOTTOM;
-    } else if (middle_diff <= top_diff) {
-        return LIFT_MIDDLE;
-    } else {
-        return LIFT_TOP;
+    // 为每个电机设置独立的目标角度（基础目标 + 同步补偿）
+    for (int i = 0; i < 4; i++)
+    {
+        if (lift_motors[i])
+        {
+            // 当前电机的目标位移 = 系统目标位移 + 同步补偿
+            float motor_target_displacement = lift_status.target_displacement + lift_status.sync_compensation[i];
+            
+            // 转换为角度
+            lift_status.motor_target_angles[i] = Lift_DisplacementToAngle(motor_target_displacement);
+        }
+        else
+        {
+            lift_status.motor_target_angles[i] = 0.0f;
+        }
+    }
+}
+
+/**
+ * @brief 获取各电机位移状态
+ * @param motor_displacements 输出数组，存储4个电机的位移值
+ */
+void Lift_GetMotorDisplacements(float motor_displacements[4])
+{
+    for (int i = 0; i < 4; i++)
+    {
+        motor_displacements[i] = lift_status.motor_displacements[i];
     }
 }

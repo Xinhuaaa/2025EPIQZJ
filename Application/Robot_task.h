@@ -24,7 +24,9 @@ extern osThreadId_t canTestTaskHandle; // CAN测试任务句柄
 
 /* 函数声明 */
 void Robot_TaskCreate(void);
+void Robot_StartLiftTest(void);
 void Chassis_TestNavigation(void);
+void Lift_TestControl(void);
 
 /**
  * @brief CAN诊断函数，定期检查并打印CAN状态

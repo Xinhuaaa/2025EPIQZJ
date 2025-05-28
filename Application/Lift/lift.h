@@ -2,16 +2,16 @@
  ******************************************************************************
  * @file    lift.h
  * @author  TKX Team
- * @version V1.0.0
+ * @version V3.0.0
  * @date    2024-01-01
- * @brief   升降系统控制模块头文件 - 基于4个DJI M2006电机
+ * @brief   升降系统控制模块头文件 - 极简版本
  ******************************************************************************
  * @attention
  * 
- * 该模块控制车辆升降结构，使用4个M2006电机：
- * - 左侧电机组：ID 1, 2
- * - 右侧电机组：ID 3, 4
- * 支持同步左右升降和独立左右控制
+ * 极简化的升降系统，使用4个M2006电机：
+ * - 只保留基本的上升/下降运动功能
+ * - 控制单位：位移（厘米），负值表示向下运动
+ * - 机械参数：从动轮直径12cm，36:1减速比
  *
  ******************************************************************************
  */
@@ -24,93 +24,61 @@
 #include "cmsis_os.h"
 #include "stdbool.h"
 
-/* 升降位置枚举 */
-typedef enum {
-    LIFT_BOTTOM = 0,    // 底部位置 (0度)
-    LIFT_MIDDLE = 1,    // 中间位置 (90度)  
-    LIFT_TOP = 2        // 顶部位置 (180度)
-} Lift_Position_e;
-
-/* 升降状态枚举 */
-typedef enum {
-    LIFT_IDLE = 0,      // 空闲状态
-    LIFT_MOVING = 1,    // 移动中
-    LIFT_REACHED = 2    // 到达目标位置
-} Lift_State_e;
-
-/* 升降侧面枚举 */
-typedef enum {
-    LIFT_SIDE_LEFT = 0,     // 左侧
-    LIFT_SIDE_RIGHT = 1,    // 右侧
-    LIFT_SIDE_BOTH = 2      // 双侧同步
-} Lift_Side_e;
-
-/* 升降控制模式枚举 */
-typedef enum {
-    LIFT_MODE_POSITION = 0, // 位置控制模式
-    LIFT_MODE_MANUAL = 1    // 手动控制模式
-} Lift_Mode_e;
-
-/* 升降配置结构体 */
-typedef struct {
-    float position_tolerance;   // 位置允许误差 (度)
-    float max_speed;           // 最大运行速度 (度/秒)
-    uint32_t task_period;      // 任务周期 (ms)
-    bool enable_sync;          // 是否启用同步控制
-} Lift_Config_t;
-
 /* 升降状态结构体 */
 typedef struct {
-    Lift_State_e left_state;      // 左侧状态
-    Lift_State_e right_state;     // 右侧状态
-    Lift_Position_e left_position;  // 左侧目标位置
-    Lift_Position_e right_position; // 右侧目标位置
-    float left_current_angle;     // 左侧当前角度
-    float right_current_angle;    // 右侧当前角度
-    float left_target_angle;      // 左侧目标角度
-    float right_target_angle;     // 右侧目标角度
-    Lift_Mode_e mode;            // 控制模式
-    bool left_enabled;           // 左侧电机使能
-    bool right_enabled;          // 右侧电机使能
+    float current_displacement;  // 当前位移 (cm) - 基于平均值
+    float target_displacement;   // 目标位移 (cm)
+    float speed;                // 当前速度 (cm/s) - 仅用于状态监控
+    bool enabled;               // 系统使能状态
+    bool is_moving;             // 是否正在运动
+    
+    // 独立电机控制
+    float motor_angles[4];           // 各电机当前角度 (度)
+    float motor_displacements[4];    // 各电机对应位移 (cm)
+    float motor_target_angles[4];    // 各电机目标角度 (度)
+    float sync_compensation[4];      // 各电机同步补偿量 (cm)
 } Lift_Status_t;
 
 /* 电机ID定义 */
-#define LIFT_MOTOR_LEFT_1_ID     1  // 左侧电机1
-#define LIFT_MOTOR_LEFT_2_ID     2  // 左侧电机2  
-#define LIFT_MOTOR_RIGHT_1_ID    3  // 右侧电机1
-#define LIFT_MOTOR_RIGHT_2_ID    4  // 右侧电机2
+#define LIFT_MOTOR_1_ID          1  // 电机1
+#define LIFT_MOTOR_2_ID          2  // 电机2  
+#define LIFT_MOTOR_3_ID          3  // 电机3
+#define LIFT_MOTOR_4_ID          4  // 电机4
 
-/* 位置角度定义 (度) */
-#define LIFT_ANGLE_BOTTOM        0.0f   // 底部位置角度
-#define LIFT_ANGLE_MIDDLE        90.0f  // 中间位置角度
-#define LIFT_ANGLE_TOP           180.0f // 顶部位置角度
+/* 机械参数定义 */
+#define LIFT_WHEEL_DIAMETER      0.12f    // 主动轮直径 (m)
+#define LIFT_WHEEL_RADIUS        0.06f    // 主动轮半径 (m)
+#define LIFT_WHEEL_CIRCUMFERENCE 0.377f   // 主动轮周长 (m) = π * 0.12
+#define LIFT_GEAR_RATIO          36.0f    // 减速比 36:1
 
-/* 默认配置参数 */
-#define LIFT_DEFAULT_TOLERANCE   2.0f   // 默认位置容差 (度)
-#define LIFT_DEFAULT_MAX_SPEED   60.0f  // 默认最大速度 (度/秒)
-#define LIFT_TASK_PERIOD         20     // 任务周期 (ms)
+/* 运动参数定义 */
+#define LIFT_DEFAULT_SPEED       5.0f   // 默认上升/下降速度 (cm/s)
+#define LIFT_MAX_SPEED          10.0f   // 最大速度 (cm/s)
+#define LIFT_MAX_DISPLACEMENT   50.0f   // 最大向上位移 (cm)
+#define LIFT_MIN_DISPLACEMENT  -50.0f   // 最大向下位移 (cm)
+#define LIFT_TASK_PERIOD        20      // 任务周期 (ms)
+
+/* 同步控制参数 */
+#define LIFT_SYNC_KP                0.5f    // 同步控制比例系数
+#define LIFT_SYNC_MAX_COMPENSATION  2.0f    // 最大同步补偿量 (cm)
+#define LIFT_SYNC_DEADBAND         0.2f    // 同步死区 (cm)
 
 /* 任务参数 */
-#define LIFT_TASK_STACK_SIZE     512    // 任务堆栈大小
+#define LIFT_TASK_STACK_SIZE     256    // 任务堆栈大小
 #define LIFT_TASK_PRIORITY       5      // 任务优先级
 
 /* 全局变量声明 */
-extern DJIMotorInstance *lift_motor_left_1;
-extern DJIMotorInstance *lift_motor_left_2;
-extern DJIMotorInstance *lift_motor_right_1;
-extern DJIMotorInstance *lift_motor_right_2;
+extern DJIMotorInstance *lift_motors[4];
 extern Lift_Status_t lift_status;
-extern Lift_Config_t lift_config;
 extern osThreadId_t liftTaskHandle;
 
 /* 函数声明 */
 
 /**
  * @brief 升降系统初始化
- * @param config 配置参数指针，传入NULL使用默认配置
  * @retval 0: 成功, -1: 失败
  */
-int Lift_Init(Lift_Config_t *config);
+int Lift_Init(void);
 
 /**
  * @brief 创建升降任务
@@ -125,43 +93,31 @@ int Lift_CreateTask(void);
 void LiftTask(void *argument);
 
 /**
- * @brief 设置升降位置
- * @param side 控制侧面
- * @param position 目标位置
+ * @brief 升降向上移动
+ * @param displacement 目标位移 (cm)，相对于当前位置的增量
  * @retval 0: 成功, -1: 失败
  */
-int Lift_SetPosition(Lift_Side_e side, Lift_Position_e position);
+int Lift_Up(float displacement);
 
 /**
- * @brief 设置升降角度
- * @param side 控制侧面
- * @param angle 目标角度 (度)
+ * @brief 升降向下移动  
+ * @param displacement 目标位移 (cm)，相对于当前位置的增量（正值）
  * @retval 0: 成功, -1: 失败
  */
-int Lift_SetAngle(Lift_Side_e side, float angle);
+int Lift_Down(float displacement);
 
 /**
- * @brief 手动控制升降速度
- * @param side 控制侧面
- * @param speed 控制速度 (度/秒), 正值上升，负值下降
+ * @brief 移动到指定位置
+ * @param target_displacement 目标绝对位移 (cm)，负值表示向下位移
  * @retval 0: 成功, -1: 失败
  */
-int Lift_ManualControl(Lift_Side_e side, float speed);
+int Lift_MoveTo(float target_displacement);
 
 /**
  * @brief 停止升降运动
- * @param side 控制侧面
  * @retval 0: 成功, -1: 失败
  */
-int Lift_Stop(Lift_Side_e side);
-
-/**
- * @brief 使能/禁用升降电机
- * @param side 控制侧面
- * @param enable true: 使能, false: 禁用
- * @retval 0: 成功, -1: 失败
- */
-int Lift_Enable(Lift_Side_e side, bool enable);
+int Lift_Stop(void);
 
 /**
  * @brief 获取升降状态
@@ -170,23 +126,15 @@ int Lift_Enable(Lift_Side_e side, bool enable);
 Lift_Status_t* Lift_GetStatus(void);
 
 /**
- * @brief 获取当前位置
- * @param side 查询侧面
- * @return 当前角度 (度)
+ * @brief 获取当前位移
+ * @return 当前位移 (cm)，负值表示向下位移
  */
-float Lift_GetCurrentAngle(Lift_Side_e side);
+float Lift_GetCurrentDisplacement(void);
 
 /**
- * @brief 检查是否到达目标位置
- * @param side 检查侧面
- * @return true: 已到达, false: 未到达
+ * @brief 获取各电机位移状态
+ * @param motor_displacements 输出数组，存储4个电机的位移值
  */
-bool Lift_IsReached(Lift_Side_e side);
-
-/**
- * @brief 升降系统复位到底部位置
- * @retval 0: 成功, -1: 失败
- */
-int Lift_Reset(void);
+void Lift_GetMotorDisplacements(float motor_displacements[4]);
 
 #endif /* __LIFT_H */

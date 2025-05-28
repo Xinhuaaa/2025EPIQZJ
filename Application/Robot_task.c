@@ -22,12 +22,12 @@
   #include "chassis.h"
   #include "Hwt101.h"
   #include "Emm_V5_CAN.h"
-
   #include "lift.h"
   #include "dji_motor.h"    /* 任务句柄 */
   osThreadId_t chassisTaskHandle;
   osThreadId_t navigationTaskHandle;
   osThreadId_t djiMotorTaskHandle;
+  osThreadId_t liftTestTaskHandle;
   
   /* 队列句柄 */
   osMessageQueueId_t navigationQueueHandle;
@@ -40,6 +40,7 @@
 } NavigationPoint_t;
 
 void DJIMotorTask(void *argument);
+void LiftTestTask(void *argument);
 
 /**
   * @brief  DJI电机任务函数
@@ -61,6 +62,26 @@ void DJIMotorTask(void *argument)
          // 20ms周期执行
          vTaskDelay(pdMS_TO_TICKS(20));
      } }
+
+/**
+  * @brief  升降测试任务函数
+  * @param  argument 任务参数
+  * @retval 无
+  */
+void LiftTestTask(void *argument)
+{
+    // 等待系统启动稳定
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    printf("升降测试任务启动\r\n");
+    
+    // 执行升降测试
+    Lift_TestControl();
+    
+    // 测试完成后删除任务
+    printf("升降测试任务完成，任务即将结束\r\n");
+    vTaskDelete(NULL);
+}
 
   /* 预定义导航路径点 */
   const NavigationPoint_t predefinedPath[] = {
@@ -184,22 +205,20 @@ void DJIMotorTask(void *argument)
                       
                       printf("前往导航点 %d: X=%.2f m, Y=%.2f m, Yaw=%.2f 度\r\n",
                             currentPointIndex + 1, targetPoint.x, targetPoint.y, targetPoint.yaw);
-                  }
-              }
+                  }              }
           }
-          
+
           // 周期性执行，100ms检查一次
           vTaskDelay(pdMS_TO_TICKS(100));
       }
-  }
-    /**
+  }    /**
     * @brief  创建机器人相关任务
     * @param  无
     * @retval 无
     */  void Robot_TaskCreate(void)
   {
-      // 初始化升降结构 - 使用默认配置
-      Lift_Init(NULL);
+      // 初始化升降结构
+      Lift_Init();
       printf("升降结构初始化完成\r\n");
       
       // 创建DJI电机任务 - 优先级最高，负责底层电机控制
@@ -225,65 +244,32 @@ void DJIMotorTask(void *argument)
           .name = "NavigationTask",
           .stack_size = 512 * 4,
           .priority = (osPriority_t) osPriorityBelowNormal,
-      };
-      navigationTaskHandle = osThreadNew(NavigationTask, NULL, &navigationTaskAttributes);
+      };      navigationTaskHandle = osThreadNew(NavigationTask, NULL, &navigationTaskAttributes);
   }
+
+/**
+  * @brief  启动升降测试任务
+  * @param  无
+  * @retval 无
+  */  
+void Robot_StartLiftTest(void)
+{
+    // 创建升降测试任务
+    const osThreadAttr_t liftTestTaskAttributes = {
+        .name = "LiftTestTask",
+        .stack_size = 512 * 4,
+        .priority = (osPriority_t) osPriorityNormal,
+    };
+    liftTestTaskHandle = osThreadNew(LiftTestTask, NULL, &liftTestTaskAttributes);
+    
+    if (liftTestTaskHandle != NULL) {
+        printf("升降测试任务已启动\r\n");
+    } else {
+        printf("升降测试任务启动失败\r\n");
+    }
+}
   
-  /**
-    * @brief  测试底盘坐标导航控制
-    * @param  无
-    * @retval 无
-    */
-  void Chassis_TestNavigation(void)
-  {
-      // 初始化底盘
-      Chassis_Init();
-      
-      // 重置位置
-      Chassis_ResetPosition();
-      
-      printf("开始底盘导航测试...\r\n");
-      
-      // 前往第一个点(0.5m, 0, 0度)
-      printf("前往点1: (0.5, 0, 0)\r\n");
-      Chassis_SetTargetPosition(0.5f, 0.0f, 0.0f);
-      while(!Chassis_Control_Loop())
-      {
-          vTaskDelay(pdMS_TO_TICKS(20));
-      }
-      printf("到达点1\r\n");
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      
-      // 前往第二个点(0.5m, 0.5m, 90度)
-      printf("前往点2: (0.5, 0.5, 90)\r\n");
-      Chassis_SetTargetPosition(0.5f, 0.5f, 90.0f);
-      while(!Chassis_Control_Loop())
-      {
-          vTaskDelay(pdMS_TO_TICKS(20));
-      }
-      printf("到达点2\r\n");
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      
-      // 前往第三个点(0, 0.5m, 180度)
-      printf("前往点3: (0, 0.5, 180)\r\n");
-      Chassis_SetTargetPosition(0.0f, 0.5f, 180.0f);
-      while(!Chassis_Control_Loop())
-      {
-          vTaskDelay(pdMS_TO_TICKS(20));
-      }
-      printf("到达点3\r\n");
-      vTaskDelay(pdMS_TO_TICKS(1000));
-      
-      // 返回原点(0, 0, 0度)
-      printf("返回原点: (0, 0, 0)\r\n");
-      Chassis_SetTargetPosition(0.0f, 0.0f, 0.0f);
-      while(!Chassis_Control_Loop())
-      {
-          vTaskDelay(pdMS_TO_TICKS(20));
-      }      printf("测试完成!\r\n");
-  }
-  
-  /**
+    /**
     * @brief  测试升降结构控制
     * @param  无
     * @retval 无
@@ -292,70 +278,66 @@ void DJIMotorTask(void *argument)
   {
       printf("开始升降结构测试...\r\n");
       
-      // 初始化升降结构 - 使用默认配置
-      Lift_Init(NULL);
+      // 初始化升降结构
+      Lift_Init();
       vTaskDelay(pdMS_TO_TICKS(1000));
       
-      // 测试移动到中间位置
-      printf("升降到中间位置...\r\n");
-      Lift_SetPosition(LIFT_SIDE_BOTH, LIFT_MIDDLE);
+      // 测试移动到中间位置 (25cm)
+      printf("升降到中间位置 (25cm)...\r\n");
+      Lift_SetHeight(0.25f);
       
       // 等待移动完成
-      while(lift_status.left_state == LIFT_MOVING || lift_status.right_state == LIFT_MOVING)
+      while(!Lift_IsReached())
       {
           vTaskDelay(pdMS_TO_TICKS(100));
       }
       printf("到达中间位置\r\n");
       vTaskDelay(pdMS_TO_TICKS(2000));
-        // 测试移动到顶部位置
-      printf("升降到顶部位置...\r\n");
-      Lift_SetPosition(LIFT_SIDE_BOTH, LIFT_TOP);
+      
+      // 测试移动到顶部位置 (50cm)
+      printf("升降到顶部位置 (50cm)...\r\n");
+      Lift_SetHeight(0.5f);
       
       // 等待移动完成
-      while(lift_status.left_state == LIFT_MOVING || lift_status.right_state == LIFT_MOVING)
+      while(!Lift_IsReached())
       {
           vTaskDelay(pdMS_TO_TICKS(100));
       }
       printf("到达顶部位置\r\n");
       vTaskDelay(pdMS_TO_TICKS(2000));
       
-      // 测试返回底部位置
-      printf("升降到底部位置...\r\n");
-      Lift_SetPosition(LIFT_SIDE_BOTH, LIFT_BOTTOM);
+      // 测试返回底部位置 (0cm)
+      printf("升降到底部位置 (0cm)...\r\n");
+      Lift_SetHeight(0.0f);
       
       // 等待移动完成
-      while(lift_status.left_state == LIFT_MOVING || lift_status.right_state == LIFT_MOVING)
+      while(!Lift_IsReached())
       {
           vTaskDelay(pdMS_TO_TICKS(100));
       }
       printf("到达底部位置\r\n");
-        // 测试单侧控制 - 仅左侧
-      printf("测试单侧控制 - 左侧升降到中间位置...\r\n");
-      Lift_SetPosition(LIFT_SIDE_LEFT, LIFT_MIDDLE);
-      
-      while(lift_status.left_state == LIFT_MOVING)
-      {
-          vTaskDelay(pdMS_TO_TICKS(100));
-      }
-      printf("左侧到达中间位置\r\n");
       vTaskDelay(pdMS_TO_TICKS(1000));
       
-      // 右侧也升到中间位置
-      printf("右侧升降到中间位置...\r\n");
-      Lift_SetPosition(LIFT_SIDE_RIGHT, LIFT_MIDDLE);
-      
-      while(lift_status.right_state == LIFT_MOVING)
-      {
-          vTaskDelay(pdMS_TO_TICKS(100));
-      }
-      printf("右侧到达中间位置\r\n");
+      // 测试速度控制 - 向上移动
+      printf("测试速度控制 - 向上移动...\r\n");
+      Lift_Up(0.05f); // 5cm/s速度上升
+      vTaskDelay(pdMS_TO_TICKS(3000)); // 3秒
+      Lift_Stop();
+      printf("停止上升运动\r\n");
       vTaskDelay(pdMS_TO_TICKS(1000));
       
-      // 双侧同时返回底部
-      printf("双侧同时返回底部...\r\n");
-      Lift_SetPosition(LIFT_SIDE_BOTH, LIFT_BOTTOM);
+      // 测试速度控制 - 向下移动
+      printf("测试速度控制 - 向下移动...\r\n");
+      Lift_Down(0.05f); // 5cm/s速度下降
+      vTaskDelay(pdMS_TO_TICKS(2000)); // 2秒
+      Lift_Stop();
+      printf("停止下降运动\r\n");
       
-      while(lift_status.left_state == LIFT_MOVING || lift_status.right_state == LIFT_MOVING)
+      // 最终返回底部
+      printf("最终返回底部...\r\n");
+      Lift_SetHeight(0.0f);
+      
+      while(!Lift_IsReached())
       {
           vTaskDelay(pdMS_TO_TICKS(100));
       }
