@@ -26,17 +26,11 @@
 
 /* 升降状态结构体 */
 typedef struct {
-    float current_displacement;  // 当前位移 (cm) - 基于平均值
+    float current_displacement;  // 当前位移 (cm)
     float target_displacement;   // 目标位移 (cm)
     float speed;                // 当前速度 (cm/s) - 仅用于状态监控
     bool enabled;               // 系统使能状态
     bool is_moving;             // 是否正在运动
-    
-    // 独立电机控制
-    float motor_angles[4];           // 各电机当前角度 (度)
-    float motor_displacements[4];    // 各电机对应位移 (cm)
-    float motor_target_angles[4];    // 各电机目标角度 (度)
-    float sync_compensation[4];      // 各电机同步补偿量 (cm)
 } Lift_Status_t;
 
 /* 电机ID定义 */
@@ -57,11 +51,6 @@ typedef struct {
 #define LIFT_MAX_DISPLACEMENT   50.0f   // 最大向上位移 (cm)
 #define LIFT_MIN_DISPLACEMENT  -50.0f   // 最大向下位移 (cm)
 #define LIFT_TASK_PERIOD        20      // 任务周期 (ms)
-
-/* 同步控制参数 */
-#define LIFT_SYNC_KP                0.5f    // 同步控制比例系数
-#define LIFT_SYNC_MAX_COMPENSATION  2.0f    // 最大同步补偿量 (cm)
-#define LIFT_SYNC_DEADBAND         0.2f    // 同步死区 (cm)
 
 /* 任务参数 */
 #define LIFT_TASK_STACK_SIZE     256    // 任务堆栈大小
@@ -130,11 +119,5 @@ Lift_Status_t* Lift_GetStatus(void);
  * @return 当前位移 (cm)，负值表示向下位移
  */
 float Lift_GetCurrentDisplacement(void);
-
-/**
- * @brief 获取各电机位移状态
- * @param motor_displacements 输出数组，存储4个电机的位移值
- */
-void Lift_GetMotorDisplacements(float motor_displacements[4]);
 
 #endif /* __LIFT_H */

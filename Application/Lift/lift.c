@@ -34,8 +34,6 @@ static void Lift_UpdateCurrentSpeed(void);
 static void Lift_ControlMotors(void);
 static int Lift_InitMotors(void);
 static bool Lift_IsAtTarget(void);
-static void Lift_CalculateSyncCompensation(void);
-static void Lift_UpdateMotorTargets(void);
 
 /**
  * @brief 升降系统初始化
@@ -50,13 +48,6 @@ int Lift_Init(void)
     lift_status.target_displacement = 0.0f;
     lift_status.speed = 0.0f;
     lift_status.is_moving = false;
-    
-    // 初始化同步补偿数组
-    for (int i = 0; i < 4; i++)
-    {
-        lift_status.sync_compensation[i] = 0.0f;
-        lift_status.motor_target_angles[i] = 0.0f;
-    }
 
     // 初始化电机
     if (Lift_InitMotors() != 0)
@@ -103,7 +94,7 @@ static int Lift_InitMotors(void)
             }
         },
         .controller_setting_init_config = {
-            .close_loop_type =  SPEED_LOOP | ANGLE_LOOP, // 使用速度和角度闭环
+            .close_loop_type = SPEED_LOOP | ANGLE_LOOP,
             .outer_loop_type = ANGLE_LOOP,
             .motor_reverse_flag = MOTOR_DIRECTION_NORMAL,
             .feedback_reverse_flag = FEEDBACK_DIRECTION_NORMAL,
@@ -124,18 +115,57 @@ static int Lift_InitMotors(void)
         else
         {
             m2006_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
+        }        
+        if(i== 0 ) // ID 1和2的电机 (数组索引0和1)
+        {
+            // 设置速度PID参数
+            m2006_config.controller_param_init_config.speed_PID.Kp = 0.7f;
+            m2006_config.controller_param_init_config.speed_PID.Ki = 0.01f;
+            m2006_config.controller_param_init_config.speed_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.speed_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.speed_PID.DeadBand = 0.5f;
+            m2006_config.controller_param_init_config.speed_PID.Improve = PID_Integral_Limit;
+            m2006_config.controller_param_init_config.speed_PID.IntegralLimit = 3000.0f;
+            
+            // 设置角度PID参数
+            m2006_config.controller_param_init_config.angle_PID.Kp = 10.0f;
+            m2006_config.controller_param_init_config.angle_PID.Ki = 0.3f;
+            m2006_config.controller_param_init_config.angle_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.angle_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.angle_PID.DeadBand = 1.0f;
+            m2006_config.controller_param_init_config.angle_PID.Improve = PID_Integral_Limit | PID_DerivativeFilter;
+            m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
+            m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
         }
-        
+        if(i == 1) // ID 1和2的电机 
+        {
+            // 设置速度PID参数
+            m2006_config.controller_param_init_config.speed_PID.Kp = 0.8f;
+            m2006_config.controller_param_init_config.speed_PID.Ki = 0.01f;
+            m2006_config.controller_param_init_config.speed_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.speed_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.speed_PID.DeadBand = 0.5f;
+            m2006_config.controller_param_init_config.speed_PID.Improve = PID_Integral_Limit;
+            m2006_config.controller_param_init_config.speed_PID.IntegralLimit = 3000.0f;
+            
+            // 设置角度PID参数
+            m2006_config.controller_param_init_config.angle_PID.Kp = 10.0f;
+            m2006_config.controller_param_init_config.angle_PID.Ki = 0.3f;
+            m2006_config.controller_param_init_config.angle_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.angle_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.angle_PID.DeadBand = 1.0f;
+            m2006_config.controller_param_init_config.angle_PID.Improve = PID_Integral_Limit | PID_DerivativeFilter;
+            m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
+            m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
+        }
         lift_motors[i] = DJIMotorInit(&m2006_config);
         if (lift_motors[i] == NULL)
         {
         return -1;
         }
-        
         // 使能电机
         DJIMotorEnable(lift_motors[i]);
     }
-
     return 0;
 }
 
@@ -173,12 +203,6 @@ void LiftTask(void *argument)
         // 更新当前位移
         Lift_UpdateCurrentDisplacement();
         
-        // 计算同步补偿
-        Lift_CalculateSyncCompensation();
-        
-        // 更新各电机目标角度
-        Lift_UpdateMotorTargets();
-        
         // 更新当前速度（用于监控）
         Lift_UpdateCurrentSpeed();
         
@@ -200,20 +224,13 @@ static void Lift_UpdateCurrentDisplacement(void)
     float total_angle = 0.0f;
     int valid_motors = 0;
 
-    // 记录每个电机的角度和位移
+    // 计算所有电机角度的平均值
     for (int i = 0; i < 4; i++)
     {
         if (lift_motors[i])
         {
-            lift_status.motor_angles[i] = lift_motors[i]->measure.total_angle;
-            lift_status.motor_displacements[i] = Lift_AngleToDisplacement(lift_status.motor_angles[i]);
-            total_angle += lift_status.motor_angles[i];
+            total_angle += lift_motors[i]->measure.total_angle;
             valid_motors++;
-        }
-        else
-        {
-            lift_status.motor_angles[i] = 0.0f;
-            lift_status.motor_displacements[i] = 0.0f;
         }
     }
 
@@ -224,19 +241,22 @@ static void Lift_UpdateCurrentDisplacement(void)
     }
 }
 
-/** 
+/**
  * @brief 控制电机
  */
 static void Lift_ControlMotors(void)
 {
     if (!lift_status.enabled) return;
 
-    // 为每个电机设置独立的目标角度（已包含同步补偿）
+    // 位移控制模式：将目标位移转换为电机目标角度
+    float target_angle = Lift_DisplacementToAngle(lift_status.target_displacement);
+    
+    // 设置所有电机的目标角度
     for (int i = 0; i < 4; i++)
     {
         if (lift_motors[i])
         {
-            DJIMotorSetRef(lift_motors[i], lift_status.motor_target_angles[i]);
+            DJIMotorSetRef(lift_motors[i], target_angle);
         }
     }
     
@@ -455,100 +475,4 @@ int Lift_MoveTo(float target_displacement)
 
     printf("升降移动到目标位移: %.2fcm\r\n", target_displacement);
     return 0;
-}
-
-/**
- * @brief 计算同步补偿
- */
-static void Lift_CalculateSyncCompensation(void)
-{
-    if (!lift_status.enabled) return;
-    
-    // 计算平均位移作为同步目标
-    float avg_displacement = lift_status.current_displacement;
-    
-    static uint32_t debug_counter = 0;
-    bool has_compensation = false;
-    
-    // 为每个电机计算同步补偿量
-    for (int i = 0; i < 4; i++)
-    {
-        if (lift_motors[i])
-        {
-            // 计算当前电机与平均位移的偏差
-            float displacement_error = avg_displacement - lift_status.motor_displacements[i];
-            
-            // 只有偏差超过死区才进行补偿
-            if (fabsf(displacement_error) > LIFT_SYNC_DEADBAND)
-            {
-                // 比例控制计算补偿量
-                float compensation = displacement_error * LIFT_SYNC_KP;
-                
-                // 限制补偿量范围
-                if (compensation > LIFT_SYNC_MAX_COMPENSATION)
-                    compensation = LIFT_SYNC_MAX_COMPENSATION;
-                else if (compensation < -LIFT_SYNC_MAX_COMPENSATION)
-                    compensation = -LIFT_SYNC_MAX_COMPENSATION;
-                
-                lift_status.sync_compensation[i] = compensation;
-                has_compensation = true;
-            }
-            else
-            {
-                lift_status.sync_compensation[i] = 0.0f;
-            }
-        }
-        else
-        {
-            lift_status.sync_compensation[i] = 0.0f;
-        }
-    }
-    
-    // 定期输出同步状态
-    debug_counter++;
-    if (debug_counter % 100 == 0 && (has_compensation || lift_status.is_moving))
-    {
-        printf("同步状态: 位移[%.2f,%.2f,%.2f,%.2f] 补偿[%.2f,%.2f,%.2f,%.2f]\r\n",
-               lift_status.motor_displacements[0], lift_status.motor_displacements[1],
-               lift_status.motor_displacements[2], lift_status.motor_displacements[3],
-               lift_status.sync_compensation[0], lift_status.sync_compensation[1],
-               lift_status.sync_compensation[2], lift_status.sync_compensation[3]);
-    }
-}
-
-/**
- * @brief 更新各电机目标角度
- */
-static void Lift_UpdateMotorTargets(void)
-{
-    if (!lift_status.enabled) return;
-    
-    // 为每个电机设置独立的目标角度（基础目标 + 同步补偿）
-    for (int i = 0; i < 4; i++)
-    {
-        if (lift_motors[i])
-        {
-            // 当前电机的目标位移 = 系统目标位移 + 同步补偿
-            float motor_target_displacement = lift_status.target_displacement + lift_status.sync_compensation[i];
-            
-            // 转换为角度
-            lift_status.motor_target_angles[i] = Lift_DisplacementToAngle(motor_target_displacement);
-        }
-        else
-        {
-            lift_status.motor_target_angles[i] = 0.0f;
-        }
-    }
-}
-
-/**
- * @brief 获取各电机位移状态
- * @param motor_displacements 输出数组，存储4个电机的位移值
- */
-void Lift_GetMotorDisplacements(float motor_displacements[4])
-{
-    for (int i = 0; i < 4; i++)
-    {
-        motor_displacements[i] = lift_status.motor_displacements[i];
-    }
 }
