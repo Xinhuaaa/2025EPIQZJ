@@ -278,68 +278,8 @@ static void Lift_ControlMotors(void)
  */
 int Lift_Up(float displacement)
 {
-    if (!lift_status.enabled)
-    {
-        printf("升降系统未使能!\r\n");
-        return -1;
-    }
+    lift_status.target_displacement = displacement;
 
-    // 使用默认位移
-    if (displacement <= 0.0f)
-    {
-        displacement = 5.0f; // 默认上升5cm
-    }
-
-    // 计算新的目标位移
-    float new_target = lift_status.current_displacement + displacement;
-
-    // 位移限制检查
-    if (new_target > LIFT_MAX_DISPLACEMENT)
-    {
-        new_target = LIFT_MAX_DISPLACEMENT;
-        printf("位移限制到最大值: %.1fcm\r\n", LIFT_MAX_DISPLACEMENT);
-    }
-
-    lift_status.target_displacement = new_target;
-    lift_status.is_moving = true;
-
-    printf("升降开始上升到位移: %.2fcm (增量: %.2fcm)\r\n", new_target, displacement);
-    return 0;
-}
-
-/**
- * @brief 升降向下移动
- * @param displacement 目标位移 (cm)，相对于当前位置的增量（正值）
- * @retval 0: 成功, -1: 失败
- */
-int Lift_Down(float displacement)
-{
-    if (!lift_status.enabled)
-    {
-        printf("升降系统未使能!\r\n");
-        return -1;
-    }
-
-    // 使用默认位移
-    if (displacement <= 0.0f)
-    {
-        displacement = 5.0f; // 默认下降5cm
-    }
-
-    // 计算新的目标位移（向下为负值）
-    float new_target = lift_status.current_displacement - displacement;
-
-    // 位移限制检查
-    if (new_target < LIFT_MIN_DISPLACEMENT)
-    {
-        new_target = LIFT_MIN_DISPLACEMENT;
-        printf("位移限制到最小值: %.1fcm\r\n", LIFT_MIN_DISPLACEMENT);
-    }
-
-    lift_status.target_displacement = new_target;
-    lift_status.is_moving = true;
-
-    printf("升降开始下降到位移: %.2fcm (增量: %.2fcm)\r\n", new_target, displacement);
     return 0;
 }
 

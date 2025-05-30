@@ -107,7 +107,9 @@
           "Middlewares/ST/STM32_USB_Device_Library/Core/Inc",
           "Application/Lift",
           "modules/dji_motor",
-          "modules/servo"
+          "modules/servo",
+          "Application/Crawl",
+          "modules/ZDT_EmmV5"
         ],
         "libList": [],
         "defineList": [

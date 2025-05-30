@@ -77,7 +77,6 @@ void LiftTestTask(void *argument)
     
     // 执行升降测试
     Lift_TestControl();
-    
     // 测试完成后删除任务
     printf("升降测试任务完成，任务即将结束\r\n");
     vTaskDelete(NULL);
@@ -128,6 +127,8 @@ void LiftTestTask(void *argument)
           // 周期性执行，确保实时控制
           vTaskDelay(pdMS_TO_TICKS(10));
       }
+     Crawl_SimpleGrab();
+
   }
   
   /**
@@ -244,7 +245,8 @@ void LiftTestTask(void *argument)
           .name = "NavigationTask",
           .stack_size = 512 * 4,
           .priority = (osPriority_t) osPriorityBelowNormal,
-      };      navigationTaskHandle = osThreadNew(NavigationTask, NULL, &navigationTaskAttributes);
+      };  
+      navigationTaskHandle = osThreadNew(NavigationTask, NULL, &navigationTaskAttributes);
   }
 
 /**

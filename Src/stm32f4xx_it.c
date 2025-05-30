@@ -54,10 +54,17 @@
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void hard_fault_handler_c(uint32_t *hardfault_args)
+{
+    uint32_t stacked_pc = hardfault_args[6];
+    LOG("Hard fault at PC = 0x%08lX\r\n", stacked_pc);
+    while (1);
+}
 
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern PCD_HandleTypeDef hpcd_USB_OTG_FS;
 extern CAN_HandleTypeDef hcan1;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
@@ -110,12 +117,7 @@ void HardFault_Handler(void)
     /* USER CODE END W1_HardFault_IRQn 0 */
   }
 }
-void hard_fault_handler_c(uint32_t *hardfault_args)
-{
-    uint32_t stacked_pc = hardfault_args[6];
-    LOG("Hard fault at PC = 0x%08lX\r\n", stacked_pc);
-    while (1);
-}
+
 /**
   * @brief This function handles Memory management fault.
   */
@@ -249,6 +251,7 @@ void USART2_IRQHandler(void)
     HWT101_UART_IDLECallback();
   }
   /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
     HAL_UART_IRQHandler(&huart2);
@@ -281,6 +284,20 @@ void DMA2_Stream1_IRQHandler(void)
   /* USER CODE BEGIN DMA2_Stream1_IRQn 1 */
 
   /* USER CODE END DMA2_Stream1_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USB On The Go FS global interrupt.
+  */
+void OTG_FS_IRQHandler(void)
+{
+  /* USER CODE BEGIN OTG_FS_IRQn 0 */
+
+  /* USER CODE END OTG_FS_IRQn 0 */
+  HAL_PCD_IRQHandler(&hpcd_USB_OTG_FS);
+  /* USER CODE BEGIN OTG_FS_IRQn 1 */
+
+  /* USER CODE END OTG_FS_IRQn 1 */
 }
 
 /**

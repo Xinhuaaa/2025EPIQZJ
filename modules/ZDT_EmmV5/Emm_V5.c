@@ -209,7 +209,7 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   cmd[12] =  0x6B;                      // 校验字节
   
   // 发送命令
-  HAL_UART_Transmit_DMA(&huart6, (uint8_t *)cmd, 13);
+  HAL_UART_Transmit(&huart6, (uint8_t *)cmd, 13,50);
 }
 
 /**
