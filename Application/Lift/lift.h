@@ -70,12 +70,6 @@ extern osThreadId_t liftTaskHandle;
 int Lift_Init(void);
 
 /**
- * @brief 创建升降任务
- * @retval 0: 成功, -1: 失败
- */
-int Lift_CreateTask(void);
-
-/**
  * @brief 升降控制任务函数
  * @param argument 任务参数
  */

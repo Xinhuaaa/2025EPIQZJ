@@ -19,7 +19,15 @@
 #include "PID.h"
 #include "motor_def.h"
 #include "stdint.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "cmsis_os.h"
 // 守护进程相关定义已内联到dji_motor.c中
+
+/* DJI电机控制任务相关 */
+#define DJI_MOTOR_TASK_PRIORITY    (osPriorityHigh)     // 高优先级
+#define DJI_MOTOR_TASK_STACK_SIZE  (512)                // 堆栈大小
+#define DJI_MOTOR_TASK_PERIOD      (20)                 // 任务周期(ms)
 
 /* 守护进程相关定义 */
 #define DAEMON_MX_CNT 16
@@ -145,5 +153,11 @@ void DJIMotorEnable(DJIMotorInstance *motor);
  * @param outer_loop 外层闭环类型
  */
 void DJIMotorOuterLoop(DJIMotorInstance *motor, Closeloop_Type_e outer_loop);
+
+/**
+ * @brief DJI电机控制任务函数
+ * @param argument 任务参数
+ */
+void DJIMotorTask(void *argument);
 
 #endif // !DJI_MOTOR_H

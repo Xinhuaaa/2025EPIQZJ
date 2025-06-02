@@ -79,7 +79,7 @@ static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
 static uint16_t        g_encoder_values[4] = {0}; // 编码器值
 static TaskHandle_t    g_chassis_task_handle = NULL;
 static bool            g_chassis_task_running = false;
-static int32_t         prev_encoder[4] = {0};   
+static int32_t         prev_encoder[4] = {0};
 
 /* 麦轮运动学矩阵 - 从底盘速度到轮子速度的映射 */
 static const float g_mecanum_matrix[4][3] = {
@@ -188,13 +188,10 @@ void Chassis_Init(void)
         
         // 初始化清除故障
         Emm_V5_CAN_Reset_Clog_Pro(motor_id);
-    }
+    }    // 重置底盘位置
+    Chassis_ResetPosition();
     
-    
-    // 重置底盘位置
-    Chassis_ResetPosition(); 
-    
-    // 创建底盘控制任务
+    // 直接创建底盘控制任务
     g_chassis_task_running = true;
     xTaskCreate(Chassis_Task, "Chassis", 512, NULL, 5, &g_chassis_task_handle);
 }

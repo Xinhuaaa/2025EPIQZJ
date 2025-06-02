@@ -52,6 +52,7 @@ extern "C" {
 #define CRAWL_SERVO_ACTION_GRAB     1       // 抓取动作组编号
 #define CRAWL_SERVO_ACTION_RELEASE  2       // 释放动作组编号
 #define CRAWL_SERVO_TIMES           1       // 动作组执行次数
+#define CRAWL_ACTION_NONE            0       // 无动作
 
 /* 升降参数 */
 #define CRAWL_LIFT_DEFAULT_HEIGHT   10.0f   // 默认升降高度，单位cm
@@ -101,12 +102,6 @@ extern osThreadId_t crawlTaskHandle;
  * @retval 0: 成功, -1: 失败
  */
 int Crawl_Init(void);
-
-/**
- * @brief 创建抓取控制任务
- * @retval 0: 成功, -1: 失败
- */
-int Crawl_CreateTask(void);
 
 /**
  * @brief 抓取控制任务函数

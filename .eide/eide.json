@@ -36,7 +36,8 @@
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
-        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR"
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR",
+        "Application/Crawl"
       ],
       "toolchain": "GCC",
       "compileConfig": {

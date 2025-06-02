@@ -32,7 +32,6 @@ static float Lift_DisplacementToAngle(float displacement);
 static void Lift_UpdateCurrentDisplacement(void);
 static void Lift_UpdateCurrentSpeed(void);
 static void Lift_ControlMotors(void);
-static int Lift_InitMotors(void);
 static bool Lift_IsAtTarget(void);
 
 /**
@@ -49,23 +48,7 @@ int Lift_Init(void)
     lift_status.speed = 0.0f;
     lift_status.is_moving = false;
 
-    // 初始化电机
-    if (Lift_InitMotors() != 0)
-    {
-        printf("升降系统电机初始化失败!\r\n");
-        return -1;
-    }
-
-    printf("升降系统初始化完成!\r\n");
-    return 0;
-}
-
-/**
- * @brief 初始化升降电机
- * @retval 0: 成功, -1: 失败
- */
-static int Lift_InitMotors(void)
-{
+    // 初始化电机配置
     Motor_Init_Config_s m2006_config = {
         .can_init_config = {
             .can_handle = &hcan1,
@@ -102,7 +85,9 @@ static int Lift_InitMotors(void)
             .speed_feedback_source = MOTOR_FEED, 
             .feedforward_flag = FEEDFORWARD_NONE
         }
-    };    // 初始化4个电机
+    };
+
+    // 初始化4个电机
     for (int i = 0; i < 4; i++)
     {
         m2006_config.can_init_config.tx_id = LIFT_MOTOR_1_ID + i;
@@ -116,7 +101,8 @@ static int Lift_InitMotors(void)
         {
             m2006_config.controller_setting_init_config.motor_reverse_flag = MOTOR_DIRECTION_NORMAL;
         }        
-        if(i== 0 ) // ID 1和2的电机 (数组索引0和1)
+        
+        if(i == 0) // ID 1的电机 (数组索引0)
         {
             // 设置速度PID参数
             m2006_config.controller_param_init_config.speed_PID.Kp = 0.7f;
@@ -137,7 +123,7 @@ static int Lift_InitMotors(void)
             m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
             m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
         }
-        if(i == 1) // ID 1和2的电机 
+        if(i == 1) // ID 2的电机 (数组索引1)
         {
             // 设置速度PID参数
             m2006_config.controller_param_init_config.speed_PID.Kp = 0.8f;
@@ -158,24 +144,21 @@ static int Lift_InitMotors(void)
             m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
             m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
         }
+        
         lift_motors[i] = DJIMotorInit(&m2006_config);
         if (lift_motors[i] == NULL)
         {
-        return -1;
+            printf("升降系统电机初始化失败!\r\n");
+            return -1;
         }
         // 使能电机
         DJIMotorEnable(lift_motors[i]);
     }
-    return 0;
-}
 
-/**
- * @brief 创建升降任务
- * @retval 0: 成功, -1: 失败
- */
-int Lift_CreateTask(void)
-{
-    osThreadAttr_t liftTask_attributes = {
+    printf("升降系统初始化完成!\r\n");
+    
+    // 直接创建升降控制任务
+    const osThreadAttr_t liftTask_attributes = {
         .name = "LiftTask",
         .stack_size = LIFT_TASK_STACK_SIZE * 4,
         .priority = (osPriority_t)LIFT_TASK_PRIORITY,
@@ -184,9 +167,10 @@ int Lift_CreateTask(void)
     liftTaskHandle = osThreadNew(LiftTask, NULL, &liftTask_attributes);
     if (liftTaskHandle == NULL)
     {
+        printf("升降任务创建失败!\r\n");
         return -1;
     }
-
+    
     return 0;
 }
 

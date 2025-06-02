@@ -4,9 +4,14 @@
 #include "memory.h"
 #include "stdlib.h"
 #include "can.h" // 添加CAN句柄头文件
+#include "stdio.h"
 
 // 定义缺失的常量
 #define RPM_2_ANGLE_PER_SEC (360.0f / 60.0f) // RPM转换为度/秒
+
+/* DJI电机控制任务句柄 */
+static osThreadId_t djiMotorTaskHandle = NULL;
+static uint8_t dji_motor_task_created = 0; // 任务创建标志
 
 /* 守护进程相关变量和函数 */
 static DaemonInstance *daemon_instances[DAEMON_MX_CNT] = {NULL};
@@ -222,17 +227,34 @@ DJIMotorInstance *DJIMotorInit(Motor_Init_Config_s *config)
     // 注册电机到CAN总线
     config->can_init_config.can_module_callback = DecodeDJIMotor; // set callback
     config->can_init_config.id = instance;                        // set id,eq to address(it is identity)
-    instance->motor_can_instance = CANRegister(&config->can_init_config);
-
-    // 注册守护线程
+    instance->motor_can_instance = CANRegister(&config->can_init_config);    // 注册守护线程
     Daemon_Init_Config_s daemon_config = {
         .callback = DJIMotorLostCallback,
         .owner_id = instance,
         .reload_count = 2, // 20ms未收到数据则丢失
     };
     instance->daemon = DaemonRegister(&daemon_config);   
-     DJIMotorEnable(instance);
+    DJIMotorEnable(instance);
     dji_motor_instance[motor_idx++] = instance;
+    
+    // 创建DJI电机控制任务(只创建一次)
+    if (!dji_motor_task_created) {
+        const osThreadAttr_t djiMotorTaskAttributes = {
+            .name = "DJIMotorTask",
+            .stack_size = DJI_MOTOR_TASK_STACK_SIZE * 4,
+            .priority = DJI_MOTOR_TASK_PRIORITY,
+        };
+        
+        djiMotorTaskHandle = osThreadNew(DJIMotorTask, NULL, &djiMotorTaskAttributes);
+        
+        if (djiMotorTaskHandle != NULL) {
+            dji_motor_task_created = 1;
+            LOGINFO("[dji_motor] DJI Motor control task created successfully with high priority");
+        } else {
+            LOGERROR("[dji_motor] Failed to create DJI Motor control task");
+        }
+    }
+    
     return instance;
 }
 
@@ -363,4 +385,27 @@ void DJIMotorControl()
     
     // 执行守护进程任务
     DaemonTask();
+}
+
+/**
+ * @brief DJI电机控制任务函数
+ * @param argument 任务参数
+ */
+void DJIMotorTask(void *argument)
+{
+    // 等待系统启动稳定
+    osDelay(pdMS_TO_TICKS(500));
+    
+    LOGINFO("[dji_motor] DJI Motor control task started with high priority");
+    
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    
+    for(;;)
+    {
+        // 执行DJI电机控制循环
+        DJIMotorControl();
+        
+        // 精确周期执行
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(DJI_MOTOR_TASK_PERIOD));
+    }
 }

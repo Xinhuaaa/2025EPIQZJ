@@ -100,9 +100,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  BSPLogInit();
-  HWT101_TaskInit();  
-  Robot_TaskCreate();
+  Robot_Init();
 
   /* USER CODE END RTOS_THREADS */
 
