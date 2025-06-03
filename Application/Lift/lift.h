@@ -53,7 +53,7 @@ typedef struct {
 #define LIFT_TASK_PERIOD        20      // 任务周期 (ms)
 
 /* 任务参数 */
-#define LIFT_TASK_STACK_SIZE     256    // 任务堆栈大小
+#define LIFT_TASK_STACK_SIZE     128    // 任务堆栈大小
 #define LIFT_TASK_PRIORITY       5      // 任务优先级
 
 /* 全局变量声明 */

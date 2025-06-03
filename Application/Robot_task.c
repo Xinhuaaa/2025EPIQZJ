@@ -19,17 +19,24 @@
 #include "lift.h"
 #include "Crawl.h"
 #include "dji_motor.h"
+#include "bsp_log.h"
+#include "bsp_dwt.h"
+#include "Hwt101.h"
 
 int Robot_Init(void)
 {   
-    //BSP先初始化
-    BSPLogInit();
-    HWT101_TaskInit();  
+        __disable_irq();
 
+    //BSP先初始化
+    DWT_Init(168);
+    BSPLogInit();
+        __enable_irq();
+
+    HWT101_TaskInit();
     //APP初始化
     Chassis_Init();
-    osDelay(pdMS_TO_TICKS(1000));
     Lift_Init();
+    
     // Crawl_Init(); 
     Chassis_ResetPosition();
 

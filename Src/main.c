@@ -100,6 +100,9 @@ int main(void)
   MX_USART2_UART_Init();
   MX_USART3_UART_Init();
   /* USER CODE BEGIN 2 */
+// __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE);
+//   HAL_Delay(1000);
+// __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
 
   /* USER CODE END 2 */
 

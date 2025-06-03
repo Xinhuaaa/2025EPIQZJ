@@ -20,6 +20,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "bsp_log.h"
+#include "BSP_dwt.h"
+#include "cmsis_os.h"
 
 /* 外部声明 */
 extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
@@ -104,7 +106,6 @@ void Chassis_Init(void)
     if (!Emm_V5_CAN_Init(motor_ids, 4)) {
         return;  // 如果初始化失败，直接返回
     }
-    
     // // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
     // PID_Init_Config_s pid_config_xy = {
     //     .Kp = 0.82f,               // 比例系数

@@ -36,8 +36,7 @@
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_1.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_2.c",
         "Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_5.c",
-        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR",
-        "Application/Crawl"
+        "Middlewares/Third_Party/FreeRTOS/Source/portable/IAR"
       ],
       "toolchain": "GCC",
       "compileConfig": {
@@ -53,7 +52,7 @@
       },
       "uploader": "OpenOCD",
       "uploadConfig": {
-        "bin": "",
+        "bin": "${ExecutableName}.elf",
         "target": "stm32f4x",
         "interface": "cmsis-dap",
         "baseAddr": "0x08000000"
@@ -141,7 +140,8 @@
             "output-format": "elf",
             "remove-unused-input-sections": true,
             "LIB_FLAGS": "-lm",
-            "$toolName": "auto"
+            "$toolName": "auto",
+            "LD_FLAGS": "-Wl,--undefined=SEGGER_RTT"
           }
         }
       }

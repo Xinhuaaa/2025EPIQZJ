@@ -125,6 +125,7 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+    // LOGINFO("Defeat 正常运行");
     osDelay(1);
   }
   /* USER CODE END StartDefaultTask */

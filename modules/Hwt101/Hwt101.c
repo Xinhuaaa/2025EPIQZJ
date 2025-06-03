@@ -20,7 +20,7 @@ float TotalAngle = 0;   // 累计角度值
 uint8_t CALIYAW[] = {0xFF,0xAA,0x76,0x00,0x00};
 
 /**
- * @brief  HWT101初始化
+ * @brief  HWT101硬件初始化（在任务内调用）
  * @param  None
  * @retval None
  */
@@ -30,12 +30,6 @@ void HWT101_Init(void)
     Angle = 0.0f;
     PrevRawAngle = 0.0f;
     TotalAngle = 0.0f;
-    
-    // 创建信号量
-    HWT101_DataReadySemaphore = xSemaphoreCreateBinary();
-    
-    // 确保信号量创建成功
-    configASSERT(HWT101_DataReadySemaphore != NULL);
     
     // 使能IDLE中断
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
@@ -131,6 +125,12 @@ void HWT101_Task(void *argument)
  */
 void HWT101_TaskInit(void)
 {
+    // 先创建信号量
+    HWT101_DataReadySemaphore = xSemaphoreCreateBinary();
+    
+    // 确保信号量创建成功
+    configASSERT(HWT101_DataReadySemaphore != NULL);
+    
     // 任务参数
     const osThreadAttr_t HWT101_attributes = {
         .name = "HWT101Task",
@@ -147,7 +147,7 @@ void HWT101_TaskInit(void)
 
 /**
  * @brief  UART IDLE中断回调函数 - 需在stm32f4xx_it.c文件中实现
- * @note   此函数需要在UART5的IDLE中断处理函数中调用
+ * @note   此函数需要在UART2的IDLE中断处理函数中调用
  * @param  None
  * @retval None
  */
@@ -155,10 +155,14 @@ void HWT101_UART_IDLECallback(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     
-    // 给出信号量，通知任务处理数据
-    xSemaphoreGiveFromISR(HWT101_DataReadySemaphore, &xHigherPriorityTaskWoken);
-    
-    // 如果释放信号量导致更高优先级的任务就绪，则请求上下文切换
-    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    // 确保信号量已创建
+    if(HWT101_DataReadySemaphore != NULL)
+    {
+        // 给出信号量，通知任务处理数据
+        xSemaphoreGiveFromISR(HWT101_DataReadySemaphore, &xHigherPriorityTaskWoken);
+        
+        // 如果释放信号量导致更高优先级的任务就绪，则请求上下文切换
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
 

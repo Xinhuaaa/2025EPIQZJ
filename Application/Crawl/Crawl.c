@@ -21,7 +21,7 @@ Crawl_Status_t crawl_status = {0};
 osThreadId_t crawlTaskHandle = NULL;
 
 /* 前向声明 */
-static void CrawlTask(void *argument);
+void CrawlTask(void *argument);
 
 /**
  * @brief 抓取系统初始化
@@ -61,7 +61,7 @@ int Crawl_Init(void)
  * @brief 抓取控制任务函数
  * @param argument 任务参数
  */
-static void CrawlTask(void *argument)
+void CrawlTask(void *argument)
 {
     printf("抓取任务启动\r\n");
 
