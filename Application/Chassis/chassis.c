@@ -174,22 +174,22 @@ void Chassis_Init(void)
     ADRC_Init(&g_adrc.y, &adrc_config_xy);
     ADRC_Init(&g_adrc.yaw, &adrc_config_yaw);
     
-    // 电机初始化：使能、设置模式、清零编码器
-    for (uint8_t i = 0; i < 4; i++) {
-        uint8_t motor_id = motor_ids[i];
+    // // 电机初始化：使能、设置模式、清零编码器
+    // for (uint8_t i = 0; i < 4; i++) {
+    //     uint8_t motor_id = motor_ids[i];
         
-        // 使能电机
-        Emm_V5_CAN_En_Control(motor_id, true, 0);
+    //     // 使能电机
+    //     Emm_V5_CAN_En_Control(motor_id, true, 0);
         
-        // 设置闭环模式
-        Emm_V5_CAN_Modify_Ctrl_Mode(motor_id, true, 2); 
+    //     // 设置闭环模式
+    //     Emm_V5_CAN_Modify_Ctrl_Mode(motor_id, true, 2); 
         
-        // 清零位置
-        Emm_V5_CAN_Reset_CurPos_To_Zero(motor_id);
+    //     // 清零位置
+    //     Emm_V5_CAN_Reset_CurPos_To_Zero(motor_id);
         
-        // 初始化清除故障
-        Emm_V5_CAN_Reset_Clog_Pro(motor_id);
-    }    // 重置底盘位置
+    //     // 初始化清除故障
+    //     Emm_V5_CAN_Reset_Clog_Pro(motor_id);
+    // }    // 重置底盘位置
     Chassis_ResetPosition();
     
     // 直接创建底盘控制任务
@@ -250,7 +250,7 @@ bool Chassis_Control_Loop(void)
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
     // 1. 更新底盘位置
-    
+    printf("Chassis Control Loop Start\n");
     // 更新底盘朝向角度（来自陀螺仪）
     g_current_pos.yaw = Angle;
     

@@ -5,6 +5,32 @@
             "cwd": "${workspaceRoot}",
             "type": "cortex-debug",
             "request": "launch",
+            "name": "Debug: pyOCD",
+            "servertype": "pyocd",
+            "executable": "build/Debug/TKX.elf",
+            "runToEntryPoint": "main",
+            "targetId": "cortex_m",
+            "serverArgs": [],
+            "toolchainPrefix": "arm-none-eabi"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
+            "name": "Debug: OpenOCD",
+            "servertype": "openocd",
+            "executable": "build/Debug/TKX.elf",
+            "runToEntryPoint": "main",
+            "configFiles": [
+                "interface/cmsis-dap.cfg",
+                "target/stm32f4x.cfg"
+            ],
+            "toolchainPrefix": "arm-none-eabi"
+        },
+        {
+            "cwd": "${workspaceRoot}",
+            "type": "cortex-debug",
+            "request": "launch",
             "name": "Debug: JLINK",
             "servertype": "jlink",
             "interface": "swd",

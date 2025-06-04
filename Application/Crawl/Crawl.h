@@ -36,7 +36,7 @@ extern "C" {
 #include "servo.h"          // 舵机控制
 
 /* 宏定义 */
-#define CRAWL_TASK_PERIOD       20          // 抓取任务周期，单位ms
+#define CRAWL_TASK_PERIOD       500          // 抓取任务周期，单位ms
 #define CRAWL_MAX_WAIT_TIME     10000       // 最大等待时间，单位ms
 #define CRAWL_DEFAULT_TIMEOUT   5000        // 默认超时时间，单位ms
 

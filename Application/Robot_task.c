@@ -22,23 +22,22 @@
 #include "bsp_log.h"
 #include "bsp_dwt.h"
 #include "Hwt101.h"
+#include "emm_v5.h"
 
 int Robot_Init(void)
 {   
-        __disable_irq();
-
+    __disable_irq();
     //BSP先初始化
     DWT_Init(168);
     BSPLogInit();
-        __enable_irq();
-
+    __enable_irq();
+    DWT_Delay(1);
     HWT101_TaskInit();
     //APP初始化
     Chassis_Init();
     Lift_Init();
     
-    // Crawl_Init(); 
-    Chassis_ResetPosition();
+    Crawl_Init(); 
 
     return 0;
 }

@@ -19,7 +19,7 @@
 /* 全局变量定义 */
 Crawl_Status_t crawl_status = {0};
 osThreadId_t crawlTaskHandle = NULL;
-
+uint64_t maichong = 1000; 
 /* 前向声明 */
 void CrawlTask(void *argument);
 
@@ -63,40 +63,41 @@ int Crawl_Init(void)
  */
 void CrawlTask(void *argument)
 {
-    printf("抓取任务启动\r\n");
-
     while (1)
     {
         // 根据当前状态执行相应动作
         switch (crawl_status.state)
         {
             case CRAWL_STATE_IDLE:
-                // 空闲状态，等待命令
-                break;
+            Emm_V5_Pos_Control(1,1,600,0,maichong,0,0);
+            osDelay(50);
+            Emm_V5_Pos_Control(2,1,600,0,maichong,0,0);
+            osDelay(50);
+        break;
                 
             case CRAWL_STATE_LIFTING:
                 // 升降中状态处理
-                break;
+        break;
                 
             case CRAWL_STATE_EXTENDING:
                 // 前伸中状态处理
-                break;
+        break;
                 
             case CRAWL_STATE_GRABBING:
                 // 抓取中状态处理
-                break;
+        break;
                 
             case CRAWL_STATE_RETRACTING:
                 // 收回中状态处理
-                break;
+        break;
                 
             case CRAWL_STATE_ERROR:
                 // 错误状态处理
-                break;
+        break;
                 
             default:
                 crawl_status.state = CRAWL_STATE_IDLE;
-                break;
+        break;
         }
         
         // 周期性延时
@@ -109,9 +110,9 @@ void CrawlTask(void *argument)
  */
 void Crawl_SimpleGrab()
 {
-    Emm_V5_Pos_Control(1, 1, 500, 50, 6000, 0, 0);
+    Emm_V5_Pos_Control(1, 1, 500, 50, 6000, 1, 0);
     osDelay(100);
-    Emm_V5_Pos_Control(2, 1, 500, 50, 6000, 0, 0);
+    Emm_V5_Pos_Control(2, 1, 500, 50, 6000, 1, 0);
 
     // 简单延时等待前伸完成
     osDelay(10);

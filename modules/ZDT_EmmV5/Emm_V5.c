@@ -3,7 +3,7 @@
 #include "cmsis_os.h" // FreeRTOS API
 #include "semphr.h"
 #include "bsp_log.h"
-
+#include "bsp_dwt.h"
 // 函数前向声明，避免隐式声明警告
 void Emm_V5_Set_Encoder_Zero(uint8_t id);
 
@@ -91,6 +91,7 @@ void Emm_V5_Read_Sys_Params(uint8_t addr, SysParams_t1 s)
     case S_VEL  : cmd[i] = 0x35; ++i; break;
     case S_CPOS : cmd[i] = 0x36; ++i; break;
     case S_PERR : cmd[i] = 0x37; ++i; break;
+    case S_FLAG : cmd[i] = 0x3A; ++i; break;
     case S_ORG  : cmd[i] = 0x3B; ++i; break;
     case S_Conf : cmd[i] = 0x42; ++i; cmd[i] = 0x6C; ++i; break;
     case S_State: cmd[i] = 0x43; ++i; cmd[i] = 0x7A; ++i; break;
@@ -209,7 +210,8 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   cmd[12] =  0x6B;                      // 校验字节
   
   // 发送命令
-  HAL_UART_Transmit(&huart6, (uint8_t *)cmd, 13,50);
+  HAL_UART_Transmit_IT(&huart6, (uint8_t *)cmd, 13);
+  osDelay(100);
 }
 
 /**
@@ -546,21 +548,4 @@ void Emm_V5_Set_Encoder_Zero(uint8_t id)
         encoder_zero_offset[id-1] = current_values[id-1];
         LOGINFO("电机%d设置零点偏移: %d", id, encoder_zero_offset[id-1]);
     }
-}
-void X_vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
-{
-    uint8_t cmd[9] = {0};
-
-    cmd[0] =  addr;                       
-    cmd[1] =  0xF6;                       
-    cmd[2] =  dir;                        
-    cmd[3] =  (uint8_t)(acc >> 8);        
-    cmd[4] =  (uint8_t)(acc >> 0);        
-		cmd[5] =  (uint8_t)(vel >> 8);        
-    cmd[6] =  (uint8_t)(vel >> 0);        
-    cmd[7] =  snF;                        
-    cmd[8] =  0x6B;                       
-
-    HAL_UART_Transmit_DMA(&huart6, cmd, 9);
-    HAL_Delay(10);
 }
