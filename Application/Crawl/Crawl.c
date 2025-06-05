@@ -1,6 +1,6 @@
 /**
  * @file Crawl.c
- * @brief 爬行抓取控制实现
+ * @brief 爬行抓取控制实现 动作组1抓取 动作组2闭合
  * @author Generated
  * @date 2024
  */
@@ -12,6 +12,7 @@
 #include "Emm_v5.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "servo.h"
 
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2 
@@ -19,7 +20,8 @@
 /* 全局变量定义 */
 Crawl_Status_t crawl_status = {0};
 osThreadId_t crawlTaskHandle = NULL;
-uint64_t maichong = 1000; 
+uint64_t maichong = 2000; 
+uint64_t action = 1; 
 /* 前向声明 */
 void CrawlTask(void *argument);
 
@@ -63,31 +65,42 @@ int Crawl_Init(void)
  */
 void CrawlTask(void *argument)
 {
+    // runActionGroup(1,1);
+    // osDelay(pdMS_TO_TICKS(2000)); // 等待1秒钟，确保动作组运行完成
+    // runActionGroup(2,1);
+
     while (1)
     {
         // 根据当前状态执行相应动作
         switch (crawl_status.state)
         {
+
             case CRAWL_STATE_IDLE:
-            Emm_V5_Pos_Control(1,1,600,0,maichong,0,0);
-            osDelay(50);
-            Emm_V5_Pos_Control(2,1,600,0,maichong,0,0);
-            osDelay(50);
+
+            
         break;
                 
             case CRAWL_STATE_LIFTING:
-                // 升降中状态处理
+            
         break;
                 
             case CRAWL_STATE_EXTENDING:
-                // 前伸中状态处理
+            Emm_V5_Pos_Control(1,0,600,30,maichong,1,0);
+            osDelay(50);
+            Emm_V5_Pos_Control(2,1,600,30,maichong,1,0);
+            osDelay(50);
+            crawl_status.state=CRAWL_STATE_IDLE;
         break;
                 
             case CRAWL_STATE_GRABBING:
-                // 抓取中状态处理
+            runActionGroup(1,1);
+            osDelay(50);
+            crawl_status.state=CRAWL_STATE_IDLE;
+
         break;
                 
             case CRAWL_STATE_RETRACTING:
+
                 // 收回中状态处理
         break;
                 
@@ -103,23 +116,4 @@ void CrawlTask(void *argument)
         // 周期性延时
         osDelay(pdMS_TO_TICKS(CRAWL_TASK_PERIOD));
     }
-}
-
-/**
- * @brief 简化的抓取函数（保留原有接口）
- */
-void Crawl_SimpleGrab()
-{
-    Emm_V5_Pos_Control(1, 1, 500, 50, 6000, 1, 0);
-    osDelay(100);
-    Emm_V5_Pos_Control(2, 1, 500, 50, 6000, 1, 0);
-
-    // 简单延时等待前伸完成
-    osDelay(10);
-    
-    // 步骤3: 舵机抓取
-    runActionGroup(1, 1);
-    
-    // 简单延时等待抓取完成
-    osDelay(1000);
 }

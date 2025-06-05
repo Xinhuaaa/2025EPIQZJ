@@ -74,7 +74,8 @@ void moveServosByArray(LobotServo servos[], uint8_t Num, uint16_t Time)
     LobotTxBuf[5] = GET_LOW_BYTE(Time);                //取得时间的低八位
     LobotTxBuf[6] = GET_HIGH_BYTE(Time);               //取得时间的高八位
 
-    for (i = 0; i < Num; i++) {                        //循环填充舵机ID和对应目标位置        LobotTxBuf[index++] = servos[i].ID;              //填充舵机ID
+    for (i = 0; i < Num; i++) {                        //循环填充舵机ID和对应目标位置        
+        LobotTxBuf[index++] = servos[i].ID;              //填充舵机ID
         LobotTxBuf[index++] = GET_LOW_BYTE(servos[i].Position); //填充目标位置低八位
         LobotTxBuf[index++] = GET_HIGH_BYTE(servos[i].Position);//填充目标位置高八位
     }
@@ -110,7 +111,8 @@ void moveServos(uint8_t Num, uint16_t Time, ...)
     for (i = 0; i < Num; i++) {//从可变参数中取得并循环填充舵机ID和对应目标位置
         temp = va_arg(arg_ptr, int);//可参数中取得舵机ID
         LobotTxBuf[index++] = GET_LOW_BYTE(((uint16_t)temp));
-        temp = va_arg(arg_ptr, int);  //可变参数中取得对应目标位置        LobotTxBuf[index++] = GET_LOW_BYTE(((uint16_t)temp)); //填充目标位置低八位
+        temp = va_arg(arg_ptr, int);  //可变参数中取得对应目标位置        
+        LobotTxBuf[index++] = GET_LOW_BYTE(((uint16_t)temp)); //填充目标位置低八位
         LobotTxBuf[index++] = GET_HIGH_BYTE(temp);//填充目标位置高八位
     }
 
@@ -130,7 +132,8 @@ void moveServos(uint8_t Num, uint16_t Time, ...)
 void runActionGroup(uint8_t numOfAction, uint16_t Times)
 {
     LobotTxBuf[0] = LobotTxBuf[1] = FRAME_HEADER;  //填充帧头
-    LobotTxBuf[2] = 5;                      //数据长度，数据帧除帧头部分数据字节数，此命令固定为5    LobotTxBuf[3] = CMD_ACTION_GROUP_RUN;   //填充运行动作组命令
+    LobotTxBuf[2] = 5;                      //数据长度，数据帧除帧头部分数据字节数，此命令固定为5    
+    LobotTxBuf[3] = CMD_ACTION_GROUP_RUN;   //填充运行动作组命令
     LobotTxBuf[4] = numOfAction;            //填充要运行的动作组号
     LobotTxBuf[5] = GET_LOW_BYTE(Times);    //取得要运行次数的低八位
     LobotTxBuf[6] = GET_HIGH_BYTE(Times);   //取得要运行次数的高八位
@@ -164,7 +167,8 @@ void stopActionGroup(void)
 void setActionGroupSpeed(uint8_t numOfAction, uint16_t Speed)
 {
     LobotTxBuf[0] = LobotTxBuf[1] = FRAME_HEADER;   //填充帧头
-    LobotTxBuf[2] = 5;                       //数据长度，数据帧除帧头部分数据字节数，此命令固定为5    LobotTxBuf[3] = CMD_ACTION_GROUP_SPEED;  //填充设置动作组速度命令
+    LobotTxBuf[2] = 5;                       //数据长度，数据帧除帧头部分数据字节数，此命令固定为5    
+    LobotTxBuf[3] = CMD_ACTION_GROUP_SPEED;  //填充设置动作组速度命令
     LobotTxBuf[4] = numOfAction;             //填充要设置的动作组号
     LobotTxBuf[5] = GET_LOW_BYTE(Speed);     //获得目标速度的低八位
     LobotTxBuf[6] = GET_HIGH_BYTE(Speed);    //获得目标熟读的高八位

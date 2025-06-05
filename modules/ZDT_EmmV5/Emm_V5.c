@@ -209,9 +209,7 @@ void Emm_V5_Pos_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, ui
   cmd[11] =  snF;                       // 多机同步运动标志，false为不启用，true为启用
   cmd[12] =  0x6B;                      // 校验字节
   
-  // 发送命令
-  HAL_UART_Transmit_IT(&huart6, (uint8_t *)cmd, 13);
-  osDelay(100);
+  HAL_UART_Transmit(&huart6, (uint8_t *)cmd, 13,50);
 }
 
 /**
