@@ -1,14 +1,14 @@
 
 
-Breakpoint=d:/TKX/Application/Crawl/Crawl.c:73:13, State=BP_STATE_ON
-Breakpoint=d:/TKX/Application/Crawl/Crawl.c:74, State=BP_STATE_ON
+Breakpoint=d:/TKX/Application/Crawl/Crawl.c:84:13, State=BP_STATE_ON
 Breakpoint=d:/TKX/Src/freertos.c:129:5, State=BP_STATE_DISABLED
 GraphedExpression="(lift_status).current_displacement", Color=#a00909
+OpenDocument="Crawl.c", FilePath="d:/TKX/Application/Crawl/Crawl.c", Line=57
 OpenDocument="main.c", FilePath="d:/TKX/Src/main.c", Line=55
 OpenDocument="tasks.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=1316
 OpenDocument="cmsis_os2.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c", Line=864
-OpenDocument="Crawl.c", FilePath="d:/TKX/Application/Crawl/Crawl.c", Line=55
-OpenDocument="stm32f4xx_hal_uart.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=2467
+OpenDocument="servo.c", FilePath="d:/TKX/modules/servo/servo.c", Line=124
+OpenDocument="stm32f4xx_hal_uart.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=1294
 OpenDocument="Emm_V5.c", FilePath="d:/TKX/modules/ZDT_EmmV5/Emm_V5.c", Line=177
 OpenDocument="stm32f4xx_hal_dma.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c", Line=442
 OpenDocument="stm32f4xx_hal_can.c", FilePath="d:/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c", Line=1393
@@ -26,16 +26,16 @@ OpenDocument="dji_motor.h", FilePath="d:/TKX/modules/dji_motor/dji_motor.h", Lin
 OpenDocument="stm32f4xx_it.c", FilePath="d:/TKX/Src/stm32f4xx_it.c", Line=81
 OpenDocument="timers.c", FilePath="d:/TKX/Middlewares/Third_Party/FreeRTOS/Source/timers.c", Line=779
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=252, h=1006, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=252, h=255, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=922, h=413, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=922, h=501, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=922, h=346, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="5 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=0, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="45;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="490;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="505;0"
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=397, h=195, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=397, h=341, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=717, h=150, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=717, h=152, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=717, h=233, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="5 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=0, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="45;0", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="695;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="711;0"
 TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[311;209;102;100;100;366]
-TableHeader="Data Sampling Table", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" (lift_status).current_displacement"], ColWidths=[100;100;100]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" (lift_status).current_displacement"], ColWidths=[100;100;100]
 TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;100;100;100;100;110;126;126]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
-TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;254;467]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;254;236]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
 TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;340]
 WatchedExpression="lift_motors", RefreshRate=1, Window=Watched Data 1

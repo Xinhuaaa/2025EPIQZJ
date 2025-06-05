@@ -40,9 +40,9 @@ typedef struct {
 #define LIFT_MOTOR_4_ID          4  // 电机4
 
 /* 机械参数定义 */
-#define LIFT_WHEEL_DIAMETER      0.12f    // 主动轮直径 (m)
-#define LIFT_WHEEL_RADIUS        0.06f    // 主动轮半径 (m)
-#define LIFT_WHEEL_CIRCUMFERENCE 0.377f   // 主动轮周长 (m) = π * 0.12
+#define LIFT_WHEEL_DIAMETER      0.18f    // 主动轮直径 (m)
+#define LIFT_WHEEL_RADIUS        0.09f    // 主动轮半径 (m)
+#define LIFT_WHEEL_CIRCUMFERENCE 0.5652f   // 主动轮周长 (m) = π * 0.12
 #define LIFT_GEAR_RATIO          36.0f    // 减速比 36:1
 
 /* 运动参数定义 */

@@ -1,6 +1,6 @@
 /**
  * @file Crawl.c
- * @brief 爬行抓取控制实现 动作组1抓取 动作组2闭合
+ * @brief 爬行抓取控制实现 动作组1抓取
  * @author Generated
  * @date 2024
  */
@@ -13,6 +13,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "servo.h"
+#include "lift.h"
 
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2 
@@ -20,7 +21,7 @@
 /* 全局变量定义 */
 Crawl_Status_t crawl_status = {0};
 osThreadId_t crawlTaskHandle = NULL;
-uint64_t maichong = 2000; 
+uint64_t maichong = 10000; 
 uint64_t action = 1; 
 /* 前向声明 */
 void CrawlTask(void *argument);
@@ -65,9 +66,25 @@ int Crawl_Init(void)
  */
 void CrawlTask(void *argument)
 {
-    // runActionGroup(1,1);
-    // osDelay(pdMS_TO_TICKS(2000)); // 等待1秒钟，确保动作组运行完成
-    // runActionGroup(2,1);
+    runActionGroup(2,1);
+    osDelay(pdMS_TO_TICKS(100)); 
+    lift_status.target_displacement=110;
+    osDelay(pdMS_TO_TICKS(3000));  
+    Emm_V5_Pos_Control(1,1,600,30,50000,0,0);
+    osDelay(pdMS_TO_TICKS(100)); 
+    Emm_V5_Pos_Control(2,0,600,30,50000,0,0);
+    osDelay(pdMS_TO_TICKS(7000)); 
+    lift_status.target_displacement=30;
+    osDelay(pdMS_TO_TICKS(7000)); 
+    runActionGroup(1,1);
+    osDelay(pdMS_TO_TICKS(2000)); 
+    lift_status.target_displacement=230;
+    osDelay(pdMS_TO_TICKS(1000));  
+    Emm_V5_Pos_Control(1,0,600,30,50000,0,0);
+    osDelay(pdMS_TO_TICKS(100)); 
+    Emm_V5_Pos_Control(2,1,600,30,50000,0,0);
+    osDelay(pdMS_TO_TICKS(20000));  
+    lift_status.target_displacement=30;
 
     while (1)
     {
