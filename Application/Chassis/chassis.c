@@ -43,7 +43,9 @@ extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
 /* 控制参数 */
 #define POSITION_TOLERANCE_XY 0.02f   // 位置允差，单位m
 #define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
-#define CHASSIS_TASK_PERIOD   10      // 控制周期，单位ms
+#define CHASSIS_TASK_PERIOD   5      // 控制周期，单位ms
+#define ENCODER_TASK_PERIOD  2  // 5ms周期，比底盘控制任务更快
+
 
 // X42电机CAN ID
 #define MOTOR_LF_ID 5  // 左前轮ID
@@ -78,7 +80,7 @@ static ChassisState_t  g_current_pos = {0};     // 当前位置
 static ChassisState_t  g_target_pos = {0};      // 目标位置
 static ChassisPID_t    g_pid = {0};             // PID控制器（保留用于兼容）
 static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
-static uint16_t        g_encoder_values[4] = {0}; // 编码器值
+static volatile int32_t g_encoder_values[4] = {0}; // 编码器累积值，由编码器任务更新
 static TaskHandle_t    g_chassis_task_handle = NULL;
 static bool            g_chassis_task_running = false;
 static int32_t         prev_encoder[4] = {0};
@@ -93,6 +95,7 @@ static const float g_mecanum_matrix[4][3] = {
 
 /* 前向声明 */
 static void Chassis_Task(void *argument);
+static void Encoder_Read_Task(void *argument);
 
 /**
   * @brief  底盘初始化函数
@@ -240,7 +243,27 @@ static void Chassis_Task(void *argument)
     
     vTaskDelete(NULL);
 }
-
+static void Encoder_Read_Task(void *argument)
+{
+    TickType_t xLastWakeTime = xTaskGetTickCount();
+    int32_t temp_encoder[4];
+    
+    for(;;)
+     {
+      
+      bool read_success = Emm_V5_CAN_Get_All_Encoders(temp_encoder);
+        
+        if (read_success) 
+        {
+          for (int i = 0; i < 4; i++)
+            {
+              g_encoder_values[i] = temp_encoder[i];
+            }
+        }
+        
+        vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(ENCODER_TASK_PERIOD));
+    }
+  }
 /**
   * @brief  底盘控制循环
   * @retval 是否到达目标位置
@@ -254,12 +277,14 @@ bool Chassis_Control_Loop(void)
     // 更新底盘朝向角度（来自陀螺仪）
     g_current_pos.yaw = Angle;
     
-    // 读取电机编码器值
-    Emm_V5_CAN_Get_All_Encoders(current_encoder);
+    for (int i = 0; i < 4; i++) {
+        current_encoder[i] = g_encoder_values[i];
+    }
     
     // 计算每个轮子的位移（米）
     float wheel_delta[4] = {0};    
-    for (int i = 0; i < 4; i++) {
+    for(int i = 0; i < 4; i++)
+     {
         int32_t steps = current_encoder[i] - prev_encoder[i];
         wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
         prev_encoder[i] = current_encoder[i];

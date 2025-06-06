@@ -574,8 +574,6 @@ int32_t Emm_V5_CAN_Read_Encoder(uint8_t addr)
     // 发送读取编码器命令
     Emm_V5_CAN_Read_Sys_Params(addr, S_ENCL);
     
-    // 等待一段时间，让电机有时间响应
-    osDelay(5);
     
     // 检查接收到的数据是否是编码器值
     if (target->rx_buff[0] == 0x31) // 0x31是读取编码器值的功能码
