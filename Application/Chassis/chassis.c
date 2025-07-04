@@ -144,7 +144,7 @@ void Chassis_Init(void)
         .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
         .b0 = 1.5f,              // 系统增益（降低以减少过冲）
-        .max_output = 0.5f,       // 最大输出速度0.5m/s
+        .max_output = 0.4f,       // 最大输出速度0.5m/s
         .w0 = 0.30f,
         .beta01 = 40,          // ESO 
         .beta02 = 40,
@@ -247,18 +247,28 @@ static void Chassis_Task(void *argument)
 static void Encoder_Read_Task(void *argument)
 {
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    int32_t temp_encoder[4];
+    int32_t temp_encoder[4] = {0};
+    static uint8_t error_count = 0;
     
     for(;;)
      {
-      
-      bool read_success = Emm_V5_CAN_Get_All_Encoders(temp_encoder);
+        bool read_success = Emm_V5_CAN_Get_All_Encoders(temp_encoder);
         
         if (read_success) 
         {
-          for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 4; i++)
             {
-              g_encoder_values[i] = temp_encoder[i];
+                g_encoder_values[i] = temp_encoder[i];
+            }
+            error_count = 0;  // 重置错误计数
+        }
+        else
+        {
+            error_count++;
+            // 如果连续多次读取失败，增加延时
+            if (error_count > 5) {
+                vTaskDelay(pdMS_TO_TICKS(5));  // 额外延时5ms
+                error_count = 0;
             }
         }
         
@@ -274,7 +284,7 @@ bool Chassis_Control_Loop(void)
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
     // 1. 更新底盘位置
-    LOGINFO("Chassis Control Loop Start\n");
+    // LOGINFO("Chassis Control Loop Start\n");  // 注释掉高频日志输出
     // 更新底盘朝向角度（来自陀螺仪）
     g_current_pos.yaw = Angle;
     
@@ -345,14 +355,16 @@ bool Chassis_Control_Loop(void)
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
-        uint16_t acc = 0; 
+        uint16_t acc = 100; 
         if (reached)
         {
             speed = 0.0f;  // 如果到达目标位置，速度为0
         }
 
-        Emm_V5_CAN_Vel_Control(motor_ids[i],dir,speed,acc,0);
+        Emm_V5_CAN_Vel_Control(motor_ids[i],dir,speed,acc,1);
+
     }
+    Emm_V5_CAN_Synchronous_motion(0);
 }
 
 /**

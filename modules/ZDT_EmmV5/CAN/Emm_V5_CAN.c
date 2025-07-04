@@ -116,24 +116,34 @@ void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 
     uint8_t addr = cmd[0];
     CANInstance *target = NULL;    // 查找目标CAN实例
-    for (size_t i = 0; i < idx; ++i)
-    {
-        if (can_instance[i]->use_ext_id)
-        {
-            // 扩展帧模式下，比较高8位地址
-            if ((can_instance[i]->tx_id >> 8) == addr)
-            {
-                target = can_instance[i];
-                break;
-            }
+    
+    // 特殊处理广播地址（地址为0）
+    if (addr == 0) {
+        // 使用第一个可用的CAN实例来发送广播命令
+        if (idx > 0) {
+            target = can_instance[0];
         }
-        else
+    } else {
+        // 普通地址查找
+        for (size_t i = 0; i < idx; ++i)
         {
-            // 标准帧模式下的匹配（保持向后兼容）
-            if ((can_instance[i]->txconf.StdId >> 8) == addr)
+            if (can_instance[i]->use_ext_id)
             {
-                target = can_instance[i];
-                break;
+                // 扩展帧模式下，比较高8位地址
+                if ((can_instance[i]->tx_id >> 8) == addr)
+                {
+                    target = can_instance[i];
+                    break;
+                }
+            }
+            else
+            {
+                // 标准帧模式下的匹配（保持向后兼容）
+                if ((can_instance[i]->txconf.StdId >> 8) == addr)
+                {
+                    target = can_instance[i];
+                    break;
+                }
             }
         }
     }
@@ -571,9 +581,22 @@ int32_t Emm_V5_CAN_Read_Encoder(uint8_t addr)
         return -1;
     }
     
+    // 清空接收事件标志
+    if (target->rx_event) {
+        osEventFlagsClear(target->rx_event, 0x01);
+    }
+    
     // 发送读取编码器命令
     Emm_V5_CAN_Read_Sys_Params(addr, S_ENCL);
     
+    // 等待接收到响应，最多等待50ms
+    uint32_t wait_result = osEventFlagsWait(target->rx_event, 0x01, osFlagsWaitAny, 50);
+    if (wait_result == osFlagsErrorTimeout) {
+#if CAN_CMD_LOG_LEVEL >= 1
+        LOGERROR("[CAN] 电机地址0x%02X 读取编码器超时", addr);
+#endif
+        return -1;
+    }
     
     // 检查接收到的数据是否是编码器值
     if (target->rx_buff[0] == 0x31) // 0x31是读取编码器值的功能码
@@ -641,6 +664,7 @@ bool Emm_V5_CAN_Get_All_Encoders(int32_t *encoders)
     
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     bool all_success = true;
+    static uint8_t retry_count = 0;
     
     for (uint8_t i = 0; i < 4; i++)
     {
@@ -648,11 +672,23 @@ bool Emm_V5_CAN_Get_All_Encoders(int32_t *encoders)
         if (value == -1)
         {
             all_success = false;
+            // 保持上一次的编码器值，避免突变
+            // encoders[i] 保持不变
         }
         else
         {
             // 将读取到的值存入数组
             encoders[i] = value;
+            retry_count = 0;  // 重置重试计数
+        }
+    }
+    
+    // 如果连续失败，增加重试延时
+    if (!all_success) {
+        retry_count++;
+        if (retry_count > 3) {
+            osDelay(1);  // 短暂延时，避免过于频繁的重试
+            retry_count = 0;
         }
     }
     
