@@ -105,13 +105,13 @@ bool Emm_V5_CAN_Init(uint8_t *motor_ids, uint8_t motor_count)
  * @param  cmd     命令数据，cmd[0] 必须是电机地址
  * @param  len     命令长度
  */
-void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
+bool EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 {
     if (len == 0 || len > 64) {
 #if CAN_CMD_LOG_LEVEL >= 1
         LOGERROR("[CAN] 命令长度无效: %d", len);
 #endif
-        return;
+        return false;
     }
 
     uint8_t addr = cmd[0];
@@ -154,7 +154,7 @@ void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 #if CAN_CMD_LOG_LEVEL >= 1
         LOGERROR("[CAN] 未找到电机地址为0x%02X的CAN实例", addr);
 #endif
-        return;
+        return false;
     }
 
 #if CAN_CMD_LOG_LEVEL >= 2
@@ -203,7 +203,7 @@ void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 #if CAN_CMD_LOG_LEVEL >= 1
             LOGERROR("[CAN] 帧%d发送失败，ID:0x%02X", packet_index, addr);
 #endif
-            return;
+            return false;
         }
 
         data_offset += frame_len;
@@ -216,6 +216,7 @@ void EmmV5_CAN_SendCmd(uint8_t *cmd, uint16_t len)
 #if CAN_CMD_LOG_LEVEL >= 2
     LOGINFO("[CAN] 命令发送成功，ID:0x%02X", addr);
 #endif
+    return true;
 }
 /**
   * @brief    将当前位置清零
@@ -349,7 +350,7 @@ void Emm_V5_CAN_En_Control(uint8_t addr, bool state, bool snF)
   * @param    snF ：多机同步标志，false为不启用，true为启用
   * @retval   地址 + 功能码 + 命令状态 + 校验字节
   */
-void Emm_V5_CAN_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
+bool Emm_V5_CAN_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc, bool snF)
 {
   uint8_t cmd[16] = {0};
 
@@ -364,7 +365,7 @@ void Emm_V5_CAN_Vel_Control(uint8_t addr, uint8_t dir, uint16_t vel, uint8_t acc
   cmd[7] =  0x6B;                       // 校验字节
 
   // 发送命令
-  EmmV5_CAN_SendCmd(cmd, 8);
+  return EmmV5_CAN_SendCmd(cmd, 8);
 }
 
 /**

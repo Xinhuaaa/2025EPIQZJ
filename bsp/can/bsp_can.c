@@ -20,6 +20,8 @@ CANInstance *can_instance[CAN_MX_REGISTER_CNT] = {NULL};
 uint8_t idx;
 osMessageQueueId_t can_rx_queue;
 osMutexId_t can_tx_mutex;
+float dwt_start = 0.0f; // 用于记录发送开始时间
+float now_time = 0.0f; // 用于记录当前时间
 
 static void CANAddFilter(CANInstance *_instance)
 {
@@ -133,11 +135,13 @@ CANInstance *CANRegister(CAN_Init_Config_s *config)
 uint8_t CANTransmit(CANInstance *_instance, float timeout)
 {
     static uint32_t busy_count;
-    float dwt_start = DWT_GetTimeline_ms();
+    dwt_start = DWT_GetTimeline_ms();
     osMutexAcquire(can_tx_mutex, osWaitForever);
 
     while (HAL_CAN_GetTxMailboxesFreeLevel(_instance->can_handle) == 0)
     {
+        now_time = DWT_GetTimeline_ms();
+
         if (DWT_GetTimeline_ms() - dwt_start > timeout)
         {
             #ifdef CAN_DEBUG

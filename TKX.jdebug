@@ -32,8 +32,8 @@ void OnProjectLoad (void) {
   //
   // User settings
   //
+  Edit.SysVar (VAR_HSS_SPEED, FREQ_5_KHZ);
   Project.SetOSPlugin ("FreeRTOSPlugin");
-  Edit.SysVar (VAR_HSS_SPEED, FREQ_10_KHZ);
   File.Open ("$(ProjectDir)/build/Debug/TKX.elf");
 }
 
