@@ -43,8 +43,8 @@ extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
 /* 控制参数 */
 #define POSITION_TOLERANCE_XY 0.02f   // 位置允差，单位m
 #define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
-#define CHASSIS_TASK_PERIOD   5      // 控制周期，单位ms
-#define ENCODER_TASK_PERIOD  2  // 5ms周期，比底盘控制任务更快
+#define CHASSIS_TASK_PERIOD   20      // 控制周期，单位ms
+#define ENCODER_TASK_PERIOD  10  // 5ms周期，比底盘控制任务更快
 
 
 // X42电机CAN ID
@@ -198,6 +198,7 @@ void Chassis_Init(void)
     // 直接创建底盘控制任务
     g_chassis_task_running = true;
     xTaskCreate(Chassis_Task, "Chassis", 512, NULL, 5, &g_chassis_task_handle);
+    xTaskCreate(Encoder_Read_Task, "Encoder_Read", 256, NULL, 6, NULL);
 }
 
 /**
@@ -273,7 +274,7 @@ bool Chassis_Control_Loop(void)
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
     // 1. 更新底盘位置
-    printf("Chassis Control Loop Start\n");
+    LOGINFO("Chassis Control Loop Start\n");
     // 更新底盘朝向角度（来自陀螺仪）
     g_current_pos.yaw = Angle;
     
@@ -334,23 +335,24 @@ bool Chassis_Control_Loop(void)
                          g_mecanum_matrix[i][1] * chassis_vy + 
                          g_mecanum_matrix[i][2] * vyaw_rad;
     }
-    
+    bool reached = (fabs(error_x) < POSITION_TOLERANCE_XY) && 
+                   (fabs(error_y) < POSITION_TOLERANCE_XY) && 
+                   (fabs(error_yaw) < POSITION_TOLERANCE_YAW);
+
     // 4. 控制电机
-      // 将线速度转换为RPM并控制电机
+
     for (int i = 0; i < 4; i++) {
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
         uint16_t acc = 0; 
+        if (reached)
+        {
+            speed = 0.0f;  // 如果到达目标位置，速度为0
+        }
+
         Emm_V5_CAN_Vel_Control(motor_ids[i],dir,speed,acc,0);
     }
-    
-    // 5. 判断是否到达目标位置
-    bool reached = (fabs(error_x) < POSITION_TOLERANCE_XY) && 
-                   (fabs(error_y) < POSITION_TOLERANCE_XY) && 
-                   (fabs(error_yaw) < POSITION_TOLERANCE_YAW);
-    
-    return reached;
 }
 
 /**

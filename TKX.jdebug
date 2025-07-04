@@ -23,7 +23,7 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("STM32F407VE");
-  Project.SetHostIF ("USB", "1042890669");
+  Project.SetHostIF ("USB", "775728365");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddPathSubstitute ("D:/TKX", "$(ProjectDir)");
@@ -32,6 +32,7 @@ void OnProjectLoad (void) {
   //
   // User settings
   //
+  Project.SetOSPlugin ("FreeRTOSPlugin");
   Edit.SysVar (VAR_HSS_SPEED, FREQ_10_KHZ);
   File.Open ("$(ProjectDir)/build/Debug/TKX.elf");
 }

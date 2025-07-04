@@ -198,7 +198,7 @@ static void DJIMotorLostCallback(void *motor_ptr)
 {
     DJIMotorInstance *motor = (DJIMotorInstance *)motor_ptr;
     uint16_t can_bus = 1; // 只使用CAN1
-    LOGWARNING("[dji_motor] Motor lost, can bus [%d] , id [%d]", can_bus, motor->motor_can_instance->tx_id);
+    // LOGWARNING("[dji_motor] Motor lost, can bus [%d] , id [%d]", can_bus, motor->motor_can_instance->tx_id);
 }
 
 // 电机初始化,返回一个电机实例
@@ -377,9 +377,9 @@ void DJIMotorControl()
         if (sender_enable_flag[i])
         {
             CANTransmit(&sender_assignment[i], 1);
-            LOGINFO("[dji_motor] can bus [%d], id [%d], tx_buff=[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]", i + 1, sender_assignment[i].txconf.StdId,
-                   sender_assignment[i].tx_buff[0], sender_assignment[i].tx_buff[1], sender_assignment[i].tx_buff[2], sender_assignment[i].tx_buff[3],
-                   sender_assignment[i].tx_buff[4], sender_assignment[i].tx_buff[5], sender_assignment[i].tx_buff[6], sender_assignment[i].tx_buff[7]);
+            // LOGINFO("[dji_motor] can bus [%d], id [%d], tx_buff=[%02x,%02x,%02x,%02x,%02x,%02x,%02x,%02x]", i + 1, sender_assignment[i].txconf.StdId,
+            //        sender_assignment[i].tx_buff[0], sender_assignment[i].tx_buff[1], sender_assignment[i].tx_buff[2], sender_assignment[i].tx_buff[3],
+            //        sender_assignment[i].tx_buff[4], sender_assignment[i].tx_buff[5], sender_assignment[i].tx_buff[6], sender_assignment[i].tx_buff[7]);
         }
     }
     

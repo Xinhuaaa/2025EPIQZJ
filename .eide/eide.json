@@ -109,7 +109,17 @@
           "modules/dji_motor",
           "modules/servo",
           "Application/Crawl",
-          "modules/ZDT_EmmV5"
+          "modules/ZDT_EmmV5",
+          "Middlewares/Third_Party/SEGGER/SystemView",
+          "Middlewares/Third_Party/SEGGER/SystemView/Config",
+          "Middlewares/Third_Party/SEGGER/SystemView/SEGGER",
+          "Middlewares/Third_Party/SEGGER/SystemView/Sample/FreeRTOS/Config",
+          "Middlewares/Third_Party/SEGGER/SystemView/Sample",
+          "Middlewares/Third_Party/SEGGER/SystemView/Sample/FreeRTOS",
+          "Middlewares/Third_Party/TraceRecorder/streamports/Jlink_RTT/include",
+          "Middlewares/Third_Party/TraceRecorder/config",
+          "Middlewares/Third_Party/TraceRecorder/streamports/Jlink_RTT/config",
+          "Middlewares/Third_Party/TraceRecorder/include"
         ],
         "libList": [],
         "defineList": [
