@@ -1,29 +1,21 @@
 /**
   ******************************************************************************
   * @file    chassis.c
-  * @brief   麦轮底盘运动控制实现
+  * @brief   底盘运动控制实现
   ******************************************************************************
-  * @description
-  * 
-  * 功能概述：
-  * - 四轮麦轮底盘运动控制
-  * - 支持X/Y/YAW三轴独立运动
-  * - 使用ADRC控制器实现精确位置控制
-  * - 编码器反馈实现闭环控制
-  * - CAN总线电机通信
-  * 
-  * 控制架构：
-  * 目标位置 -> ADRC控制器 -> 麦轮运动学解算 -> CAN电机控制 -> 编码器反馈
+  * @attention
+  *
+  * 描述：简化实现底盘运动控制，接受目标坐标(x,y,yaw)，通过闭环控制使底盘
+  *      移动到指定位置并实时消除误差。
   *
   ******************************************************************************
   */
-/* ==================== 头文件包含 ==================== */
-#include "stm32f4xx_hal.h"
+#include "stm32f4xx_hal.h"     
 #include "chassis.h"
 #include "PID.h"
-#include "ADRC.h"
+#include "ADRC.h"  // 添加ADRC头文件
 #include "Hwt101.h"
-#include "Emm_V5_CAN.h"
+#include "Emm_V5_CAN.h"  
 #include <math.h>
 #include "FreeRTOS.h"
 #include "task.h"
@@ -31,122 +23,80 @@
 #include "BSP_dwt.h"
 #include "cmsis_os.h"
 
-/* ==================== 配置开关 ==================== */
-#define CHASSIS_DEBUG 0  // 底盘调试开关：1=开启调试 0=关闭调试
+/* 外部声明 */
+extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
 
-/* ==================== 调试宏定义 ==================== */
-#if CHASSIS_DEBUG
-    #define DEBUG_VAR(var) var
-    #define DEBUG_CODE(code) do { code } while(0)
-    #define DEBUG_LOG(format, ...) LOGINFO(format, ##__VA_ARGS__)
-    #define DEBUG_CALL(func) func
-#else
-    #define DEBUG_VAR(var)
-    #define DEBUG_CODE(code)
-    #define DEBUG_LOG(format, ...)
-    #define DEBUG_CALL(func) (void)0
-#endif
-
-/* ==================== 外部引用 ==================== */
-extern float Angle;  // 陀螺仪角度信息（单位：度）
-
-/* ==================== 数学常量 ==================== */
+/* 数学常量与转换宏 */
 #define PI                    3.14159265358979323846f
 #define DEG_TO_RAD(x)         ((x) * PI / 180.0f)
 #define RAD_TO_DEG(x)         ((x) * 180.0f / PI)
 
-/* ==================== 物理参数配置 ==================== */
-#define CHASSIS_WIDTH         0.435f    // 底盘宽度 (m)
-#define CHASSIS_LENGTH        0.51f     // 底盘长度 (m)
-#define WHEEL_DIAMETER        0.078f    // 麦轮直径 (m)
+/* 底盘物理参数 */
+#define CHASSIS_WIDTH         0.435f    // 底盘宽度，单位m
+#define CHASSIS_LENGTH        0.51f    // 底盘长度，单位m
+#define WHEEL_DIAMETER        0.078f   // 麦轮直径，单位m
 #define CHASSIS_WHEEL_RADIUS  (WHEEL_DIAMETER / 2.0f)
 #define MECANUM_FACTOR        (CHASSIS_WIDTH + CHASSIS_LENGTH)
+#define ENCODER_COUNTS_PER_REV 65536.0f  // 编码器一圈的计数值
+#define ENCODER_COUNTS_PER_M  (ENCODER_COUNTS_PER_REV / (WHEEL_DIAMETER * PI))
 
-/* ==================== 编码器参数 ==================== */
-#define ENCODER_COUNTS_PER_REV 65536.0f  // 编码器分辨率 (计数/圈)
-#define ENCODER_COUNTS_PER_M  (ENCODER_COUNTS_PER_REV / (WHEEL_DIAMETER * PI))  // 编码器精度 (计数/米)
+/* 控制参数 */
+#define POSITION_TOLERANCE_XY 0.02f   // 位置允差，单位m
+#define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
+#define CHASSIS_TASK_PERIOD   20      // 控制周期，单位ms
+#define ENCODER_TASK_PERIOD  10  // 5ms周期，比底盘控制任务更快
 
-/* ==================== 控制参数 ==================== */
-#define POSITION_TOLERANCE_XY  0.02f   // XY位置控制精度 (m)
-#define POSITION_TOLERANCE_YAW 1.5f    // 角度控制精度 (度)
-#define CHASSIS_TASK_PERIOD    20      // 底盘控制周期 (ms)
-#define ENCODER_TASK_PERIOD    10      // 编码器读取周期 (ms)
 
-/* ==================== 电机CAN ID配置 ==================== */
-#define MOTOR_LF_ID 5  // 左前轮电机ID
-#define MOTOR_RF_ID 6  // 右前轮电机ID  
-#define MOTOR_LB_ID 7  // 左后轮电机ID
-#define MOTOR_RB_ID 8  // 右后轮电机ID
+// X42电机CAN ID
+#define MOTOR_LF_ID 5  // 左前轮ID
+#define MOTOR_RF_ID 6  // 右前轮ID
+#define MOTOR_LB_ID 7  // 左后轮ID
+#define MOTOR_RB_ID 8  // 右后轮ID
 
-/* ==================== 全局变量声明 ==================== */
-static int32_t current_encoder[4] = {0};  // 当前编码器累积值
+int32_t current_encoder[4] = {0};  // 改为int32_t类型以存储累积编码器值
 
-/* ==================== 数据结构定义 ==================== */
-
-// 底盘状态结构体
+/* 类型定义 */
 typedef struct {
-    float x;      // X坐标 (m)
-    float y;      // Y坐标 (m)  
-    float yaw;    // 偏航角 (度)，范围[-180, 180]
+    float x;      // X坐标，单位米
+    float y;      // Y坐标，单位米
+    float yaw;    // 偏航角，单位度，范围[-180, 180]
 } ChassisState_t;
 
-// PID控制器组
 typedef struct {
-    PIDInstance x;     // X方向PID控制器
-    PIDInstance y;     // Y方向PID控制器
-    PIDInstance yaw;   // 偏航角PID控制器
+    PIDInstance    x;      // X方向PID控制器
+    PIDInstance    y;      // Y方向PID控制器
+    PIDInstance    yaw;    // 偏航角PID控制器
 } ChassisPID_t;
 
-// ADRC控制器组
+// 底盘ADRC控制器结构体
 typedef struct {
     ADRC_Controller x;     // X方向ADRC控制器
     ADRC_Controller y;     // Y方向ADRC控制器
     ADRC_Controller yaw;   // 偏航角ADRC控制器
 } ChassisADRC_t;
 
-/* ==================== 静态变量定义 ==================== */
-static ChassisState_t  g_current_pos = {0};           // 当前位置状态
-static ChassisState_t  g_target_pos = {0};            // 目标位置状态
-static ChassisPID_t    g_pid = {0};                   // PID控制器（备用）
-static ChassisADRC_t   g_adrc = {0};                  // ADRC控制器（主用）
-static volatile int32_t g_encoder_values[4] = {0};    // 编码器实时值（由编码器任务更新）
-static int32_t         prev_encoder[4] = {0};         // 上次编码器值（用于计算增量）
-static TaskHandle_t    g_chassis_task_handle = NULL;  // 底盘任务句柄
-static bool            g_chassis_task_running = false; // 底盘任务运行标志
+/* 全局变量 */
+static ChassisState_t  g_current_pos = {0};     // 当前位置
+static ChassisState_t  g_target_pos = {0};      // 目标位置
+static ChassisPID_t    g_pid = {0};             // PID控制器（保留用于兼容）
+static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
+static volatile int32_t g_encoder_values[4] = {0}; // 编码器累积值，由编码器任务更新
+static TaskHandle_t    g_chassis_task_handle = NULL;
+static bool            g_chassis_task_running = false;
+static int32_t         prev_encoder[4] = {0};
 
-/* ==================== 麦轮运动学矩阵 ==================== */
-/**
- * 麦轮运动学矩阵：将底盘速度(vx, vy, w)转换为各轮子速度
- * 
- * 轮子布局：
- *   LF ---- RF
- *   |       |
- *   |       |  
- *   LB ---- RB
- * 
- * 矩阵说明：
- * wheel_speed[i] = matrix[i][0]*vx + matrix[i][1]*vy + matrix[i][2]*w
- */
+/* 麦轮运动学矩阵 - 从底盘速度到轮子速度的映射 */
+/* 标准麦轮配置：左前右后轮滚轮朝右前，右前左后轮滚轮朝左前 */
 static const float g_mecanum_matrix[4][3] = {
-    { 1.0f, -1.0f, -MECANUM_FACTOR},  // 左前轮(LF): vx - vy - w
-    { 1.0f,  1.0f,  MECANUM_FACTOR},  // 右前轮(RF): vx + vy + w  
-    { 1.0f,  1.0f, -MECANUM_FACTOR},  // 左后轮(LB): vx + vy - w
-    { 1.0f, -1.0f,  MECANUM_FACTOR}   // 右后轮(RB): vx - vy + w
+    { 1.0f,  -1.0f, -MECANUM_FACTOR},  // 左前轮
+    { 1.0f, 1.0f,  MECANUM_FACTOR},  // 右前轮
+    { 1.0f, 1.0f, -MECANUM_FACTOR},  // 左后轮
+    { 1.0f,  -1.0f,  MECANUM_FACTOR}   // 右后轮
 };
 
-/* ==================== 函数前向声明 ==================== */
+/* 前向声明 */
 static void Chassis_Task(void *argument);
 static void Encoder_Read_Task(void *argument);
-static void Chassis_UpdateOdometry(void);
-static void Chassis_ControlLoop_Main(void);
-static void Chassis_SendMotorCommands(float* wheel_speed);
-
-#if CHASSIS_DEBUG
-static void Chassis_DebugOutput(float vy, float* wheel_speed, float error_y, 
-                               int32_t* current_encoder, int32_t* actual_encoder_delta);
-static void Chassis_MotorDebugOutput(float vy, uint32_t send_start_time, 
-                                   bool* send_success, uint32_t motor_debug_count);
-#endif
 
 /**
   * @brief  底盘初始化函数
@@ -190,7 +140,7 @@ void Chassis_Init(void)
     // PIDInit(&g_pid.yaw, &pid_config_yaw)
     
       // 初始化ADRC控制器
-    // 创建XY方向ADRC配置结构体
+  float h = 0.01f;  // 控制周期（和CHASSIS_TASK_PERIOD相同，单位s）    // 创建XY方向ADRC配置结构体
     ADRC_Init_Config_t adrc_config_xy = {
         .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
         .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
@@ -326,159 +276,169 @@ static void Encoder_Read_Task(void *argument)
         vTaskDelayUntil(&xLastWakeTime, pdMS_TO_TICKS(ENCODER_TASK_PERIOD));
     }
   }
-/* ==================== 主控制循环 ==================== */
-
 /**
-  * @brief  底盘控制循环主入口
+  * @brief  底盘控制循环
   * @retval 是否到达目标位置
   */
 bool Chassis_Control_Loop(void)
 {
-    // 1. 更新底盘位置状态
-    Chassis_UpdateOdometry();
+    uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
-    // 2. 执行控制计算和电机驱动
-    Chassis_ControlLoop_Main();
-    
-    return true; // 这里可以添加到达判断逻辑
-}
-
-/**
-  * @brief  更新底盘里程计信息
-  */
-static void Chassis_UpdateOdometry(void)
-{
-    // 更新陀螺仪角度
+    // 1. 更新底盘位置
+    // LOGINFO("Chassis Control Loop Start\n");  // 注释掉高频日志输出
+    // 更新底盘朝向角度（来自陀螺仪）
     g_current_pos.yaw = Angle;
     
-    // 读取当前编码器值
     for (int i = 0; i < 4; i++) {
         current_encoder[i] = g_encoder_values[i];
     }
     
-    // 计算编码器增量和轮子位移
-    float wheel_delta[4] = {0};
-    DEBUG_VAR(static int32_t actual_encoder_delta[4] = {0});
-    
-    for(int i = 0; i < 4; i++) {
+    // 计算每个轮子的位移（米）
+    float wheel_delta[4] = {0};    
+    for(int i = 0; i < 4; i++)
+     {
         int32_t steps = current_encoder[i] - prev_encoder[i];
-        DEBUG_CODE(actual_encoder_delta[i] = steps);
         wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
         prev_encoder[i] = current_encoder[i];
     }
 
-    // 计算底盘坐标增量（麦轮逆运动学）
     float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
-    float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;
+    float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
      
-    // 更新底盘位置（直接累加，不进行坐标系转换）
-    g_current_pos.x += delta_x;
-    g_current_pos.y += delta_y;
-}
-
-/**
-  * @brief  底盘控制循环主逻辑
-  */
-static void Chassis_ControlLoop_Main(void)
-{
-    // 计算位置误差（变量保留供后续使用）
-    // float error_x = g_target_pos.x - g_current_pos.x;
-    // float error_y = g_target_pos.y - g_current_pos.y;
-    // float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
     
-    // ADRC控制器计算控制量
-    float vx = ADRC_Compute(&g_adrc.x, g_current_pos.x, g_target_pos.x);
-    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y, g_target_pos.y);
-    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
+    // 将局部位移转换到全局坐标系
+    float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
+    float cos_yaw = cosf(yaw_rad);
+    float sin_yaw = sinf(yaw_rad);
     
-    // 转换角速度单位
+    float global_dx = delta_x * cos_yaw - delta_y * sin_yaw;
+    float global_dy = delta_x * sin_yaw + delta_y * cos_yaw;
+    
+    // 更新全局位置
+    g_current_pos.x += global_dx;
+    g_current_pos.y += global_dy;
+    
+    // 2. 计算位置误差并控制
+      // 计算控制误差
+    float error_x = g_target_pos.x - g_current_pos.x;
+    float error_y = g_target_pos.y - g_current_pos.y;
+    float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
+    
+    // 使用ADRC控制器计算控制量
+    // float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
+    // float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    // float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
+    float vx = 0;
+    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    float vyaw_deg = 0;
+    
+    // 3. 计算轮子速度
+    
+    // 将全局速度指令转换到底盘坐标系
+    yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
+    cos_yaw = cosf(yaw_rad);
+    sin_yaw = sinf(yaw_rad);
+    
+    float chassis_vx = vx * cos_yaw + vy * sin_yaw;
+    float chassis_vy = -vx * sin_yaw + vy * cos_yaw;
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
     
-    // 麦轮运动学正解：计算轮子速度
+    // 使用运动学矩阵计算每个轮子的速度
     float wheel_speed[4] = {0};
     for (int i = 0; i < 4; i++) {
-        wheel_speed[i] = g_mecanum_matrix[i][0] * vx + 
-                         g_mecanum_matrix[i][1] * vy + 
+        wheel_speed[i] = g_mecanum_matrix[i][0] * chassis_vx + 
+                         g_mecanum_matrix[i][1] * chassis_vy + 
                          g_mecanum_matrix[i][2] * vyaw_rad;
     }
     
-    // 调试信息输出
-    DEBUG_CODE({
-        static int32_t actual_encoder_delta[4] = {0};
-        for (int i = 0; i < 4; i++) {
-            actual_encoder_delta[i] = current_encoder[i] - prev_encoder[i];
-        }
-        float error_y = g_target_pos.y - g_current_pos.y;
-        Chassis_DebugOutput(vy, wheel_speed, error_y, current_encoder, actual_encoder_delta);
-    });
-    
-    // 发送电机控制命令
-    Chassis_SendMotorCommands(wheel_speed);
-}
-
-/**
-  * @brief  发送电机控制命令
-  * @param  wheel_speed 四个轮子的速度数组 (m/s)
-  */
-static void Chassis_SendMotorCommands(float* wheel_speed)
-{
-    uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
-    uint16_t acc_values[4] = {200, 200, 200, 200}; // 电机加速度配置
-    
-    // 调试变量定义
-    DEBUG_VAR(static uint32_t motor_debug_count = 0);
-    DEBUG_VAR(static bool send_success[4]);
-    DEBUG_VAR(uint32_t send_start_time);
-    
-#if CHASSIS_DEBUG
-    // 初始化调试变量
-    static bool first_call = true;
-    if (first_call) {
-        for (int i = 0; i < 4; i++) {
-            send_success[i] = false;
-        }
-        first_call = false;
-    }
-#endif
-    
-    DEBUG_CODE(motor_debug_count++);
-    DEBUG_CODE(send_start_time = DWT_GetTimeline_ms());
-    
-    // 发送电机控制命令
-    for (int i = 0; i < 4; i++) {
-        // 转换为电机RPM和方向
-        float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
-        uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=正转, 1=反转
-        float speed = fabsf(rpm);
-        uint16_t acc = acc_values[i];
-
-        // 发送CAN控制命令
-#if CHASSIS_DEBUG
-        send_success[i] = Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
-#else
-        Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
-#endif
+    // 调试输出：每50次循环输出一次轮子速度（1秒一次）
+    static uint32_t debug_count = 0;
+    debug_count++;
+    if (debug_count % 50 == 0) {
+        char vy_str[16], lf_str[16], rf_str[16], lb_str[16], rb_str[16];
+        char ty_str[16], cy_str[16], ey_str[16];
         
-        // CAN发送间隔延时，避免总线冲突
+        Float2Str(vy_str, vy);
+        Float2Str(lf_str, wheel_speed[0]);
+        Float2Str(rf_str, wheel_speed[1]);
+        Float2Str(lb_str, wheel_speed[2]);
+        Float2Str(rb_str, wheel_speed[3]);
+        Float2Str(ty_str, g_target_pos.y);
+        Float2Str(cy_str, g_current_pos.y);
+        Float2Str(ey_str, error_y);
+        
+        LOGINFO("[WHEELS] vy=%s, LF=%s, RF=%s, LB=%s, RB=%s", 
+               vy_str, lf_str, rf_str, lb_str, rb_str);
+        LOGINFO("[POS] target_y=%s, current_y=%s, error_y=%s", 
+               ty_str, cy_str, ey_str);
+        
+        // 只在有运动时显示对称性分析
+        if (fabsf(vy) > 0.01f) {
+            // 分析期望轮子速度对称性
+            float lf_rb_diff = fabsf(wheel_speed[0] - wheel_speed[3]);
+            float rf_lb_diff = fabsf(wheel_speed[1] - wheel_speed[2]);
+            float max_speed = fmaxf(fmaxf(fabsf(wheel_speed[0]), fabsf(wheel_speed[1])), 
+                                   fmaxf(fabsf(wheel_speed[2]), fabsf(wheel_speed[3])));
+            
+            // 分析实际编码器反馈对称性（这才是真正的问题所在）
+            int32_t lf_rb_encoder_diff = abs(current_encoder[0] + current_encoder[3]);
+            int32_t rf_lb_encoder_diff = abs(current_encoder[1] + current_encoder[2]);
+            
+            char diff1_str[16], diff2_str[16], max_str[16];
+            Float2Str(diff1_str, lf_rb_diff);
+            Float2Str(diff2_str, rf_lb_diff);
+            Float2Str(max_str, max_speed);
+            
+            LOGINFO("[SYMMETRY] 期望速度 LF-RB差值: %s, RF-LB差值: %s, 最大速度: %s", 
+                   diff1_str, diff2_str, max_str);
+            LOGINFO("[ENCODER_ASYM] 实际编码器 LF+RB差值: %d, RF+LB差值: %d", 
+                   lf_rb_encoder_diff, rf_lb_encoder_diff);
+        }
+        
+        // 检查编码器反馈的对称性
+        LOGINFO("[ENCODER] LF=%d, RF=%d, LB=%d, RB=%d", 
+               current_encoder[0], current_encoder[1], current_encoder[2], current_encoder[3]);
+    }
+
+    // 4. 控制电机
+    static uint32_t motor_debug_count = 0;
+    motor_debug_count++;
+    
+    bool send_success[4] = {false, false, false, false};
+    uint32_t send_start_time = DWT_GetTimeline_ms();
+    
+    // 使用不同的加速度参数来测试同步性能
+    uint16_t acc_values[4] = {200, 200, 200, 200}; // 可以调整个别电机的加速度
+    
+    for (int i = 0; i < 4; i++) {
+        float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
+        uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
+        float speed = fabsf(rpm);
+        uint16_t acc = acc_values[i]; // 使用数组中的加速度值
+
+        send_success[i] = Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
+        
+        // 在发送之间添加小延时，确保CAN消息不会重叠
         if (i < 3) {
-            DWT_Delay_ms(0.5f);
+            DWT_Delay_ms(0.5f);  // 0.5ms延时
         }
     }
     
-    // 电机调试信息输出
-    DEBUG_CODE({
-        float vy_debug = wheel_speed[1]; // 使用第二个轮子的速度作为代表
-        Chassis_MotorDebugOutput(vy_debug, send_start_time, send_success, motor_debug_count);
-    });
+    // 记录发送时间
+    uint32_t send_end_time = DWT_GetTimeline_ms();
     
-    // 发送同步运动命令
-    DEBUG_CALL(Emm_V5_CAN_Synchronous_motion(0));
-#if !CHASSIS_DEBUG
-    Emm_V5_CAN_Synchronous_motion(0);
-#endif
+    // 发送同步命令
+    bool sync_success = Emm_V5_CAN_Synchronous_motion(0);
+    
+    // 每100次循环输出一次发送状态调试信息
+    if (motor_debug_count % 100 == 0 && (fabsf(vy) > 0.01f)) {
+        char time_str[16];
+        Float2Str(time_str, (float)(send_end_time - send_start_time));
+        LOGINFO("[MOTOR_SEND] 发送用时: %sms, 成功: LF=%d RF=%d LB=%d RB=%d, 同步=%d", 
+               time_str, 
+               send_success[0], send_success[1], send_success[2], send_success[3], sync_success);
+    }
 }
-
-/* ==================== 底盘控制函数 ==================== */
 
 /**
   * @brief  紧急停止底盘
@@ -488,6 +448,7 @@ void Chassis_EmergencyStop(void)
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
     for (int i = 0; i < 4; i++) {
+        // 使用X42电机的立即停止功能
         Emm_V5_CAN_Stop_Now(motor_ids[i], 0);
     }
 }
@@ -497,15 +458,14 @@ void Chassis_EmergencyStop(void)
   */
 void Chassis_ResetPosition(void)
 {
+    // 重置位置变量
     g_current_pos.x = 0.0f;
     g_current_pos.y = 0.0f;
     g_current_pos.yaw = 0.0f;
 }
 
-/* ==================== 控制器参数设置 ==================== */
-
 /**
-  * @brief  设置底盘PID控制参数（保留接口，当前使用ADRC）
+  * @brief  设置底盘PID控制参数
   */
 void Chassis_SetPIDParams(float kp_xy, float ki_xy, float kd_xy, 
                          float kp_yaw, float ki_yaw, float kd_yaw)
@@ -580,121 +540,3 @@ void Chassis_ResetController(void)
     ADRC_Reset(&g_adrc.y);
     ADRC_Reset(&g_adrc.yaw);
 }
-
-/* ==================== 调试函数 ==================== */
-
-#if CHASSIS_DEBUG
-/**
- * @brief 底盘调试信息输出
- * @param vy Y方向速度命令
- * @param wheel_speed 轮子速度数组
- * @param error_y Y方向位置误差
- * @param current_encoder 当前编码器值
- * @param actual_encoder_delta 实际编码器增量
- */
-static void Chassis_DebugOutput(float vy, float* wheel_speed, float error_y, 
-                               int32_t* current_encoder, int32_t* actual_encoder_delta)
-{
-    static uint32_t debug_count = 0;
-    debug_count++;
-    
-    if (debug_count % 50 == 0) {
-        char vy_str[16], lf_str[16], rf_str[16], lb_str[16], rb_str[16];
-        char ty_str[16], cy_str[16], ey_str[16];
-        
-        Float2Str(vy_str, vy);
-        Float2Str(lf_str, wheel_speed[0]);
-        Float2Str(rf_str, wheel_speed[1]);
-        Float2Str(lb_str, wheel_speed[2]);
-        Float2Str(rb_str, wheel_speed[3]);
-        Float2Str(ty_str, g_target_pos.y);
-        Float2Str(cy_str, g_current_pos.y);
-        Float2Str(ey_str, error_y);
-        
-        LOGINFO("[WHEELS] vy=%s, LF=%s, RF=%s, LB=%s, RB=%s", 
-               vy_str, lf_str, rf_str, lb_str, rb_str);
-        LOGINFO("[POS] target_y=%s, current_y=%s, error_y=%s", 
-               ty_str, cy_str, ey_str);
-        
-        // 只在有运动时显示对称性分析
-        if (fabsf(vy) > 0.01f) {
-            // 分析期望轮子速度对称性
-            float lf_rb_diff = fabsf(wheel_speed[0] - wheel_speed[3]);
-            float rf_lb_diff = fabsf(wheel_speed[1] - wheel_speed[2]);
-            float max_speed = fmaxf(fmaxf(fabsf(wheel_speed[0]), fabsf(wheel_speed[1])), 
-                                   fmaxf(fabsf(wheel_speed[2]), fabsf(wheel_speed[3])));
-            
-            // 分析实际编码器反馈对称性
-            int32_t lf_rb_encoder_diff = abs(current_encoder[0] + current_encoder[3]);
-            int32_t rf_lb_encoder_diff = abs(current_encoder[1] + current_encoder[2]);
-            
-            // 浮点数转字符串输出
-            char diff1_str[16], diff2_str[16], max_str[16];
-            Float2Str(diff1_str, lf_rb_diff);
-            Float2Str(diff2_str, rf_lb_diff);
-            Float2Str(max_str, max_speed);
-            
-            LOGINFO("[SYMMETRY] 期望速度 LF-RB差值: %s, RF-LB差值: %s, 最大速度: %s", 
-                   diff1_str, diff2_str, max_str);
-            LOGINFO("[ENCODER_ASYM] 实际编码器 LF+RB差值: %d, RF+LB差值: %d", 
-                   lf_rb_encoder_diff, rf_lb_encoder_diff);
-        }
-        
-        // 检查编码器反馈的对称性
-        LOGINFO("[ENCODER] LF=%d, RF=%d, LB=%d, RB=%d", 
-               current_encoder[0], current_encoder[1], current_encoder[2], current_encoder[3]);
-        
-        // 计算期望编码器值
-        float expected_encoder_rate[4];
-        for (int i = 0; i < 4; i++) {
-            expected_encoder_rate[i] = wheel_speed[i] * ENCODER_COUNTS_PER_M;
-        }
-        
-        float dt = CHASSIS_TASK_PERIOD / 1000.0f;
-        int32_t expected_encoder_delta[4];
-        for (int i = 0; i < 4; i++) {
-            expected_encoder_delta[i] = (int32_t)(expected_encoder_rate[i] * dt);
-        }
-        
-        // 输出期望与实际编码器值对比
-        LOGINFO("[EXPECT_ENC] LF=%d, RF=%d, LB=%d, RB=%d", 
-               expected_encoder_delta[0], expected_encoder_delta[1], 
-               expected_encoder_delta[2], expected_encoder_delta[3]);
-        
-        LOGINFO("[ACTUAL_ENC] LF=%d, RF=%d, LB=%d, RB=%d", 
-               actual_encoder_delta[0], actual_encoder_delta[1], 
-               actual_encoder_delta[2], actual_encoder_delta[3]);
-        
-        // 计算并输出编码器误差
-        int32_t encoder_error[4];
-        for (int i = 0; i < 4; i++) {
-            encoder_error[i] = actual_encoder_delta[i] - expected_encoder_delta[i];
-        }
-        LOGINFO("[ENC_ERROR] LF=%d, RF=%d, LB=%d, RB=%d", 
-               encoder_error[0], encoder_error[1], encoder_error[2], encoder_error[3]);
-    }
-}
-
-/**
- * @brief 电机控制调试信息输出
- * @param vy Y方向速度命令
- * @param send_start_time 发送开始时间
- * @param send_success 发送成功标志数组
- * @param motor_debug_count 电机调试计数器
- */
-static void Chassis_MotorDebugOutput(float vy, uint32_t send_start_time, 
-                                   bool* send_success, uint32_t motor_debug_count)
-{
-    uint32_t send_end_time = DWT_GetTimeline_ms();
-    bool sync_success = Emm_V5_CAN_Synchronous_motion(0);
-    
-    // 限制调试信息输出频率，仅在有运动时输出
-    if (motor_debug_count % 100 == 0 && (fabsf(vy) > 0.01f)) {
-        char time_str[16];
-        Float2Str(time_str, (float)(send_end_time - send_start_time));
-        LOGINFO("[MOTOR_SEND] 发送用时: %sms, 成功: LF=%d RF=%d LB=%d RB=%d, 同步=%d", 
-               time_str, 
-               send_success[0], send_success[1], send_success[2], send_success[3], sync_success);
-    }
-}
-#endif
