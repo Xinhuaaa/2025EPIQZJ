@@ -426,9 +426,9 @@ void Emm_V5_CAN_Stop_Now(uint8_t addr, bool snF)
 /**
   * @brief    多机同步运动
   * @param    addr  ：电机地址
-  * @retval   地址 + 功能码 + 命令状态 + 校验字节
+  * @retval   发送是否成功
   */
-void Emm_V5_CAN_Synchronous_motion(uint8_t addr)
+bool Emm_V5_CAN_Synchronous_motion(uint8_t addr)
 {
   uint8_t cmd[16] = {0};
   
@@ -439,7 +439,7 @@ void Emm_V5_CAN_Synchronous_motion(uint8_t addr)
   cmd[3] =  0x6B;                       // 校验字节
   
   // 发送命令
-  EmmV5_CAN_SendCmd(cmd, 4);
+  return EmmV5_CAN_SendCmd(cmd, 4);
 }
 
 /**

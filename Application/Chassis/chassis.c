@@ -86,6 +86,7 @@ static bool            g_chassis_task_running = false;
 static int32_t         prev_encoder[4] = {0};
 
 /* 麦轮运动学矩阵 - 从底盘速度到轮子速度的映射 */
+/* 标准麦轮配置：左前右后轮滚轮朝右前，右前左后轮滚轮朝左前 */
 static const float g_mecanum_matrix[4][3] = {
     { 1.0f,  -1.0f, -MECANUM_FACTOR},  // 左前轮
     { 1.0f, 1.0f,  MECANUM_FACTOR},  // 右前轮
@@ -300,9 +301,10 @@ bool Chassis_Control_Loop(void)
         wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
         prev_encoder[i] = current_encoder[i];
     }
-    
+
     float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
     float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
+     
     
     // 将局部位移转换到全局坐标系
     float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
@@ -323,9 +325,12 @@ bool Chassis_Control_Loop(void)
     float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
     
     // 使用ADRC控制器计算控制量
-    float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
+    // float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
+    // float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    // float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
+    float vx = 0;
     float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
-    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
+    float vyaw_deg = 0;
     
     // 3. 计算轮子速度
     
@@ -345,26 +350,94 @@ bool Chassis_Control_Loop(void)
                          g_mecanum_matrix[i][1] * chassis_vy + 
                          g_mecanum_matrix[i][2] * vyaw_rad;
     }
-    bool reached = (fabs(error_x) < POSITION_TOLERANCE_XY) && 
-                   (fabs(error_y) < POSITION_TOLERANCE_XY) && 
-                   (fabs(error_yaw) < POSITION_TOLERANCE_YAW);
+    
+    // 调试输出：每50次循环输出一次轮子速度（1秒一次）
+    static uint32_t debug_count = 0;
+    debug_count++;
+    if (debug_count % 50 == 0) {
+        char vy_str[16], lf_str[16], rf_str[16], lb_str[16], rb_str[16];
+        char ty_str[16], cy_str[16], ey_str[16];
+        
+        Float2Str(vy_str, vy);
+        Float2Str(lf_str, wheel_speed[0]);
+        Float2Str(rf_str, wheel_speed[1]);
+        Float2Str(lb_str, wheel_speed[2]);
+        Float2Str(rb_str, wheel_speed[3]);
+        Float2Str(ty_str, g_target_pos.y);
+        Float2Str(cy_str, g_current_pos.y);
+        Float2Str(ey_str, error_y);
+        
+        LOGINFO("[WHEELS] vy=%s, LF=%s, RF=%s, LB=%s, RB=%s", 
+               vy_str, lf_str, rf_str, lb_str, rb_str);
+        LOGINFO("[POS] target_y=%s, current_y=%s, error_y=%s", 
+               ty_str, cy_str, ey_str);
+        
+        // 只在有运动时显示对称性分析
+        if (fabsf(vy) > 0.01f) {
+            // 分析期望轮子速度对称性
+            float lf_rb_diff = fabsf(wheel_speed[0] - wheel_speed[3]);
+            float rf_lb_diff = fabsf(wheel_speed[1] - wheel_speed[2]);
+            float max_speed = fmaxf(fmaxf(fabsf(wheel_speed[0]), fabsf(wheel_speed[1])), 
+                                   fmaxf(fabsf(wheel_speed[2]), fabsf(wheel_speed[3])));
+            
+            // 分析实际编码器反馈对称性（这才是真正的问题所在）
+            int32_t lf_rb_encoder_diff = abs(current_encoder[0] + current_encoder[3]);
+            int32_t rf_lb_encoder_diff = abs(current_encoder[1] + current_encoder[2]);
+            
+            char diff1_str[16], diff2_str[16], max_str[16];
+            Float2Str(diff1_str, lf_rb_diff);
+            Float2Str(diff2_str, rf_lb_diff);
+            Float2Str(max_str, max_speed);
+            
+            LOGINFO("[SYMMETRY] 期望速度 LF-RB差值: %s, RF-LB差值: %s, 最大速度: %s", 
+                   diff1_str, diff2_str, max_str);
+            LOGINFO("[ENCODER_ASYM] 实际编码器 LF+RB差值: %d, RF+LB差值: %d", 
+                   lf_rb_encoder_diff, rf_lb_encoder_diff);
+        }
+        
+        // 检查编码器反馈的对称性
+        LOGINFO("[ENCODER] LF=%d, RF=%d, LB=%d, RB=%d", 
+               current_encoder[0], current_encoder[1], current_encoder[2], current_encoder[3]);
+    }
 
     // 4. 控制电机
-
+    static uint32_t motor_debug_count = 0;
+    motor_debug_count++;
+    
+    bool send_success[4] = {false, false, false, false};
+    uint32_t send_start_time = DWT_GetTimeline_ms();
+    
+    // 使用不同的加速度参数来测试同步性能
+    uint16_t acc_values[4] = {200, 200, 200, 200}; // 可以调整个别电机的加速度
+    
     for (int i = 0; i < 4; i++) {
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
-        uint16_t acc = 100; 
-        if (reached)
-        {
-            speed = 0.0f;  // 如果到达目标位置，速度为0
+        uint16_t acc = acc_values[i]; // 使用数组中的加速度值
+
+        send_success[i] = Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
+        
+        // 在发送之间添加小延时，确保CAN消息不会重叠
+        if (i < 3) {
+            DWT_Delay_ms(0.5f);  // 0.5ms延时
         }
-
-        Emm_V5_CAN_Vel_Control(motor_ids[i],dir,speed,acc,1);
-
     }
-    Emm_V5_CAN_Synchronous_motion(0);
+    
+    // 记录发送时间
+    uint32_t send_end_time = DWT_GetTimeline_ms();
+    
+    // 发送同步命令
+    bool sync_success = Emm_V5_CAN_Synchronous_motion(0);
+    
+    // 每100次循环输出一次发送状态调试信息
+    if (motor_debug_count % 100 == 0 && (fabsf(vy) > 0.01f)) {
+        char time_str[16];
+        Float2Str(time_str, (float)(send_end_time - send_start_time));
+        LOGINFO("[MOTOR_SEND] 发送用时: %sms, 成功: LF=%d RF=%d LB=%d RB=%d, 同步=%d", 
+               time_str, 
+               send_success[0], send_success[1], send_success[2], send_success[3], sync_success);
+    }
 }
 
 /**

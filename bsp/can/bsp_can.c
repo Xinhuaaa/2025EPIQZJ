@@ -9,6 +9,7 @@
 
 #define CAN_RX_QUEUE_SIZE 8
 #define CAN_MX_REGISTER_CNT 16
+#define CAN_DEBUG1  // 是否启用CAN调试信息
 /* CAN 接收消息结构 */
 typedef struct {
     CAN_HandleTypeDef *hcan;
@@ -69,6 +70,8 @@ static void CANServiceInit()
     HAL_CAN_Start(&hcan1);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING);
+    // 启用TX邮箱空中断，解决发送卡死问题
+    HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
     can_rx_queue = osMessageQueueNew(CAN_RX_QUEUE_SIZE, sizeof(CANRxMsg_t), NULL);
     can_tx_mutex = osMutexNew(NULL);
 }
@@ -144,7 +147,7 @@ uint8_t CANTransmit(CANInstance *_instance, float timeout)
 
         if (DWT_GetTimeline_ms() - dwt_start > timeout)
         {
-            #ifdef CAN_DEBUG
+            #ifdef CAN_DEBUG1
             LOGWARNING("[bsp_can] CAN MAILbox full! Cnt [%d]", busy_count);
             #endif
             busy_count++;
