@@ -335,12 +335,12 @@ bool Chassis_Control_Loop(void)
     // 3. 计算轮子速度
     
     // 将全局速度指令转换到底盘坐标系
-    yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
-    cos_yaw = cosf(yaw_rad);
-    sin_yaw = sinf(yaw_rad);
+    // yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
+    // cos_yaw = cosf(yaw_rad);
+    // sin_yaw = sinf(yaw_rad);
     
-    float chassis_vx = vx * cos_yaw + vy * sin_yaw;
-    float chassis_vy = -vx * sin_yaw + vy * cos_yaw;
+    float chassis_vx = vx;
+    float chassis_vy = vy;
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
     
     // 使用运动学矩阵计算每个轮子的速度
