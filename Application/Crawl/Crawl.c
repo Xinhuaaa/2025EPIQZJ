@@ -66,25 +66,25 @@ int Crawl_Init(void)
  */
 void CrawlTask(void *argument)
 {
-    runActionGroup(2,1);
-    osDelay(pdMS_TO_TICKS(100)); 
-    lift_status.target_displacement=110;
-    osDelay(pdMS_TO_TICKS(3000));  
-    Emm_V5_Pos_Control(1,1,600,30,50000,0,0);
-    osDelay(pdMS_TO_TICKS(100)); 
-    Emm_V5_Pos_Control(2,0,600,30,50000,0,0);
-    osDelay(pdMS_TO_TICKS(7000)); 
-    lift_status.target_displacement=30;
-    osDelay(pdMS_TO_TICKS(7000)); 
-    runActionGroup(1,1);
-    osDelay(pdMS_TO_TICKS(2000)); 
-    lift_status.target_displacement=230;
-    osDelay(pdMS_TO_TICKS(1000));  
-    Emm_V5_Pos_Control(1,0,600,30,50000,0,0);
-    osDelay(pdMS_TO_TICKS(100)); 
-    Emm_V5_Pos_Control(2,1,600,30,50000,0,0);
-    osDelay(pdMS_TO_TICKS(20000));  
-    lift_status.target_displacement=30;
+    // runActionGroup(2,1);
+    // osDelay(pdMS_TO_TICKS(100)); 
+    // lift_status.target_displacement=110;
+    // osDelay(pdMS_TO_TICKS(3000));  
+    // Emm_V5_Pos_Control(1,1,600,30,50000,0,0);
+    // osDelay(pdMS_TO_TICKS(100)); 
+    // Emm_V5_Pos_Control(2,0,600,30,50000,0,0);
+    // osDelay(pdMS_TO_TICKS(7000)); 
+    // lift_status.target_displacement=30;
+    // osDelay(pdMS_TO_TICKS(7000)); 
+    // runActionGroup(1,1);
+    // osDelay(pdMS_TO_TICKS(2000)); 
+    // lift_status.target_displacement=230;
+    // osDelay(pdMS_TO_TICKS(1000));  
+    // Emm_V5_Pos_Control(1,0,600,30,50000,0,0);
+    // osDelay(pdMS_TO_TICKS(100)); 
+    // Emm_V5_Pos_Control(2,1,600,30,50000,0,0);
+    // osDelay(pdMS_TO_TICKS(20000));  
+    // lift_status.target_displacement=30;
 
     while (1)
     {
