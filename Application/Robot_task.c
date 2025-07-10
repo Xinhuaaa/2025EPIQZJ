@@ -27,13 +27,12 @@
 int Robot_Init(void)
 {   
     __disable_irq();
-    //BSP先初始化
     DWT_Init(168);
     BSPLogInit();
     __enable_irq();
     DWT_Delay(1);
     HWT101_TaskInit();
-    //APP初始化
+
     Chassis_Init();
     Lift_Init();
     
@@ -43,5 +42,25 @@ int Robot_Init(void)
 }
 void Robot_task()
 {
+    //机器人主任务（逻辑性的任务）
+    // Chassis_SetTargetPosition(1.64f, 0.0f, 0.0f);
+    // if (target[0] == 1 || target[1] == 2 || target[0] == 1 || target[1] == 2)
+    // {
+    //     Chassis_SetTargetPosition(1.64f, -0.5f, 0.0f);
+    //     if (target[0] == 1)
+    //     {
+    //       Lift_MoveTo(10.0f); // 升降移动到10cm位置
+    //       while(!Lift_IsAtTarget());
+    //     }
+    //     else if (target[1]==2)
+    //     {
+    //       Lift_MoveTo(20.0f); // 升降移动到20cm位置
+    //       while(!Lift_IsAtTarget());
+    //     }
+        
+    // }
+    // {
+        
+    // }
     
 }

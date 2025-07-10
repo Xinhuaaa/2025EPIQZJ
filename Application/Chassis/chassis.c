@@ -43,8 +43,8 @@ extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
 /* 控制参数 */
 #define POSITION_TOLERANCE_XY 0.02f   // 位置允差，单位m
 #define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
-#define CHASSIS_TASK_PERIOD   20      // 控制周期，单位ms
-#define ENCODER_TASK_PERIOD  10  // 5ms周期，比底盘控制任务更快
+#define CHASSIS_TASK_PERIOD   15      // 控制周期，单位ms
+#define ENCODER_TASK_PERIOD  8  // 5ms周期，比底盘控制任务更快
 
 
 // X42电机CAN ID
@@ -283,8 +283,6 @@ static void Encoder_Read_Task(void *argument)
 bool Chassis_Control_Loop(void)
 {
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
-    bool send_success[4] = {false};
-    bool sync_success = false;
     
     // 1. 更新底盘位置
     // 更新底盘朝向角度（来自陀螺仪）
@@ -297,17 +295,15 @@ bool Chassis_Control_Loop(void)
     // 计算每个轮子的位移（米）
     float wheel_delta[4] = {0};    
     for(int i = 0; i < 4; i++)
-     {
+    {
         int32_t steps = current_encoder[i] - prev_encoder[i];
         wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
         prev_encoder[i] = current_encoder[i];
     }
 
     // 麦轮运动学正解：从轮速到底盘速度
-    // 确保计算的对称性，避免数值误差累积
     float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
     float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
-     
     
     // 将局部位移转换到全局坐标系
     float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
@@ -322,26 +318,19 @@ bool Chassis_Control_Loop(void)
     g_current_pos.y += global_dy;
     
     // 2. 计算位置误差并控制
-      // 计算控制误差
+    // 计算控制误差
+    float error_x = g_target_pos.x - g_current_pos.x;
     float error_y = g_target_pos.y - g_current_pos.y;
     
-    // 使用ADRC控制器计算控制量
-    float vx = ADRC_Compute(&g_adrc.x,g_current_pos.x ,g_target_pos.x);
-    float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
+    // 使用ADRC控制器计算控制量（全局坐标系）
+    float vx_global = ADRC_Compute(&g_adrc.x, g_current_pos.x ,g_target_pos.x);
+    float vy_global = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
     float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
-    // float vx = 0;
-    // float vy = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
-    // float vyaw_deg = 0;
     
-    // 3. 计算轮子速度
-    
-    // 将全局速度指令转换到底盘坐标系
-    // yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
-    // cos_yaw = cosf(yaw_rad);
-    // sin_yaw = sinf(yaw_rad);
-    
-    float chassis_vx = vx;
-    float chassis_vy = vy;
+    // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
+    // 复用之前计算的三角函数值，将全局坐标系的速度转换到底盘局部坐标系
+    float chassis_vx = vx_global * cos_yaw + vy_global * sin_yaw;
+    float chassis_vy = -vx_global * sin_yaw + vy_global * cos_yaw;
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
     
     // 使用运动学矩阵计算每个轮子的速度
@@ -352,14 +341,13 @@ bool Chassis_Control_Loop(void)
                          g_mecanum_matrix[i][2] * vyaw_rad;
     }
     
-
     for (int i = 0; i < 4; i++) {
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
         uint16_t acc = 100; // 使用数组中的加速度值
 
-        send_success[i] = Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
+        Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
         
         // 在发送之间添加小延时，确保CAN消息不会重叠
         if (i < 3) {
@@ -367,12 +355,21 @@ bool Chassis_Control_Loop(void)
         }
     }
     
-    sync_success = Emm_V5_CAN_Synchronous_motion(0);
+    Emm_V5_CAN_Synchronous_motion(0);
     
-    bool reached_target = (fabsf(error_y) < POSITION_TOLERANCE_XY);
+    // 计算偏航角误差
+    float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
+    while (error_yaw > 180.0f) error_yaw -= 360.0f;
+    while (error_yaw < -180.0f) error_yaw += 360.0f;
+    
+    // 检测x、y、yaw三个方向是否都到达目标位置
+    bool reached_target = (fabsf(error_x) < POSITION_TOLERANCE_XY) && 
+                         (fabsf(error_y) < POSITION_TOLERANCE_XY) && 
+                         (fabsf(error_yaw) < POSITION_TOLERANCE_YAW);
     
     return reached_target;
 }
+
 /**
   * @brief  紧急停止底盘
   */

@@ -400,3 +400,26 @@ int Lift_MoveTo(float target_displacement)
     printf("升降移动到目标位移: %.2fcm\r\n", target_displacement);
     return 0;
 }
+// Lift_To_BtargetUp(float target)
+// {
+//     target_displacement = LIFT_MIN_DISPLACEMENT;
+
+// }
+// Lift_To_BtargetDown(float target_displacement)
+// {
+//     target_displacement = LIFT_MAX_DISPLACEMENT;
+// }
+
+// Lift_To_AtargetDown(float target_displacement)
+// {
+
+// }
+// Lift_To_Car1F(float target_displacement)
+// {
+
+// }
+// Lift_To_Car2F()
+// {
+
+// }
+
