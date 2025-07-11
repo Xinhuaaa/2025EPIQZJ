@@ -23,6 +23,7 @@
 #include "bsp_dwt.h"
 #include "Hwt101.h"
 #include "emm_v5.h"
+#include "Encoder.h"
 
 int Robot_Init(void)
 {   
@@ -32,7 +33,7 @@ int Robot_Init(void)
     __enable_irq();
     DWT_Delay(1);
     HWT101_TaskInit();
-
+    EncoderInit();
     Chassis_Init();
     Lift_Init();
     

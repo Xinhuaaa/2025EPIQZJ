@@ -120,7 +120,8 @@
           "Middlewares/Third_Party/TraceRecorder/streamports/Jlink_RTT/include",
           "Middlewares/Third_Party/TraceRecorder/config",
           "Middlewares/Third_Party/TraceRecorder/streamports/Jlink_RTT/config",
-          "Middlewares/Third_Party/TraceRecorder/include"
+          "Middlewares/Third_Party/TraceRecorder/include",
+          "modules/Encoder"
         ],
         "libList": [],
         "defineList": [
