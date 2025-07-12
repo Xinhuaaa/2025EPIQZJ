@@ -62,14 +62,13 @@ extern "C" {
 /* 枚举定义 */
 typedef enum {
     CRAWL_STATE_IDLE = 0,           // 空闲状态
-    CRAWL_STATE_LIFTING,            // 升降中
-    CRAWL_STATE_EXTENDING,          // 前伸中
-    CRAWL_STATE_GRABBING,           // 抓取中
-    CRAWL_STATE_RETRACTING,         // 收回中
-    CRAWL_STATE_LOWERING,           // 下降中
-    CRAWL_STATE_RELEASING,          // 释放中
-    CRAWL_STATE_COMPLETED,          // 完成
-    CRAWL_STATE_ERROR               // 错误状态
+    CRAWL_1,
+    CRAWL_2,
+    CRAWL_3,
+    CRAWL_4,
+    CRAWL_5,
+    CRAWL_6,
+    Test
 } Crawl_State_t;
 
 typedef enum {

@@ -13,7 +13,7 @@
 #include "stm32f4xx_hal.h"     
 #include "chassis.h"
 #include "PID.h"
-#include "ADRC.h"  // 添加ADRC头文件
+#include "ADRC.h"  
 #include "Hwt101.h"
 #include "Emm_V5_CAN.h"  
 #include <math.h>

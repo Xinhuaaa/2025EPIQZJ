@@ -113,5 +113,6 @@ Lift_Status_t* Lift_GetStatus(void);
  * @return 当前位移 (cm)，负值表示向下位移
  */
 float Lift_GetCurrentDisplacement(void);
-
+void Lift_To_High1(void);
+void Lift_To_High2(void);
 #endif /* __LIFT_H */

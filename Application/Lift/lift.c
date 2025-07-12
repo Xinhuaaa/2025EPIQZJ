@@ -32,7 +32,7 @@ static float Lift_DisplacementToAngle(float displacement);
 static void Lift_UpdateCurrentDisplacement(void);
 static void Lift_UpdateCurrentSpeed(void);
 static void Lift_ControlMotors(void);
-static bool Lift_IsAtTarget(void);
+void Lift_WaitUntilAtTarget(void);
 
 /**
  * @brief 升降系统初始化
@@ -208,12 +208,20 @@ static void Lift_UpdateCurrentDisplacement(void)
     float total_angle = 0.0f;
     int valid_motors = 0;
 
-    // 计算所有电机角度的平均值
+    // 计算所有电机角度的平均值，考虑反向电机的角度值
     for (int i = 0; i < 4; i++)
     {
         if (lift_motors[i])
         {
-            total_angle += lift_motors[i]->measure.total_angle;
+            float motor_angle = lift_motors[i]->measure.total_angle;
+            
+            // 对于反向电机（ID为1和3，数组索引0和2），需要取反角度值
+            if (i == 0 || i == 2)
+            {
+                motor_angle = -motor_angle;
+            }
+            
+            total_angle += motor_angle;
             valid_motors++;
         }
     }
@@ -244,15 +252,6 @@ static void Lift_ControlMotors(void)
         }
     }
     
-    // 检查是否到达目标位置
-    if (Lift_IsAtTarget())
-    {
-        if (lift_status.is_moving)
-        {
-            lift_status.is_moving = false;
-            printf("到达目标位移: %.2fcm\r\n", lift_status.current_displacement);
-        }
-    }
 }
 
 /**
@@ -362,13 +361,16 @@ static void Lift_UpdateCurrentSpeed(void)
  * @brief 检查是否到达目标位置
  * @return true: 已到达, false: 未到达
  */
-static bool Lift_IsAtTarget(void)
+void Lift_WaitUntilAtTarget(void)
 {
     const float tolerance = 0.5f; // 位移容差 0.5cm
-    float error = fabsf(lift_status.current_displacement - lift_status.target_displacement);
-    return (error <= tolerance);
-}
+    float error;
 
+    do {
+        error = fabsf(lift_status.current_displacement - lift_status.target_displacement);
+        vTaskDelay(pdMS_TO_TICKS(10));  // 等待 10ms
+    } while (error > tolerance);
+}
 /**
  * @brief 移动到指定位置
  * @param target_displacement 目标绝对位移 (cm)，负值表示向下位移
@@ -400,26 +402,19 @@ int Lift_MoveTo(float target_displacement)
     printf("升降移动到目标位移: %.2fcm\r\n", target_displacement);
     return 0;
 }
-// Lift_To_BtargetUp(float target)
-// {
-//     target_displacement = LIFT_MIN_DISPLACEMENT;
+void Lift_To_High1(void)
+{
+    lift_status.target_displacement = 135;
+    Lift_WaitUntilAtTarget();
 
-// }
-// Lift_To_BtargetDown(float target_displacement)
-// {
-//     target_displacement = LIFT_MAX_DISPLACEMENT;
-// }
-
-// Lift_To_AtargetDown(float target_displacement)
-// {
-
-// }
-// Lift_To_Car1F(float target_displacement)
-// {
-
-// }
-// Lift_To_Car2F()
-// {
-
-// }
-
+}
+void Lift_To_High2(void)
+{
+    lift_status.target_displacement = 250;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_StartHeight(void)
+{
+    lift_status.target_displacement = 110;
+    Lift_WaitUntilAtTarget();
+}
