@@ -404,16 +404,36 @@ int Lift_MoveTo(float target_displacement)
 }
 void Lift_To_High1(void)
 {
-    lift_status.target_displacement = 135;
+    lift_status.target_displacement = 165;
     Lift_WaitUntilAtTarget();
 
 }
 void Lift_To_High2(void)
 {
-    lift_status.target_displacement = 250;
+    lift_status.target_displacement = 260;
     Lift_WaitUntilAtTarget();
 }
 void Lift_To_StartHeight(void)
+{
+    lift_status.target_displacement = 120;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_HighA(void)
+{
+    lift_status.target_displacement = 30;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_HighB(void)
+{
+    lift_status.target_displacement = 340;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_PUT2HIGH(void)
+{
+    lift_status.target_displacement = 240;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_PUTDown(void)
 {
     lift_status.target_displacement = 110;
     Lift_WaitUntilAtTarget();

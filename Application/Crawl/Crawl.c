@@ -67,9 +67,12 @@ int Crawl_Init(void)
  */
 void CrawlTask(void *argument)
 {
-    // runActionGroup(3,1);
-    // osDelay(1500);
-    // runActionGroup(4,1);
+    runActionGroup(2,1);
+    osDelay(500);
+    runActionGroup(3,1);
+    osDelay(4500);
+    Lift_To_StartHeight();
+
 
     // lift_status.target_displacement=110;
     // osDelay(pdMS_TO_TICKS(3000));  
@@ -91,9 +94,10 @@ void CrawlTask(void *argument)
 
     while (1)
     {
-        Emm_V5_Pos_Control(1,0,600,0,num,1,0);
+
+        Emm_V5_Pos_Control(1,1,100,0,num,1,0);
         osDelay(10);
-        Emm_V5_Pos_Control(2,1,600,0,num,1,0);
+        Emm_V5_Pos_Control(2,0,100,0,num,1,0);
         osDelay(100);
 
         // 根据当前状态执行相应动作
@@ -101,30 +105,37 @@ void CrawlTask(void *argument)
         {
 
             case CRAWL_STATE_IDLE:
-        runActionGroup(3,1);//前面舵机放置
+
+        runActionGroup(5,1);//前面舵机放置
         osDelay(550);
 
-        runActionGroup(2,1);//后面舵机放置
+        runActionGroup(6,1);//后面舵机放置
         osDelay(550);
 
             
         break;
                 
             case CRAWL_1:
+        runActionGroup(3,1);
+        Emm_V5_Pos_Control(1,0,600,255,17400,1,0); //移动伸缩到1号货架
         osDelay(50);
+        Emm_V5_Pos_Control(2,1,600,255,17400,1,0);
+        osDelay(1500);
+        Lift_To_HighA();   
+        osDelay(500);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
         Lift_To_High1(); //升高到1层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,55500,1,0); //移动伸缩到1号货架
+        Emm_V5_Pos_Control(1,1,600,255,55500,1,0); //移动伸缩到1号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,55500,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,55500,1,0);
         osDelay(5550);
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
 
@@ -133,108 +144,312 @@ void CrawlTask(void *argument)
         break;
                 
             case CRAWL_2:
+        runActionGroup(3,1);
+        Emm_V5_Pos_Control(1,0,2000,255,17400,1,0); //移动伸缩到1号货架
+        osDelay(50);
+        Emm_V5_Pos_Control(2,1,2000,255,17400,1,0);
+        osDelay(1500);
+        Lift_To_HighA();     
         osDelay(50);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
         Lift_To_High1(); //升高到1层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,37000,1,0); //移动伸缩到2号货架
+        Emm_V5_Pos_Control(1,1,600,255,37000,1,0); //移动伸缩到2号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,37000,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,37000,1,0);
         osDelay(5550);
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,1000,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,1000,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
                 
        
             case CRAWL_3:
+        runActionGroup(3,1);
+        Emm_V5_Pos_Control(1,0,2000,255,17400,1,0); //移动伸缩到1号货架
+        osDelay(50);
+        Emm_V5_Pos_Control(2,1,2000,255,17400,1,0);
+        osDelay(1500);
+        Lift_To_HighA();     
         osDelay(50);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
         Lift_To_High1(); //升高到1层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,18000,1,0); //移动伸缩到3号货架
+        Emm_V5_Pos_Control(1,1,600,255,18000,1,0); //移动伸缩到3号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,18000,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
         osDelay(5550);
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,1000,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,1000,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
                 
             case CRAWL_4:
+        runActionGroup(3,1);
+        Lift_To_HighB(); 
+        Emm_V5_Pos_Control(1,0,2000,255,17400,1,0); //移动伸缩到1号货架
         osDelay(50);
+        Emm_V5_Pos_Control(2,1,2000,255,17400,1,0);
+        osDelay(1500);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
-        Lift_To_High2(); //升高到2层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,55500,1,0); //移动伸缩到4号货架
+        Emm_V5_Pos_Control(1,1,600,255,55500,1,0); //移动伸缩到4号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,55500,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,55500,1,0);
         osDelay(5550);
+        Lift_To_High2(); //升高到2层高度
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,1000,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,1000,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
                 
             case CRAWL_5:
+        runActionGroup(3,1);
+        Lift_To_HighB(); 
+        Emm_V5_Pos_Control(1,0,2000,255,17400,1,0); //移动伸缩到1号货架
         osDelay(50);
+        Emm_V5_Pos_Control(2,1,2000,255,17400,1,0);
+        osDelay(1500);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
-        Lift_To_High2(); //升高到2层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,37000,1,0); //移动伸缩到5号货架
+        Emm_V5_Pos_Control(1,1,600,255,37000,1,0); //移动伸缩到4号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,37000,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,37000,1,0);
         osDelay(5550);
+        Lift_To_High2(); //升高到2层高度
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,1000,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,1000,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
                 
             case CRAWL_6:
+        runActionGroup(3,1);
+        Lift_To_HighB(); 
+        Emm_V5_Pos_Control(1,0,2000,255,17400,1,0); //移动伸缩到1号货架
         osDelay(50);
+        Emm_V5_Pos_Control(2,1,2000,255,17400,1,0);
+        osDelay(1500);
         runActionGroup(4,1); //舵机抓取
         osDelay(1000);
-        Lift_To_High2(); //升高到2层高度
         osDelay(50);
-        Emm_V5_Pos_Control(1,1,800,100,18000,1,0); //移动伸缩到6号货架
+        Emm_V5_Pos_Control(1,1,600,255,18000,1,0); //移动伸缩到4号货架
         osDelay(50);
-        Emm_V5_Pos_Control(2,0,800,100,18000,1,0);
+        Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
         osDelay(5550);
+        Lift_To_High2(); //升高到2层高度
         runActionGroup(3,1); //舵机放置
         osDelay(2000);
-        Emm_V5_Pos_Control(1,0,1000,100,0,1,0); //移动伸缩到初始位置
+        Emm_V5_Pos_Control(1,0,1000,255,0,1,0); //移动伸缩到初始位置
         osDelay(50);
-        Emm_V5_Pos_Control(2,1,1000,100,0,1,0);
+        Emm_V5_Pos_Control(2,1,1000,255,0,1,0);
         osDelay(5550);
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
-            case Test:
-        Emm_V5_Pos_Control(2,0,1600,200,55000,1,0);
-        osDelay(5550);
-        Emm_V5_Pos_Control(2,1,1000,200,0,1,0);
-        osDelay(5550);
+        case Test:
+        runActionGroup(4,1); //舵机抓取
+        osDelay(1000);    
+                runActionGroup(1,1); //舵机抓取
+        osDelay(1000);    
+
+        break;
+        case PUT_1:
+           runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High2(); //升高到二层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+                            Lift_To_PUT2HIGH();
+
+        crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
+
+
+        break;
+        case PUT_2:
+        
+         runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,1,600,255,0,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,0,1,0);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High2(); //升高到二层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+                            Lift_To_PUT2HIGH();
+
+        crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
+
+        break;
+        case PUT_3:
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,0,600,255,18000,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,18000,1,0);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High2(); //升高到二层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_PUT2HIGH(); //升高到二层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+        Lift_To_PUT2HIGH();
+
         crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
         break;
- 
+        case PUT_4:
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High1(); //升高到一层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+        crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
+        break;
+        case PUT_5:
+         runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,1,600,255,0,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,0,1,0);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High1(); //升高到一层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+        crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
+        break;
+        case PUT_6:
+                 runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        Emm_V5_Pos_Control(1,0,600,255,18000,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,18000,1,0);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层放置抓取高度
+        runActionGroup(1,1); //舵机抓取
+        osDelay(800);
+        Lift_To_High1(); //升高到一层运动高度
+        Emm_V5_Pos_Control(1,1,600,255,45500,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,255,45000,1,0);
+        osDelay(2000);
+        Lift_To_PUTDown(); //下降到放置高度
+        runActionGroup(3,1);
+        osDelay(500);
+        runActionGroup(2,1);
+        osDelay(2000);
+        Lift_To_StartHeight(); //升高到一层抓取放置高度
+        Emm_V5_Pos_Control(1,0,600,255,0,1,0); //伸缩收回
+        osDelay(10);
+        Emm_V5_Pos_Control(2,1,600,255,0,1,0);
+        osDelay(2000);
+        crawl_status.state=CRAWL_STATE_IDLE; //恢复默认状态
+        break;
         }
         
         // 周期性延时

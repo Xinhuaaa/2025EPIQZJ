@@ -115,4 +115,10 @@ Lift_Status_t* Lift_GetStatus(void);
 float Lift_GetCurrentDisplacement(void);
 void Lift_To_High1(void);
 void Lift_To_High2(void);
+void Lift_To_HighA(void);
+void Lift_To_HighB(void);
+void Lift_To_PUT1(void);
+void Lift_To_StartHeight(void);
+void Lift_To_PUTDown(void);
+void Lift_To_PUT2HIGH(void);
 #endif /* __LIFT_H */

@@ -11,6 +11,10 @@
 
 #define MAXSIZE 30
 
+/* 初始化相关参数 */
+#define INIT_SAMPLE_COUNT 10  // 初始化采样次数
+#define MAX_ANGLE_DEVIATION 30.0f  // 最大角度偏差阈值(度)
+
 extern UART_HandleTypeDef huart2;
 
 

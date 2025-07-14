@@ -68,6 +68,12 @@ typedef enum {
     CRAWL_4,
     CRAWL_5,
     CRAWL_6,
+    PUT_1,                          // 放置动作1
+    PUT_2,                          // 放置动作2
+    PUT_3,                          // 放置动作3
+    PUT_4,                          // 放置动作4
+    PUT_5,                          // 放置动作5
+    PUT_6,                          // 放置动作6
     Test
 } Crawl_State_t;
 
