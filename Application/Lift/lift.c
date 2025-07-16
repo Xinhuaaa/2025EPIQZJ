@@ -438,3 +438,8 @@ void Lift_To_PUTDown(void)
     lift_status.target_displacement = 110;
     Lift_WaitUntilAtTarget();
 }
+void Lift_To_PUTspecialDown(void)
+{
+    lift_status.target_displacement = 200;
+    Lift_WaitUntilAtTarget();
+}

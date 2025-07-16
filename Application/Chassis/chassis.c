@@ -16,6 +16,7 @@
 #include "ADRC.h"  
 #include "Hwt101.h"
 #include "Emm_V5_CAN.h"  
+#include "Encoder.h"
 #include <math.h>
 #include "FreeRTOS.h"
 #include "task.h"
@@ -314,8 +315,10 @@ bool Chassis_Control_Loop(void)
     float global_dy = delta_x * sin_yaw + delta_y * cos_yaw;
     
     // 更新全局位置
-    g_current_pos.x += global_dx;
-    g_current_pos.y += global_dy;
+    // g_current_pos.x += global_dx;
+    // g_current_pos.y += global_dy;
+    g_current_pos.x = x_position_units/1000.0;
+    g_current_pos.y = -y_position_units/1000.0;
     
     // 2. 计算位置误差并控制
     // 计算控制误差

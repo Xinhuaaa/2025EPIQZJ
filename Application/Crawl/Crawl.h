@@ -228,6 +228,22 @@ bool Crawl_IsLiftReached(void);
  */
 bool Crawl_IsStepperReached(void);
 
+/**
+ * @brief 抓取箱子接口函数
+ * @param box_number 箱子编号 (1-6)
+ * @param box_count 当前已放置的箱子数量 (0-5)
+ * @retval 0: 成功, -1: 失败
+ */
+int Crawl_GrabBox(int box_number, int box_count);
+
+/**
+ * @brief 放置箱子接口函数
+ * @param box_count 当前已放置的箱子数量 (0-5)
+ * @param special_box 特殊箱子编号 (0表示无特殊箱子)
+ * @retval 0: 成功, -1: 失败
+ */
+int Crawl_PlaceBox(int box_count, int special_box);
+
 #ifdef __cplusplus
 }
 #endif
