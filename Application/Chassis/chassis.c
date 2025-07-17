@@ -26,6 +26,8 @@
 
 /* 外部声明 */
 extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
+extern float x_position_units;  // 外部X位置，单位mm
+extern float y_position_units;  // 外部Y位置，单位mm
 
 /* 数学常量与转换宏 */
 #define PI                    3.14159265358979323846f
@@ -472,4 +474,47 @@ void Chassis_ResetController(void)
     ADRC_Reset(&g_adrc.x);
     ADRC_Reset(&g_adrc.y);
     ADRC_Reset(&g_adrc.yaw);
+}
+
+/**
+  * @brief  阻塞式移动底盘到指定位置
+  * @param  x   目标X坐标，单位m
+  * @param  y   目标Y坐标，单位m
+  * @param  yaw 目标偏航角，单位度，范围(-180, 180]
+  * @param  timeout_ms 超时时间，单位ms，设为0表示无超时限制
+  * @return 是否成功到达目标位置（超时返回false）
+  */
+bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeout_ms)
+{
+    // 设置目标位置
+    Chassis_SetTargetPosition(x, y, yaw);
+    
+    // 用于计算超时的变量
+    float start_time = DWT_GetTimeline_ms();
+    bool has_timeout = (timeout_ms > 0);
+    bool is_timeout = false;
+    
+    // 等待直到到达目标位置或超时
+    while (1) {
+        // 检查是否已到达目标位置（使用控制循环函数的返回值）
+        bool reached = Chassis_Control_Loop();
+        
+        if (reached) {
+            return true;  // 成功到达目标位置
+        }
+        
+        // 检查是否超时
+        if (has_timeout) {
+            float elapsed = DWT_GetTimeline_ms() - start_time;
+            if (elapsed > (float)timeout_ms) {
+                is_timeout = true;
+                break;  // 超时，退出循环
+            }
+        }
+        
+        // 短暂延时，避免过多CPU占用
+        osDelay(10);  // 10ms延时，可根据需要调整
+    }
+    
+    return !is_timeout;  // 如果不是因为超时退出，则返回成功
 }

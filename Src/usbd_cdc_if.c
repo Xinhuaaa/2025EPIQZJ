@@ -94,7 +94,8 @@ uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 
 /* USER CODE BEGIN PRIVATE_VARIABLES */
-
+uint8_t USB_RxFlag = 0; // 接收标志，1表示接收到数据
+uint32_t USB_RxLen = 0; // 接收数据长度
 /* USER CODE END PRIVATE_VARIABLES */
 
 /**
@@ -109,7 +110,9 @@ uint8_t UserTxBufferFS[APP_TX_DATA_SIZE];
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
-
+extern uint8_t USB_RxFlag;
+extern uint32_t USB_RxLen;
+extern uint8_t UserRxBufferFS[APP_RX_DATA_SIZE];
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**
@@ -261,6 +264,15 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t* pbuf, uint16_t length)
 static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 {
   /* USER CODE BEGIN 6 */
+  // 将接收到的数据复制到接收缓冲区
+  memcpy(UserRxBufferFS, Buf, *Len);
+  
+  // 设置接收标志和长度
+  extern uint8_t USB_RxFlag;
+  extern uint32_t USB_RxLen;
+  USB_RxFlag = 1;
+  USB_RxLen = *Len;
+  
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
   return (USBD_OK);

@@ -35,6 +35,16 @@ void Chassis_Init(void);
 void Chassis_SetTargetPosition(float x, float y, float yaw);
 
 /**
+  * @brief  阻塞式移动底盘到指定位置
+  * @param  x   目标X坐标，单位m
+  * @param  y   目标Y坐标，单位m
+  * @param  yaw 目标偏航角，单位度，范围(-180, 180]
+  * @param  timeout_ms 超时时间，单位ms，设为0表示无超时限制
+  * @return 是否成功到达目标位置（超时返回false）
+  */
+bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeout_ms);
+
+/**
   * @brief  底盘控制循环，需要定期调用(建议10-20ms周期)
   * @return 底盘是否已到达目标位置
   */

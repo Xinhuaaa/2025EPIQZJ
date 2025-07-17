@@ -57,6 +57,13 @@ const osThreadAttr_t defaultTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for robotTask */
+osThreadId_t robotTaskHandle;
+const osThreadAttr_t robotTask_attributes = {
+  .name = "robotTask",
+  .stack_size = 256 * 4,  /* 更大的堆栈空间 */
+  .priority = (osPriority_t) osPriorityHigh,  /* 较高的优先级 */
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -101,6 +108,9 @@ void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   Robot_Init();
+  
+  /* 创建机器人任务，直接使用Robot_task函数 */
+  robotTaskHandle = osThreadNew(Robot_task, NULL, &robotTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 

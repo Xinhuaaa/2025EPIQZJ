@@ -24,4 +24,13 @@
  */
 int Robot_Init(void);
 
+
+
+/**
+ * @brief  机器人任务函数，用作RTOS任务
+ * @param  argument: 任务参数（未使用）
+ * @retval 无
+ */
+void Robot_task(void *argument);
+
 #endif /* __ROBOT_TASK_H */
