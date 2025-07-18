@@ -33,10 +33,8 @@
 #include "usbd_cdc_if.h"
 #include "string.h"
 #include "stdlib.h"
-#include "CDCDataParser.h" // 添加数据解析模块头文件
-#include "Robot_task.h" // 添加自身的头文件，包含移动宏定义
-
-
+#include "CDCDataParser.h" 
+#include "Robot_task.h" 
 uint8_t grabSequence[6] = {4,5,6,1,2,3};  // 6个抓取顺序
 uint8_t specialBox = 2;         // 特殊货箱号
 uint8_t route = 1;              // 运行路线
@@ -179,27 +177,27 @@ void Robot_task(void *argument)
                     switch(i) {
                         case 0:
                             LOGINFO("移动到路线1-位置1\r\n");
-                            MoveToA(); // 路线1的第1个放置点
+                            MoveToB(); // 路线1的第1个放置点
                             break;
                         case 1:
                             LOGINFO("移动到路线1-位置2\r\n");
-                            MoveToB(); // 路线1的第2个放置点
+                            MoveToC(); // 路线1的第2个放置点
                             break;
                         case 2:
                             LOGINFO("移动到路线1-位置3\r\n");
-                            MoveToC(); // 路线1的第3个放置点
+                            MoveToD(); // 路线1的第3个放置点
                             break;
                         case 3:
                             LOGINFO("移动到路线1-位置4\r\n");
-                            MoveToD(); // 路线1的第4个放置点
+                            MoveToE(); // 路线1的第4个放置点
                             break;
                         case 4:
                             LOGINFO("移动到路线1-位置5\r\n");
-                            MoveToE(); // 路线1的第5个放置点
+                            MoveToF(); // 路线1的第5个放置点
                             break;
                         case 5:
                             LOGINFO("移动到路线1-位置6\r\n");
-                            MoveToF(); // 路线1的第6个放置点
+                            MoveToA(); // 路线1的第6个放置点
                             break;
                     }
                 } else {
@@ -219,7 +217,7 @@ void Robot_task(void *argument)
             
         case 2:
             LOGINFO("执行路线2的放置策略\r\n");
-            // 路线2的放置逻辑
+            // 路线2的放置逻辑:如果特殊纸垛在A的话
             for(int i = 0; i < 6; i++) {
                 LOGINFO("放置第%d个箱子\r\n", i+1);
                 
@@ -228,19 +226,19 @@ void Robot_task(void *argument)
                     // 根据当前箱子序号选择不同的放置位置
                     switch(i) {
                         case 0:
-                            MoveToA(); // 路线2的第1个放置点
+                            MoveToB(); // 路线2的第1个放置点
                             break;
                         case 1:
-                            MoveToB(); // 路线2的第2个放置点
+                            MoveToC(); // 路线2的第2个放置点
                             break;
                         case 2:
-                            MoveToC(); // 路线2的第3个放置点
+                            MoveToD(); // 路线2的第3个放置点
                             break;
                         case 3:
-                            MoveToD(); // 路线2的第4个放置点
+                            MoveToE(); // 路线2的第4个放置点
                             break;
                         case 4:
-                            MoveToE(); // 路线2的第5个放置点
+                            MoveToF(); // 路线2的第5个放置点
                             break;
                         case 5:
                             MoveToF(); // 路线2的第6个放置点
@@ -262,27 +260,27 @@ void Robot_task(void *argument)
         case 3:
             for(int i = 0; i < 6; i++) {
                 LOGINFO("放置第%d个箱子\r\n", i+1);
-                
+                //路线3：如果轮空纸垛在F时
                 // 如果当前不是特殊箱子，才移动到新位置
                 if(i != placementSpecialBox) {
                     switch(i) {
                         case 0:
-                            MoveToA(); // 路线3的第1个放置点
+                            MoveToE(); // 路线3的第1个放置点
                             break;
                         case 1:
-                            MoveToB(); // 路线3的第2个放置点
+                            MoveToD(); // 路线3的第2个放置点
                             break;
                         case 2:
                             MoveToC(); // 路线3的第3个放置点
                             break;
                         case 3:
-                            MoveToD(); // 路线3的第4个放置点
+                            MoveToB(); // 路线3的第4个放置点
                             break;
                         case 4:
-                            MoveToE(); // 路线3的第5个放置点
+                            MoveToA(); // 路线3的第5个放置点
                             break;
                         case 5:
-                            MoveToF(); // 路线3的第6个放置点
+                            MoveToA(); // 路线3的第6个放置点
                             break;
                     }
                 } else {
@@ -298,39 +296,6 @@ void Robot_task(void *argument)
             }
             break;
             
-        default:
-            for(int i = 0; i < 6; i++) {
-                LOGINFO("放置第%d个箱子\r\n", i+1);
-                
-                // 如果当前不是特殊箱子，才移动到新位置
-                if(i != placementSpecialBox) {
-                    switch(i) {
-                        case 0:
-                            MoveToA(); // 默认路线的第1个放置点
-                            break;
-                        case 1:
-                            MoveToB(); // 默认路线的第2个放置点
-                            break;
-                        case 2:
-                            MoveToC(); // 默认路线的第3个放置点
-                            break;
-                        case 3:
-                            MoveToD(); // 默认路线的第4个放置点
-                            break;
-                        case 4:
-                            MoveToE(); // 默认路线的第5个放置点
-                            break;
-                        case 5:
-                            MoveToF(); // 默认路线的第6个放置点
-                            break;
-                    }
-                } else {
-                    LOGINFO("特殊箱子(%d)，保持位置不变\r\n", placementSpecialBox);
-                }
-                Crawl_PlaceBox(i, placementSpecialBox);
-
-                vTaskDelay(500);
-            }
     }
     
     LOGINFO("任务完成\r\n");
