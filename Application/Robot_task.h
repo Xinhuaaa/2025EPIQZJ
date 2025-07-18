@@ -16,17 +16,17 @@
 #include "main.h"
 #include "chassis.h"
 // 抓取位置宏定义
-#define MoveToLeft() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToCenter() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToRight() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
+#define MoveToLeft() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToCenter() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToRight() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
 /* 位置移动宏定义 */
 // 放置点位置宏定义 A-F
-#define MoveToA() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToB() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToC() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToD() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToE() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
-#define MoveToF() Chassis_MoveToPosition_Blocking(0, 0, 0, 5000)
+#define MoveToA() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToB() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToC() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToD() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToE() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
+#define MoveToF() Chassis_MoveToPosition_Blocking(0, 0, 0, 50000)
 
 
 

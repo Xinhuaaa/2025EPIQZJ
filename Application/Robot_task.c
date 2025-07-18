@@ -156,102 +156,66 @@ void Robot_task(void *argument)
     // }
 
     // 放置阶段
-    LOGINFO("开始放置阶段...\r\n");
-    LOGINFO("选择路线: %d\r\n", route);
-    
-    // 计算特殊货箱在放置顺序中的索引（抓取顺序的逆序）
+    //route：放置的第几个箱子
+    //placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = 5 - specialBox;
-    LOGINFO("特殊货箱抓取索引: %d，放置索引: %d\r\n", specialBox, placementSpecialBox);
-    
-    // 根据不同的路线选择不同的放置策略
-    switch(route) {
+        switch(route) {
         case 1:
-            LOGINFO("执行路线1的放置策略\r\n");
-            // 路线1的放置逻辑
-            for(int i = 0; i < 6; i++) {
-                LOGINFO("放置第%d个箱子\r\n", i+1);
-                
-                // 如果当前不是特殊箱子，才移动到新位置
+            for(int i = 0; i < 6; i++) {                
                 if(i != placementSpecialBox) {
-                    // 根据当前箱子序号选择不同的放置位置
                     switch(i) {
                         case 0:
-                            LOGINFO("移动到路线1-位置1\r\n");
-                            MoveToB(); // 路线1的第1个放置点
+                            MoveToB();
                             break;
                         case 1:
-                            LOGINFO("移动到路线1-位置2\r\n");
-                            MoveToC(); // 路线1的第2个放置点
+                            MoveToC();
                             break;
                         case 2:
-                            LOGINFO("移动到路线1-位置3\r\n");
-                            MoveToD(); // 路线1的第3个放置点
+                            MoveToD(); 
                             break;
                         case 3:
-                            LOGINFO("移动到路线1-位置4\r\n");
-                            MoveToE(); // 路线1的第4个放置点
+                            MoveToE();
                             break;
                         case 4:
-                            LOGINFO("移动到路线1-位置5\r\n");
-                            MoveToF(); // 路线1的第5个放置点
+                            MoveToF();
                             break;
                         case 5:
-                            LOGINFO("移动到路线1-位置6\r\n");
-                            MoveToA(); // 路线1的第6个放置点
+                            MoveToA(); 
                             break;
                     }
-                } else {
-                    LOGINFO("特殊箱子(%d)，保持位置不变\r\n", placementSpecialBox);
                 }
-                
-                // 放置箱子
-                if(Crawl_PlaceBox(i, placementSpecialBox) == 0) {
-                    LOGINFO("箱子%d放置成功\r\n", i+1);
-                } else {
-                    LOGINFO("箱子%d放置失败\r\n", i+1);
-                }
-                
+                Crawl_PlaceBox(i, placementSpecialBox);
                 vTaskDelay(500);
             }
             break;
             
         case 2:
-            LOGINFO("执行路线2的放置策略\r\n");
-            // 路线2的放置逻辑:如果特殊纸垛在A的话
-            for(int i = 0; i < 6; i++) {
-                LOGINFO("放置第%d个箱子\r\n", i+1);
-                
-                // 如果当前不是特殊箱子，才移动到新位置
+            for(int i = 0; i < 6; i++) {                
                 if(i != placementSpecialBox) {
-                    // 根据当前箱子序号选择不同的放置位置
                     switch(i) {
                         case 0:
-                            MoveToB(); // 路线2的第1个放置点
+                            MoveToB(); 
                             break;
                         case 1:
-                            MoveToC(); // 路线2的第2个放置点
+                            MoveToC(); 
                             break;
                         case 2:
-                            MoveToD(); // 路线2的第3个放置点
+                            MoveToD(); 
                             break;
                         case 3:
-                            MoveToE(); // 路线2的第4个放置点
+                            MoveToE(); 
                             break;
                         case 4:
-                            MoveToF(); // 路线2的第5个放置点
+                            MoveToF(); 
                             break;
                         case 5:
-                            MoveToF(); // 路线2的第6个放置点
+                            MoveToF(); 
                             break;
                     }
-                } else {
-                    LOGINFO("特殊箱子(%d)，保持位置不变\r\n", placementSpecialBox);
                 }
                 
                 // 放置箱子
-                if(Crawl_PlaceBox(i, placementSpecialBox) == 0) {
-                } else {
-                }
+                Crawl_PlaceBox(i, placementSpecialBox);
                 
                 vTaskDelay(500);
             }
@@ -259,47 +223,38 @@ void Robot_task(void *argument)
             
         case 3:
             for(int i = 0; i < 6; i++) {
-                LOGINFO("放置第%d个箱子\r\n", i+1);
-                //路线3：如果轮空纸垛在F时
-                // 如果当前不是特殊箱子，才移动到新位置
                 if(i != placementSpecialBox) {
                     switch(i) {
                         case 0:
-                            MoveToE(); // 路线3的第1个放置点
+                            MoveToE(); 
                             break;
                         case 1:
-                            MoveToD(); // 路线3的第2个放置点
+                            MoveToD();
                             break;
                         case 2:
-                            MoveToC(); // 路线3的第3个放置点
+                            MoveToC();
                             break;
                         case 3:
-                            MoveToB(); // 路线3的第4个放置点
+                            MoveToB(); 
                             break;
                         case 4:
-                            MoveToA(); // 路线3的第5个放置点
+                            MoveToA(); 
                             break;
                         case 5:
-                            MoveToA(); // 路线3的第6个放置点
+                            MoveToA();
                             break;
                     }
-                } else {
-                    LOGINFO("特殊箱子(%d)，保持位置不变\r\n", placementSpecialBox);
                 }
-                
                 // 放置箱子
-                if(Crawl_PlaceBox(i, placementSpecialBox) == 0) {
-                } else {
-                }
+                Crawl_PlaceBox(i, placementSpecialBox);
+
                 
                 vTaskDelay(500);
             }
             break;
             
     }
-    
-    LOGINFO("任务完成\r\n");
-    
+
     while(1) {
         vTaskDelay(1000);
     }
