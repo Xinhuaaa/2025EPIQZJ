@@ -103,6 +103,7 @@ int main(void)
   MX_USART1_UART_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
+  MX_CAN2_Init();
   /* USER CODE BEGIN 2 */
 // __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE);
 //   HAL_Delay(1000);

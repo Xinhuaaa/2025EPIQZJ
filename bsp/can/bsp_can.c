@@ -67,11 +67,20 @@ if (_instance->use_ext_id)
 
 static void CANServiceInit()
 {
+    // 初始化CAN1
     HAL_CAN_Start(&hcan1);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO0_MSG_PENDING);
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_RX_FIFO1_MSG_PENDING);
     // 启用TX邮箱空中断，解决发送卡死问题
     HAL_CAN_ActivateNotification(&hcan1, CAN_IT_TX_MAILBOX_EMPTY);
+    
+    // 初始化CAN2
+    HAL_CAN_Start(&hcan2);
+    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO0_MSG_PENDING);
+    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_RX_FIFO1_MSG_PENDING);
+    // 启用TX邮箱空中断，解决发送卡死问题
+    HAL_CAN_ActivateNotification(&hcan2, CAN_IT_TX_MAILBOX_EMPTY);
+    
     can_rx_queue = osMessageQueueNew(CAN_RX_QUEUE_SIZE, sizeof(CANRxMsg_t), NULL);
     can_tx_mutex = osMutexNew(NULL);
 }

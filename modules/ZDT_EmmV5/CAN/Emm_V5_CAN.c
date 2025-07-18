@@ -83,7 +83,7 @@ bool Emm_V5_CAN_Init(uint8_t *motor_ids, uint8_t motor_count)
     // 注册所有电机的CAN实例
     for (uint8_t i = 0; i < motor_count; i++) {
         uint8_t motor_addr = motor_ids[i];
-        if (Emm_V5_CAN_RegisterMotor(motor_addr, &hcan1) == NULL) {
+        if (Emm_V5_CAN_RegisterMotor(motor_addr, &hcan2) == NULL) {
             all_registered = false;
         }
     }

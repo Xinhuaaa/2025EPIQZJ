@@ -7,7 +7,7 @@
 #include "stdbool.h"
 #define CAN_MX_REGISTER_CNT 16     // 最大支持的 CAN 设备实例数
 #define MX_CAN_FILTER_CNT (2 * 14) // STM32F4 系列最多可用过滤器数量
-#define DEVICE_CAN_CNT 1           // 当前设备支持的 CAN 控制器数量（F407: 2，F334: 1）
+#define DEVICE_CAN_CNT 2           // 当前设备支持的 CAN 控制器数量（F407: 2，F334: 1）
 
 /* ------------------------- CAN Instance 结构体 ------------------------- */
 #pragma pack(1)

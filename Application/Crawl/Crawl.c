@@ -629,31 +629,42 @@ int Crawl_GrabBox(int box_number, int box_count)
             break;
         case 3:
             // 第四个箱子，放到一号位上层
+            Emm_V5_Pos_Control(1, 1, 600, 255, 0, 1, 0);
+            osDelay(50);
+            Emm_V5_Pos_Control(2, 0, 600, 255, 0, 1, 0);
+            osDelay(5550);
+            Lift_To_High2();
             target_position = 55500;
             Emm_V5_Pos_Control(1, 1, 600, 255, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0, 600, 255, target_position, 1, 0);
             osDelay(5550);
-            Lift_To_High2();
-
             break;
         case 4:
             // 第五个箱子，放到二号位上层
+            Emm_V5_Pos_Control(1, 1, 600, 255, 0, 1, 0);
+            osDelay(50);
+            Emm_V5_Pos_Control(2, 0, 600, 255, 0, 1, 0);
+            osDelay(5550);
+            Lift_To_High2();
             target_position = 37000;
             Emm_V5_Pos_Control(1, 1, 600, 255, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0, 600, 255, target_position, 1, 0);
             osDelay(5550);
-            Lift_To_High2();
             break;
         case 5:
             // 第六个箱子，放到三号位上层
+            Emm_V5_Pos_Control(1, 1, 600, 255, 0, 1, 0);
+            osDelay(50);
+            Emm_V5_Pos_Control(2, 0, 600, 255, 0, 1, 0);
+            osDelay(5550);
+            Lift_To_High2();
             target_position = 18000;
             Emm_V5_Pos_Control(1, 1, 600, 255, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0, 600, 255, target_position, 1, 0);
             osDelay(5550);
-            Lift_To_High2();
             break;
         default:
             crawl_status.is_busy = false;
@@ -774,10 +785,19 @@ int Crawl_PlaceBox(int box_count, int special_box)
     // 降低到货架放置高度
     if (special_box == box_count) {
         // 特殊箱子使用叠放高度
-        Lift_To_PUTspecialDown();
+    Emm_V5_Pos_Control(1, 1, 600, 255, 45500, 1, 0);
+    osDelay(10);
+    Emm_V5_Pos_Control(2, 0, 600, 255, 45000, 1, 0);
+    osDelay(2000);
+    Lift_To_PUTspecialDown();
+
     } else {
         // 普通箱子使用普通放置高度
-        Lift_To_PUTDown();
+    Emm_V5_Pos_Control(1, 1, 600, 255, 45500, 1, 0);
+    osDelay(10);
+    Emm_V5_Pos_Control(2, 0, 600, 255, 45000, 1, 0);
+    osDelay(2000);
+    Lift_To_PUTDown();
     }
     
     // 舵机放置（松开爪子）

@@ -11,6 +11,8 @@
 ***	淘宝店铺：https://zhangdatou.taobao.com
 ***	CSDN博客：http s://blog.csdn.net/zhangdatou666
 ***	qq交流群：262438510
+***
+*** 注意：当前驱动默认使用CAN2进行通信
 **********************************************************/
 
 #define		ABS(x)		((x) > 0 ? (x) : -(x)) 

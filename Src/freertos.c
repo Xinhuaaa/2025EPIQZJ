@@ -48,7 +48,13 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-
+/* 机器人任务句柄和属性定义 */
+osThreadId_t robotTaskHandle;
+const osThreadAttr_t robotTask_attributes = {
+  .name = "robotTask",
+  .stack_size = 256 * 4,  /* 根据任务需求可调整栈大小 */
+  .priority = (osPriority_t) osPriorityNormal,
+};
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -56,13 +62,6 @@ const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityNormal,
-};
-/* Definitions for robotTask */
-osThreadId_t robotTaskHandle;
-const osThreadAttr_t robotTask_attributes = {
-  .name = "robotTask",
-  .stack_size = 256 * 4,  /* 更大的堆栈空间 */
-  .priority = (osPriority_t) osPriorityHigh,  /* 较高的优先级 */
 };
 
 /* Private function prototypes -----------------------------------------------*/
