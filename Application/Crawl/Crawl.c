@@ -534,6 +534,11 @@ int Crawl_Init(void)
 /**
  * @brief 抓取箱子接口函数
  * @param box_number 箱子编号 (1-6)
+ *                   1-3: 上层箱子
+ *                   4-6: 下层箱子
+ *                   排列方式：
+ *                   1 2 3
+ *                   4 5 6
  * @param box_count 当前已放置的箱子数量 (0-5)
  * @retval 0: 成功, -1: 失败
  */
@@ -563,7 +568,21 @@ int Crawl_GrabBox(int box_number, int box_count)
     osDelay(5500);
     // 根据箱子编号判断层数并执行相应动作
     if (box_number >= 1 && box_number <= 3) {
-        // 第一层箱子 (1-3)
+        // 上层箱子 (1-3)
+        // 升高到第二层抓取高度
+        LOGINFO("升高到上层抓取高度\r\n");
+        Lift_To_HighB();
+        osDelay(500);
+        Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
+        osDelay(50);
+        Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
+        osDelay(1500);
+        // 舵机抓取
+        runActionGroup(4, 1);
+        osDelay(1000);
+        
+    } else if (box_number >= 4 && box_number <= 6) {
+        // 下层箱子 (4-6)
         // 移动伸缩到抓取长度
         Lift_To_StartHeight();
         Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
@@ -579,20 +598,6 @@ int Crawl_GrabBox(int box_number, int box_count)
         // 升高到第一层运动高度
         Lift_To_High1();
         osDelay(50);
-        
-    } else if (box_number >= 4 && box_number <= 6) {
-        // 第二层箱子 (4-6)
-        // 升高到第二层抓取高度
-        LOGINFO("升高到第二层抓取高度\r\n");
-        Lift_To_HighB();
-        osDelay(500);
-        Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
-        osDelay(50);
-        Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
-        osDelay(1500);
-        // 舵机抓取
-        runActionGroup(4, 1);
-        osDelay(1000);
     }
     
     // 根据已放置的箱子数量确定车内位置
