@@ -92,10 +92,10 @@ static int32_t         prev_encoder[4] = {0};
 /* 标准麦轮配置：左前右后轮滚轮朝右前，右前左后轮滚轮朝左前 */
 /* 定义底盘坐标系：X轴向前，Y轴向左，Z轴向上 */
 static const float g_mecanum_matrix[4][3] = {
-    { 1.0f,  -1.0f, -MECANUM_FACTOR},  // 左前轮 (LF)
-    { 1.0f, 1.0f,  MECANUM_FACTOR},  // 右前轮 (RF)
-    { 1.0f, 1.0f, -MECANUM_FACTOR},  // 左后轮 (LB) 
-    { 1.0f,  -1.0f,  MECANUM_FACTOR}   // 右后轮 (RB)
+    { -1.0f,  1.0f, -MECANUM_FACTOR},  // 左前轮 (LF)
+    { -1.0f, -1.0f,  MECANUM_FACTOR},  // 右前轮 (RF)
+    { -1.0f, -1.0f, -MECANUM_FACTOR},  // 左后轮 (LB) 
+    { -1.0f,  1.0f,  MECANUM_FACTOR}   // 右后轮 (RB)
 };
 
 /* 前向声明 */
@@ -336,8 +336,8 @@ bool Chassis_Control_Loop(void)
     // 更新全局位置
     // 注释掉原有的两种方式，使用里程计提供的位置，并确保坐标系一致
     // 修正：x和y轴的符号需要与全局坐标系定义一致
-    g_current_pos.x = -x_position_units/1000.0; // X轴取反，使前进为正
-    g_current_pos.y = -y_position_units/1000.0; // Y轴也取反，使左移为正
+    g_current_pos.x = x_position_units/1000.0; // X轴取反，使前进为正
+    g_current_pos.y = y_position_units/1000.0; // Y轴也取反，使左移为正
     
     // 2. 计算位置误差并控制
     // 计算控制误差
@@ -354,13 +354,10 @@ bool Chassis_Control_Loop(void)
     
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
     // 旋转矩阵公式: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_global; vy_global]
-    // 全新修正：重新正确实现旋转矩阵
-    float chassis_vx = -(vx_global * cos_yaw + vy_global * sin_yaw);
-    float chassis_vy = -(vx_global * sin_yaw - vy_global * cos_yaw); // 修正Y轴方向
+    float chassis_vx = vx_global * cos_yaw + vy_global * sin_yaw;
+    float chassis_vy = -vx_global * sin_yaw + vy_global * cos_yaw; 
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
-    
-    // 使用运动学矩阵计算每个轮子的速度
-    
+
     for (int i = 0; i < 4; i++) {
         wheel_speed[i] = g_mecanum_matrix[i][0] * chassis_vx + 
                          g_mecanum_matrix[i][1] * chassis_vy + 
@@ -421,24 +418,66 @@ void Chassis_ResetPosition(void)
 }
 
 /**
-  * @brief  设置底盘PID控制参数
+  * @brief  设置X轴PID控制参数
+  * @param  kp X方向比例系数
+  * @param  ki X方向积分系数
+  * @param  kd X方向微分系数
   */
-void Chassis_SetPIDParams(float kp_xy, float ki_xy, float kd_xy, 
+void Chassis_SetXPIDParams(float kp, float ki, float kd)
+{
+    // 更新X方向PID参数
+    g_pid.x.Kp = kp;
+    g_pid.x.Ki = ki;
+    g_pid.x.Kd = kd;
+}
+
+/**
+  * @brief  设置Y轴PID控制参数
+  * @param  kp Y方向比例系数
+  * @param  ki Y方向积分系数
+  * @param  kd Y方向微分系数
+  */
+void Chassis_SetYPIDParams(float kp, float ki, float kd)
+{
+    // 更新Y方向PID参数
+    g_pid.y.Kp = kp;
+    g_pid.y.Ki = ki;
+    g_pid.y.Kd = kd;
+}
+
+/**
+  * @brief  设置偏航角PID控制参数
+  * @param  kp 偏航角比例系数
+  * @param  ki 偏航角积分系数
+  * @param  kd 偏航角微分系数
+  */
+void Chassis_SetYawPIDParams(float kp, float ki, float kd)
+{
+    // 更新偏航角PID参数
+    g_pid.yaw.Kp = kp;
+    g_pid.yaw.Ki = ki;
+    g_pid.yaw.Kd = kd;
+}
+
+/**
+  * @brief  设置底盘所有PID控制参数(兼容旧接口)
+  * @param  kp_x X方向比例系数
+  * @param  ki_x X方向积分系数
+  * @param  kd_x X方向微分系数
+  * @param  kp_y Y方向比例系数
+  * @param  ki_y Y方向积分系数
+  * @param  kd_y Y方向微分系数
+  * @param  kp_yaw 偏航角比例系数
+  * @param  ki_yaw 偏航角积分系数
+  * @param  kd_yaw 偏航角微分系数
+  */
+void Chassis_SetPIDParams(float kp_x, float ki_x, float kd_x, 
+                         float kp_y, float ki_y, float kd_y,
                          float kp_yaw, float ki_yaw, float kd_yaw)
 {
-    // 更新XY方向PID参数
-    g_pid.x.Kp = kp_xy;
-    g_pid.x.Ki = ki_xy;
-    g_pid.x.Kd = kd_xy;
-    
-    g_pid.y.Kp = kp_xy;
-    g_pid.y.Ki = ki_xy;
-    g_pid.y.Kd = kd_xy;
-    
-    // 更新偏航角PID参数
-    g_pid.yaw.Kp = kp_yaw;
-    g_pid.yaw.Ki = ki_yaw;
-    g_pid.yaw.Kd = kd_yaw;
+    Chassis_SetXPIDParams(kp_x, ki_x, kd_x);
+    Chassis_SetYPIDParams(kp_y, ki_y, kd_y);
+    Chassis_SetYawPIDParams(kp_yaw, ki_yaw, kd_yaw);
 }
 
 /**

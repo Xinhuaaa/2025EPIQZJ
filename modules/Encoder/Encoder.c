@@ -14,7 +14,8 @@
 
 /* ====================== 用户参数宏定义 ====================== */
 #define ENCODER_TICKS_PER_UNIT  53.4f // 假设单位是毫米 (mm)，请根据实际测量值调整！
-
+//X轴往前走时,x轴轮式里程计减小
+//Y轴往左走时,Y轴轮式里程计增大
 // Y轴里程计相对于车辆中心的X轴偏移量 (毫米)
 // 如果Y轴里程计在车辆中心X轴正方向偏移，则为正值
 // 例如：如果Y轴里程计在车辆中心右侧 50mm 处
@@ -164,8 +165,8 @@ void EncoderTask(void *argument)
         float cos_current_global_angle = cosf(global_angle);
         float sin_current_global_angle = sinf(global_angle);
 
-        float delta_x_global = delta_x_car_mm * cos_current_global_angle - delta_y_car_mm * sin_current_global_angle;
-        float delta_y_global = delta_x_car_mm * sin_current_global_angle + delta_y_car_mm * cos_current_global_angle;
+        float delta_x_global = -delta_x_car_mm * cos_current_global_angle - delta_y_car_mm * sin_current_global_angle;
+        float delta_y_global = -delta_x_car_mm * sin_current_global_angle + delta_y_car_mm * cos_current_global_angle;
 
         global_x_pos += delta_x_global;
         global_y_pos += delta_y_global;

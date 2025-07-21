@@ -73,16 +73,43 @@ void Chassis_EmergencyStop(void);
 void Chassis_ResetPosition(void);
 
 /**
-  * @brief  设置底盘PID控制参数 (保留用于兼容)
-  * @param  kp_xy XY方向PID比例系数
-  * @param  ki_xy XY方向PID积分系数
-  * @param  kd_xy XY方向PID微分系数
-  * @param  kp_yaw 偏航角PID比例系数
-  * @param  ki_yaw 偏航角PID积分系数
-  * @param  kd_yaw 偏航角PID微分系数
-  * @retval 无
+  * @brief  设置X轴PID控制参数
+  * @param  kp X方向比例系数
+  * @param  ki X方向积分系数
+  * @param  kd X方向微分系数
   */
-void Chassis_SetPIDParams(float kp_xy, float ki_xy, float kd_xy, 
+void Chassis_SetXPIDParams(float kp, float ki, float kd);
+
+/**
+  * @brief  设置Y轴PID控制参数
+  * @param  kp Y方向比例系数
+  * @param  ki Y方向积分系数
+  * @param  kd Y方向微分系数
+  */
+void Chassis_SetYPIDParams(float kp, float ki, float kd);
+
+/**
+  * @brief  设置偏航角PID控制参数
+  * @param  kp 偏航角比例系数
+  * @param  ki 偏航角积分系数
+  * @param  kd 偏航角微分系数
+  */
+void Chassis_SetYawPIDParams(float kp, float ki, float kd);
+
+/**
+  * @brief  设置底盘所有PID控制参数(兼容旧接口)
+  * @param  kp_x X方向比例系数
+  * @param  ki_x X方向积分系数
+  * @param  kd_x X方向微分系数
+  * @param  kp_y Y方向比例系数
+  * @param  ki_y Y方向积分系数
+  * @param  kd_y Y方向微分系数
+  * @param  kp_yaw 偏航角比例系数
+  * @param  ki_yaw 偏航角积分系数
+  * @param  kd_yaw 偏航角微分系数
+  */
+void Chassis_SetPIDParams(float kp_x, float ki_x, float kd_x, 
+                         float kp_y, float ki_y, float kd_y,
                          float kp_yaw, float ki_yaw, float kd_yaw);
                          
 /**

@@ -45,19 +45,19 @@ int Crawl_Init(void)
     crawl_status.error_code = 0;
       printf("抓取系统初始化完成\r\n");
     
-    // 直接创建抓取控制任务
-    const osThreadAttr_t crawlTask_attributes = {
-        .name = "CrawlTask",
-        .stack_size = 512 * 4,
-        .priority = (osPriority_t) osPriorityNormal,
-    };
+    // // 直接创建抓取控制任务
+    // const osThreadAttr_t crawlTask_attributes = {
+    //     .name = "CrawlTask",
+    //     .stack_size = 512 * 4,
+    //     .priority = (osPriority_t) osPriorityNormal,
+    // };
 
-    crawlTaskHandle = osThreadNew(CrawlTask, NULL, &crawlTask_attributes);
-    if (crawlTaskHandle == NULL)
-    {
-        printf("抓取任务创建失败!\r\n");
-        return -1;
-    }
+    // crawlTaskHandle = osThreadNew(CrawlTask, NULL, &crawlTask_attributes);
+    // if (crawlTaskHandle == NULL)
+    // {
+    //     printf("抓取任务创建失败!\r\n");
+    //     return -1;
+    // }
     
     return 0;
 }
@@ -792,25 +792,25 @@ int Crawl_PlaceBox(int box_count, int special_box)
     }
     
     // 移动伸缩到货架放置长度（固定位置，不考虑放置模式）
-    Emm_V5_Pos_Control(1, 1, 600, 255, 45500, 1, 0);
+    Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
     osDelay(10);
-    Emm_V5_Pos_Control(2, 0, 600, 255, 45000, 1, 0);
+    Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
     osDelay(2000);
     
     // 降低到货架放置高度
     if (special_box == box_count) {
         // 特殊箱子使用叠放高度
-    Emm_V5_Pos_Control(1, 1, 600, 255, 45500, 1, 0);
+    Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
     osDelay(10);
-    Emm_V5_Pos_Control(2, 0, 600, 255, 45000, 1, 0);
+    Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
     osDelay(2000);
     Lift_To_PUTspecialDown();
 
     } else {
         // 普通箱子使用普通放置高度
-    Emm_V5_Pos_Control(1, 1, 600, 255, 45500, 1, 0);
+    Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
     osDelay(10);
-    Emm_V5_Pos_Control(2, 0, 600, 255, 45000, 1, 0);
+    Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
     osDelay(2000);
     Lift_To_PUTDown();
     }
