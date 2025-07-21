@@ -57,7 +57,7 @@ extern float y_position_units;  // 外部Y位置，单位mm
 #define MOTOR_RB_ID 8  // 右后轮ID
 
 int32_t current_encoder[4] = {0};  // 改为int32_t类型以存储累积编码器值
-
+float wheel_speed[4] = {0};
 /* 类型定义 */
 typedef struct {
     float x;      // X坐标，单位米
@@ -90,11 +90,12 @@ static int32_t         prev_encoder[4] = {0};
 
 /* 麦轮运动学矩阵 - 从底盘速度到轮子速度的映射 */
 /* 标准麦轮配置：左前右后轮滚轮朝右前，右前左后轮滚轮朝左前 */
+/* 定义底盘坐标系：X轴向前，Y轴向左，Z轴向上 */
 static const float g_mecanum_matrix[4][3] = {
-    { 1.0f,  -1.0f, -MECANUM_FACTOR},  // 左前轮
-    { 1.0f, 1.0f,  MECANUM_FACTOR},  // 右前轮
-    { 1.0f, 1.0f, -MECANUM_FACTOR},  // 左后轮
-    { 1.0f,  -1.0f,  MECANUM_FACTOR}   // 右后轮
+    { 1.0f,  -1.0f, -MECANUM_FACTOR},  // 左前轮 (LF)
+    { 1.0f, 1.0f,  MECANUM_FACTOR},  // 右前轮 (RF)
+    { 1.0f, 1.0f, -MECANUM_FACTOR},  // 左后轮 (LB) 
+    { 1.0f,  -1.0f,  MECANUM_FACTOR}   // 右后轮 (RB)
 };
 
 /* 前向声明 */
@@ -113,73 +114,85 @@ void Chassis_Init(void)
     if (!Emm_V5_CAN_Init(motor_ids, 4)) {
         return;  // 如果初始化失败，直接返回
     }
-    // // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
-    // PID_Init_Config_s pid_config_xy = {
-    //     .Kp = 0.82f,               // 比例系数
-    //     .Ki = 0.05f,              // 积分系数
-    //     .Kd = 0.0f,               // 微分系数
-    //     .MaxOut = 1.0f,           // 最大速度0.5m/s
-    //     .DeadBand = 0.00f,        // 1cm死区
-    //     .Improve = PID_Integral_Limit |PID_OutputFilter,
-    //     .IntegralLimit = 0.35f,    // 积分限幅
-    //     .Output_LPF_RC = 0.0f,     // 低通滤波常数
-    //     .MaxAccel = 0.0f,
-    //     .MaxJerk = 0.0f,
-    // };
-    // PIDInit(&g_pid.x, &pid_config_xy);
-    // PIDInit(&g_pid.y, &pid_config_xy);
+    // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
+    PID_Init_Config_s pid_config_x = {
+        .Kp = 0.81f,               // 比例系数
+        .Ki = 0.001f,              // 积分系数
+        .Kd = 0.000f,               // 微分系数
+        .MaxOut = 1.3f,           // 最大速度0.5m/s
+        .DeadBand = 0.00f,        // 1cm死区
+        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .IntegralLimit = 0.35f,    // 积分限幅
+        .Output_LPF_RC = 0.0f,     // 低通滤波常数
+        .MaxAccel = 0.0f,
+        .MaxJerk = 0.0f,
+    };
+    PID_Init_Config_s pid_config_y = {
+        .Kp = 0.52f,               // 比例系数
+        .Ki = 0.01f,              // 积分系数
+        .Kd = 0.000f,               // 微分系数
+        .MaxOut = 1.0f,           // 最大速度0.5m/s
+        .DeadBand = 0.00f,        // 1cm死区
+        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .IntegralLimit = 0.35f,    // 积分限幅
+        .Output_LPF_RC = 0.0f,     // 低通滤波常数
+        .MaxAccel = 0.0f,
+        .MaxJerk = 0.0f,
+    };
+    PIDInit(&g_pid.x, &pid_config_x);
+    PIDInit(&g_pid.y, &pid_config_y);
     
-    // // 配置偏航角PID控制器（保留但不使用，用于兼容）
-    // PID_Init_Config_s pid_config_yaw = {
-    //     .Kp = 0.0f,               // 比例系数
-    //     .Ki = 0.0f,               // 积分系数
-    //     .Kd = 0.00f,              // 微分系数
-    //     .MaxOut = 10.0f,          // 最大角速度10度/s
-    //     .DeadBand = 0.5f,         // 0.5度死区
-    //     .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
-    //     .IntegralLimit = 0.0f,    // 积分限幅（度）
-    //     .Output_LPF_RC = 0.0f     // 低通滤波常数
-    // };
-    // PIDInit(&g_pid.yaw, &pid_config_yaw)
+    // 配置偏航角PID控制器（保留但不使用，用于兼容）
+    PID_Init_Config_s pid_config_yaw = {
+        .Kp = 0.573f,               // 比例系数
+        .Ki = 0.28f,               // 积分系数
+        .Kd = 0.00f,              // 微分系数
+        .MaxOut = 30.0f,          // 最大角速度10度/s
+        .DeadBand = 0.0f,         // 0.5度死区
+        .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
+        .IntegralLimit = 0.0f,    // 积分限幅（度）
+        .Output_LPF_RC = 0.0f     // 低通滤波常数
+    };
+    PIDInit(&g_pid.yaw, &pid_config_yaw);
     
       // 初始化ADRC控制器
     // 创建XY方向ADRC配置结构体
-    ADRC_Init_Config_t adrc_config_xy = {
-        .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
-        .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 1.5f,              // 系统增益（降低以减少过冲）
-        .max_output = 0.4f,       // 最大输出速度0.5m/s
-        .w0 = 0.30f,
-        .beta01 = 40,          // ESO 
-        .beta02 = 40,
-        .beta03 =0.01,
-        .beta1 = 0.15f,            // NLSEF参数
-        .beta2 = 1.5f,
-        .alpha1 = 0.31f,
-        .alpha2 = 0.75f,
-        .delta = 0.1f
-    };
+    // ADRC_Init_Config_t adrc_config_xy = {
+    //     .r = 0.20f,               // 跟踪速度因子（降低以减缓跟踪速度）
+    //     .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
+    //     .b0 = 1.5f,              // 系统增益（降低以减少过冲）
+    //     .max_output = 0.4f,       // 最大输出速度0.5m/s
+    //     .w0 = 0.30f,
+    //     .beta01 = 40,          // ESO 
+    //     .beta02 = 40,
+    //     .beta03 =0.01,
+    //     .beta1 = 0.15f,            // NLSEF参数
+    //     .beta2 = 1.5f,
+    //     .alpha1 = 0.31f,
+    //     .alpha2 = 0.75f,
+    //     .delta = 0.1f
+    // };
       // 创建偏航角ADRC配置结构体
-    ADRC_Init_Config_t adrc_config_yaw = {
-        .r = 3.8f,               // 跟踪速度因子（降低以减缓跟踪速度）
-        .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
-        .b0 = 0.05f,              // 系统增益（降低以减少过冲）
-        .max_output = 15.0f,       // 最大输出速度0.5m/s
-        .w0 = 0.00f,
-        .beta01 = 75.0,          // ESO 
-        .beta02 = 65.0,
-        .beta03 =0.9,
-        .beta1 = 1.3f,         // NLSEF参数
-        .beta2 = 3.0f,
-        .alpha1 = 1.8f,
-        .alpha2 = 0.37f,
-        .delta = 0.1f
-    };
+    // ADRC_Init_Config_t adrc_config_yaw = {
+    //     .r = 3.8f,               // 跟踪速度因子（降低以减缓跟踪速度）
+    //     .h = CHASSIS_TASK_PERIOD/ 1000.0f, // 积分步长
+    //     .b0 = 0.05f,              // 系统增益（降低以减少过冲）
+    //     .max_output = 15.0f,       // 最大输出速度0.5m/s
+    //     .w0 = 0.00f,
+    //     .beta01 = 75.0,          // ESO 
+    //     .beta02 = 65.0,
+    //     .beta03 =0.9,
+    //     .beta1 = 1.3f,         // NLSEF参数
+    //     .beta2 = 3.0f,
+    //     .alpha1 = 1.8f,
+    //     .alpha2 = 0.37f,
+    //     .delta = 0.1f
+    // };
     
     // 初始化控制器
-    ADRC_Init(&g_adrc.x, &adrc_config_xy);
-    ADRC_Init(&g_adrc.y, &adrc_config_xy);
-    ADRC_Init(&g_adrc.yaw, &adrc_config_yaw);
+    // ADRC_Init(&g_adrc.x, &adrc_config_xy);
+    // ADRC_Init(&g_adrc.y, &adrc_config_xy);
+    // ADRC_Init(&g_adrc.yaw, &adrc_config_yaw);
     
     // // 电机初始化：使能、设置模式、清零编码器
     // for (uint8_t i = 0; i < 4; i++) {
@@ -305,6 +318,8 @@ bool Chassis_Control_Loop(void)
     }
 
     // 麦轮运动学正解：从轮速到底盘速度
+    // 重新修正麦轮运动学正解，确保与我们定义的坐标系一致
+    // 麦轮坐标系：X轴向前，Y轴向左
     float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
     float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
     
@@ -313,14 +328,16 @@ bool Chassis_Control_Loop(void)
     float cos_yaw = cosf(yaw_rad);
     float sin_yaw = sinf(yaw_rad);
     
-    float global_dx = delta_x * cos_yaw - delta_y * sin_yaw;
-    float global_dy = delta_x * sin_yaw + delta_y * cos_yaw;
-    
+    // 局部坐标系到全局坐标系的转换
+    // 重新修正旋转矩阵，确保方向一致性
+    float global_dx = delta_x * cos_yaw + delta_y * sin_yaw;
+    float global_dy = delta_x * sin_yaw - delta_y * cos_yaw;
+
     // 更新全局位置
-    g_current_pos.x += global_dx;
-    g_current_pos.y += global_dy;
-    // g_current_pos.x = x_position_units/1000.0;
-    // g_current_pos.y = -y_position_units/1000.0;
+    // 注释掉原有的两种方式，使用里程计提供的位置，并确保坐标系一致
+    // 修正：x和y轴的符号需要与全局坐标系定义一致
+    g_current_pos.x = -x_position_units/1000.0; // X轴取反，使前进为正
+    g_current_pos.y = -y_position_units/1000.0; // Y轴也取反，使左移为正
     
     // 2. 计算位置误差并控制
     // 计算控制误差
@@ -328,18 +345,22 @@ bool Chassis_Control_Loop(void)
     float error_y = g_target_pos.y - g_current_pos.y;
     
     // 使用ADRC控制器计算控制量（全局坐标系）
-    float vx_global = ADRC_Compute(&g_adrc.x, g_current_pos.x ,g_target_pos.x);
-    float vy_global = ADRC_Compute(&g_adrc.y, g_current_pos.y ,g_target_pos.y);
-    float vyaw_deg = ADRC_Compute(&g_adrc.yaw, g_target_pos.yaw, g_current_pos.yaw);
+    float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
+    float vy_global = PIDCalculate(&g_pid.y, g_current_pos.y, g_target_pos.y);
+    float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
+    // float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);;
+    // float vy_global = 0;
+    // float vyaw_deg = 0;
     
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
-    // 复用之前计算的三角函数值，将全局坐标系的速度转换到底盘局部坐标系
-    float chassis_vx = vx_global * cos_yaw + vy_global * sin_yaw;
-    float chassis_vy = -vx_global * sin_yaw + vy_global * cos_yaw;
+    // 旋转矩阵公式: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_global; vy_global]
+    // 全新修正：重新正确实现旋转矩阵
+    float chassis_vx = -(vx_global * cos_yaw + vy_global * sin_yaw);
+    float chassis_vy = -(vx_global * sin_yaw - vy_global * cos_yaw); // 修正Y轴方向
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
     
     // 使用运动学矩阵计算每个轮子的速度
-    float wheel_speed[4] = {0};
+    
     for (int i = 0; i < 4; i++) {
         wheel_speed[i] = g_mecanum_matrix[i][0] * chassis_vx + 
                          g_mecanum_matrix[i][1] * chassis_vy + 
@@ -496,8 +517,20 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
     
     // 等待直到到达目标位置或超时
     while (1) {
-        // 检查是否已到达目标位置（使用控制循环函数的返回值）
-        bool reached = Chassis_Control_Loop();
+        // 检查是否已到达目标位置（只检查位置误差，不执行控制循环）
+        // 计算控制误差
+        float error_x = g_target_pos.x - g_current_pos.x;
+        float error_y = g_target_pos.y - g_current_pos.y;
+        float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
+        
+        // 标准化偏航角误差到[-180, 180]
+        while (error_yaw > 180.0f) error_yaw -= 360.0f;
+        while (error_yaw < -180.0f) error_yaw += 360.0f;
+        
+        // 检测x、y、yaw三个方向是否都到达目标位置
+        bool reached = (fabsf(error_x) < POSITION_TOLERANCE_XY) && 
+                      (fabsf(error_y) < POSITION_TOLERANCE_XY) && 
+                      (fabsf(error_yaw) < POSITION_TOLERANCE_YAW);
         
         if (reached) {
             return true;  // 成功到达目标位置
@@ -513,7 +546,7 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
         }
         
         // 短暂延时，避免过多CPU占用
-        osDelay(10);  // 10ms延时，可根据需要调整
+        osDelay(100);  // 100ms延时，可根据需要调整
     }
     
     return !is_timeout;  // 如果不是因为超时退出，则返回成功

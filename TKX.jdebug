@@ -23,7 +23,7 @@ void OnProjectLoad (void) {
   // Dialog-generated settings
   //
   Project.SetDevice ("STM32F407VE");
-  Project.SetHostIF ("USB", "59102855");
+  Project.SetHostIF ("USB", "775728365");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddPathSubstitute ("D:/TKX", "$(ProjectDir)");

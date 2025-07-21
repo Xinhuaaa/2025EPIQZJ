@@ -1,52 +1,74 @@
 
-
+GraphedExpression="(g_current_pos).x", Color=#a00909
+GraphedExpression="(g_current_pos).y", Color=#09a01b
+GraphedExpression="(g_target_pos).x", Color=#09a087
+GraphedExpression="(g_target_pos).y", Color=#0984a0
+GraphedExpression="(g_current_pos).yaw", Color=#0964a0
+GraphedExpression="(g_target_pos).yaw", Color=#094fa0
 OpenDocument="main.c", FilePath="c:/Users/Xinke/TKX/Src/main.c", Line=56
+OpenDocument="Robot_task.c", FilePath="c:/Users/Xinke/TKX/Application/Robot_task.c", Line=18
 OpenDocument="stm32f4xx_hal_uart.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=0
-OpenDocument="bsp_dwt.c", FilePath="c:/Users/Xinke/TKX/bsp/dwt/bsp_dwt.c", Line=69
+OpenDocument="bsp_dwt.c", FilePath="c:/Users/Xinke/TKX/bsp/dwt/bsp_dwt.c", Line=68
 OpenDocument="Encoder.c", FilePath="c:/Users/Xinke/TKX/modules/Encoder/Encoder.c", Line=0
 OpenDocument="Crawl.c", FilePath="c:/Users/Xinke/TKX/Application/Crawl/Crawl.c", Line=0
-OpenDocument="chassis.c", FilePath="c:/Users/Xinke/TKX/Application/Chassis/chassis.c", Line=144
+OpenDocument="chassis.c", FilePath="c:/Users/Xinke/TKX/Application/Chassis/chassis.c", Line=82
 OpenDocument="queue.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/queue.c", Line=0
 OpenDocument="cmsis_os2.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c", Line=0
 OpenDocument="stm32f4xx_it.c", FilePath="c:/Users/Xinke/TKX/Src/stm32f4xx_it.c", Line=68
-OpenDocument="servo.c", FilePath="c:/Users/Xinke/TKX/modules/servo/servo.c", Line=0
-OpenDocument="stm32f4xx_hal_dma.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c", Line=0
+OpenDocument="startup_stm32f407xx.s", FilePath="c:/Users/Xinke/TKX/startup_stm32f407xx.s", Line=44
 OpenDocument="bsp_can.c", FilePath="c:/Users/Xinke/TKX/bsp/can/bsp_can.c", Line=0
-OpenDocument="port.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c", Line=0
+OpenDocument="port.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c", Line=405
 OpenDocument="tasks.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3633
 OpenDocument="stm32f4xx_hal_can.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.c", Line=0
 OpenDocument="portmacro.h", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/portmacro.h", Line=0
-OpenDocument="freertos.c", FilePath="c:/Users/Xinke/TKX/Src/freertos.c", Line=0
+OpenDocument="Emm_V5_CAN.c", FilePath="c:/Users/Xinke/TKX/modules/ZDT_EmmV5/CAN/Emm_V5_CAN.c", Line=53
 OpenDocument="stm32f4xx_hal.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.c", Line=0
 OpenDocument="cmsis_gcc.h", FilePath="c:/Users/Xinke/TKX/Drivers/CMSIS/Include/cmsis_gcc.h", Line=0
 OpenDocument="timers.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/timers.c", Line=0
-OpenDocument="startup_stm32f407xx.s", FilePath="c:/Users/Xinke/TKX/startup_stm32f407xx.s", Line=44
-OpenDocument="Robot_task.c", FilePath="c:/Users/Xinke/TKX/Application/Robot_task.c", Line=69
-OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Code Profile", DockArea=LEFT, x=0, y=0, w=717, h=1262, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, GroupByFiles=0, SortRespectsFilters=0, ParentRelativeLoad=0
+OpenDocument="stm32f4xx_hal_dma.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c", Line=0
+OpenDocument="freertos.c", FilePath="c:/Users/Xinke/TKX/Src/freertos.c", Line=79
+OpenToolbar="Debug", Floating=1, x=0, y=56
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=639, h=290, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=639, h=997, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=1, w=1226, h=227, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Code Profile", DockArea=LEFT, x=0, y=3, w=1226, h=403, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, GroupByFiles=0, SortRespectsFilters=0, ParentRelativeLoad=0
+OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=2, w=1226, h=318, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
+OpenWindow="Timeline", DockArea=LEFT, x=0, y=0, w=1226, h=337, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="10 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="944;48", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="1609;0", CodeGraphLegendShown=0, CodeGraphLegendPosition="1625;0"
+TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[311;209;102;100;100;100]
 TableHeader="Code Profile", SortCol="File / Function", SortOrder="ASCENDING", VisibleCols=["File / Function";"Source Coverage";"Inst. Coverage";"Run Count";"Fetch Count";"Load"], ColWidths=[1655;158;174;110;126;104]
+TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" (g_current_pos).x";" (g_current_pos).y";" (g_target_pos).x";" (g_target_pos).y";" (g_current_pos).yaw";" (g_target_pos).yaw"], ColWidths=[100;100;100;100;100;100;100;100]
+TableHeader="Data Sampling Setup", SortCol="Expression", SortOrder="DESCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;100;100;100;100;110;126;126]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
-TableHeader="Task List", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State";"Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State";"Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State";"Name";"Run Count"], ColWidths=[110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110;110]
+TableHeader="Task List", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[110;110;110;110;110;110;110;110;110;110]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;254;745]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
 TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;340]
-WatchedExpression="lift_motors", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="5", Window=Watched Data 1
 WatchedExpression="3", Window=Watched Data 1
 WatchedExpression="lift_status", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="1", Window=Watched Data 1
 WatchedExpression="Angle", Window=Watched Data 1
-WatchedExpression="Angle", Window=Watched Data 1
+WatchedExpression="Angle", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="g_current_pos", RefreshRate=1, Window=Watched Data 1
-WatchedExpression="g_encoder_values", RefreshRate=1, Window=Watched Data 1
-WatchedExpression="g_target_pos", Window=Watched Data 1
+WatchedExpression="g_target_pos", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="dwt_start", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="now_time", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="x_position_units", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="y_position_units", Window=Watched Data 1
 WatchedExpression="num", Window=Watched Data 1
+WatchedExpression="lift_motors", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="crawl_status", Window=Watched Data 1
 WatchedExpression="grabSequence", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="g_grabSequence", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="UserRxBufferFS", RefreshRate=1, Window=Watched Data 1
 WatchedExpression="USB_RxFlag", Window=Watched Data 1
 WatchedExpression="USB_RxLen", Window=Watched Data 1
+WatchedExpression="current_encoder", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="delta_ticks_x", Window=Watched Data 1
+WatchedExpression="delta_ticks_y", Window=Watched Data 1
+WatchedExpression="g_pid", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="wheel_speed", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="hdma_usart2_rx", Window=Watched Data 1
+WatchedExpression="huart2", Window=Watched Data 1
+WatchedExpression="HWT101_TaskHandle", Window=Watched Data 1
+WatchedExpression="hdma_usart2_rx", Window=Watched Data 1

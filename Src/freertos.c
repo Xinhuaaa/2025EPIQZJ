@@ -109,7 +109,7 @@ void MX_FREERTOS_Init(void) {
   Robot_Init();
   
   /* 创建机器人任务，直接使用Robot_task函数 */
-  robotTaskHandle = osThreadNew(Robot_task, NULL, &robotTask_attributes);
+  // robotTaskHandle = osThreadNew(Robot_task, NULL, &robotTask_attributes);
 
   /* USER CODE END RTOS_THREADS */
 

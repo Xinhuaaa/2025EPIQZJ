@@ -45,19 +45,19 @@ int Crawl_Init(void)
     crawl_status.error_code = 0;
       printf("抓取系统初始化完成\r\n");
     
-    // // 直接创建抓取控制任务
-    // const osThreadAttr_t crawlTask_attributes = {
-    //     .name = "CrawlTask",
-    //     .stack_size = 512 * 4,
-    //     .priority = (osPriority_t) osPriorityNormal,
-    // };
+    // 直接创建抓取控制任务
+    const osThreadAttr_t crawlTask_attributes = {
+        .name = "CrawlTask",
+        .stack_size = 512 * 4,
+        .priority = (osPriority_t) osPriorityNormal,
+    };
 
-    // crawlTaskHandle = osThreadNew(CrawlTask, NULL, &crawlTask_attributes);
-    // if (crawlTaskHandle == NULL)
-    // {
-    //     printf("抓取任务创建失败!\r\n");
-    //     return -1;
-    // }
+    crawlTaskHandle = osThreadNew(CrawlTask, NULL, &crawlTask_attributes);
+    if (crawlTaskHandle == NULL)
+    {
+        printf("抓取任务创建失败!\r\n");
+        return -1;
+    }
     
     return 0;
 }
@@ -66,8 +66,18 @@ int Crawl_Init(void)
 //  * @brief 抓取控制任务函数
 //  * @param argument 任务参数
 //  */
-// void CrawlTask(void *argument)
-// {
+void CrawlTask(void *argument)
+{
+    while (1)
+    {
+        Emm_V5_Pos_Control(1,1,600,0,num,1,0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2,0,600,0,num,1,0);
+        osDelay(2000);
+
+        osDelay(100);  // 适当的延时
+    }
+}
 //     runActionGroup(2,1);
 //     osDelay(500);
 //     runActionGroup(3,1);

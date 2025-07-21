@@ -3,6 +3,7 @@
 #include "cmsis_os.h"
 #include "tim.h"
 #include <stdint.h>
+#include <stdlib.h> // 添加stdlib.h以使用labs()函数
 #define _USE_MATH_DEFINES
 #include <math.h> // for sinf, cosf functions
 
@@ -17,7 +18,7 @@
 // Y轴里程计相对于车辆中心的X轴偏移量 (毫米)
 // 如果Y轴里程计在车辆中心X轴正方向偏移，则为正值
 // 例如：如果Y轴里程计在车辆中心右侧 50mm 处
-#define Y_ODOMETER_X_OFFSET_MM  50.0f // 请根据实际测量值进行调整！
+#define Y_ODOMETER_X_OFFSET_MM  0.0f // 请根据实际测量值进行调整！
 
 // X轴里程计相对于车辆中心的Y轴偏移量 (毫米)
 // 如果X轴里程计在车辆中心Y轴正方向偏移（即在中心轴线前方），则为正值
@@ -35,8 +36,8 @@ void EncoderTask(void *argument);
 
 /* ====================== 编码器里程变量 ====================== */
 // 用于计算增量，存储上一次循环时硬件计数器的值
-static int32_t prev_x_hw_count = 0; // 上次X轴里程计硬件计数器值
-static int32_t prev_y_hw_count = 0; // 上次Y轴里程计硬件计数器值
+static uint16_t prev_x_hw_count = 0; // 上次X轴里程计硬件计数器值
+static uint16_t prev_y_hw_count = 0; // 上次Y轴里程计硬件计数器值
 
 // 用于计算 Angle 增量的上一次值
 static float prev_angle_deg = 0.0f; 
@@ -53,7 +54,8 @@ float global_angle = 0.0f; // 车辆当前Z轴角度，以弧度表示，从0开
 // 导出给其他模块使用的位置变量（单位：毫米）
 float x_position_units = 0.0f;
 float y_position_units = 0.0f;
-
+int32_t delta_ticks_y = 0;
+int32_t delta_ticks_x = 0;
 /* ====================== 编码器初始化函数 ====================== */
 
 /**
@@ -89,32 +91,40 @@ void EncoderTask(void *argument)
     HAL_TIM_Encoder_Start(&htim4, TIM_CHANNEL_ALL); // 假设 htim4 对应 X轴里程计
 
     // 在第一次循环前获取初始计数，避免第一次计算Delta时出现大跳变
-    prev_x_hw_count = (int32_t)__HAL_TIM_GET_COUNTER(&htim4); // X轴里程计初始计数
-    prev_y_hw_count = (int32_t)__HAL_TIM_GET_COUNTER(&htim3); // Y轴里程计初始计数
+    prev_x_hw_count = (uint16_t)__HAL_TIM_GET_COUNTER(&htim4); // X轴里程计初始计数
+    prev_y_hw_count = (uint16_t)__HAL_TIM_GET_COUNTER(&htim3); // Y轴里程计初始计数
 
 
     for(;;)
     {
         /* 读取当前硬件计数器值 */
-        int16_t current_y_hw_count = (int16_t)__HAL_TIM_GET_COUNTER(&htim3); // Y轴里程计当前计数
-        int16_t current_x_hw_count = (int16_t)__HAL_TIM_GET_COUNTER(&htim4); // X轴里程计当前计数
+        uint16_t current_y_hw_count = (uint16_t)__HAL_TIM_GET_COUNTER(&htim3); // Y轴里程计当前计数
+        uint16_t current_x_hw_count = (uint16_t)__HAL_TIM_GET_COUNTER(&htim4); // X轴里程计当前计数
 
-        /* 计算当前周期内的脉冲变化量 */
-        int32_t delta_ticks_y = current_y_hw_count - prev_y_hw_count; // Y轴里程计增量
-        int32_t delta_ticks_x = current_x_hw_count - prev_x_hw_count; // X轴里程计增量
+        /* 计算当前周期内的脉冲变化量，处理16位计数器环绕问题 */
+        int32_t raw_delta_y = (int32_t)current_y_hw_count - (int32_t)prev_y_hw_count;
+        int32_t raw_delta_x = (int32_t)current_x_hw_count - (int32_t)prev_x_hw_count;
+        
+        // 处理环绕情况
+        if (raw_delta_y > 32767) raw_delta_y -= 65536;
+        else if (raw_delta_y < -32768) raw_delta_y += 65536;
+        
+        if (raw_delta_x > 32767) raw_delta_x -= 65536;
+        else if (raw_delta_x < -32768) raw_delta_x += 65536;
+        
+        delta_ticks_y = (int32_t)raw_delta_y; // Y轴里程计增量
+        delta_ticks_x = (int32_t)raw_delta_x; // X轴里程计增量
 
-        // 处理 int16_t 类型差值可能出现的环绕问题
-        // 例如，计数器从 INT16_MAX 变为 INT16_MIN (正向溢出，实际增量为1)
-        // 或者从 INT16_MIN 变为 INT16_MAX (负向溢出，实际增量为-1)
-        if (delta_ticks_y > (INT16_MAX / 2)) {
-            delta_ticks_y -= (INT16_MAX + 1); // 负向环绕，实际是正向大转
-        } else if (delta_ticks_y < (INT16_MIN / 2)) {
-            delta_ticks_y += (INT16_MAX + 1); // 正向环绕，实际是负向大转
+        // 环绕问题已在前面处理完毕，这段代码不再需要
+        // 如果有异常大的增量值，可以在此处增加滤波或限幅代码
+        const int32_t MAX_REASONABLE_DELTA = 10000; // 设置一个合理的增量上限
+        if (labs((long)delta_ticks_y) > MAX_REASONABLE_DELTA) {
+            // 可能是异常值，记录日志或采取其他措施
+            delta_ticks_y = 0; // 或设为上一个有效值
         }
-        if (delta_ticks_x > (INT16_MAX / 2)) {
-            delta_ticks_x -= (INT16_MAX + 1);
-        } else if (delta_ticks_x < (INT16_MIN / 2)) {
-            delta_ticks_x += (INT16_MAX + 1);
+        if (labs((long)delta_ticks_x) > MAX_REASONABLE_DELTA) {
+            // 可能是异常值，记录日志或采取其他措施
+            delta_ticks_x = 0; // 或设为上一个有效值
         }
         
         // 更新上一次的硬件计数器值，为下一次循环做准备

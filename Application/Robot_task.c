@@ -110,54 +110,50 @@ void Robot_task(void *argument)
     // }
 
     // 抓取阶段
-    // for (int x = 0; x < 6; x++) {
+    for (int x = 0; x < 6; x++) {
         
-    //     switch (grabSequence[x]) {
-    //         case 1:
-    //             LOGINFO("抓取箱子类型1\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             MoveToLeft();   // 移动到左侧
-    //             Crawl_GrabBox(1, x); // 使用抓取函数抓取1号位置的货箱，传入当前处理的箱子数量
-    //             break;
+        switch (grabSequence[x]) {
+            case 1:
+                LOGINFO("抓取箱子类型1\r\n");
+                MoveToLeft();   // 移动到左侧
+                Crawl_GrabBox(1, x); // 使用抓取函数抓取1号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-    //         case 2:
-    //             LOGINFO("抓取箱子类型2\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             Crawl_GrabBox(2, x); // 使用抓取函数抓取2号位置的货箱，传入当前处理的箱子数量
-    //             break;
+            case 2:
+                LOGINFO("抓取箱子类型2\r\n");
+                MoveToCenter(); // 移动到中间
+                Crawl_GrabBox(2, x); // 使用抓取函数抓取2号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-    //         case 3:
-    //             LOGINFO("抓取箱子类型3\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             MoveToRight();  // 移动到右侧
-    //             Crawl_GrabBox(3, x); // 使用抓取函数抓取3号位置的货箱，传入当前处理的箱子数量
-    //             break;
+            case 3:
+                LOGINFO("抓取箱子类型3\r\n");
+                MoveToRight();  // 移动到右侧
+                Crawl_GrabBox(3, x); // 使用抓取函数抓取3号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-    //         case 4:
-    //             LOGINFO("抓取箱子类型4\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             MoveToLeft();   // 移动到左侧
-    //             Crawl_GrabBox(4, x); // 使用抓取函数抓取4号位置的货箱，传入当前处理的箱子数量
-    //             break;
+            case 4:
+                LOGINFO("抓取箱子类型4\r\n");
+                MoveToLeft();   // 移动到左侧
+                Crawl_GrabBox(4, x); // 使用抓取函数抓取4号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-    //         case 5:
-    //             LOGINFO("抓取箱子类型5\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             Crawl_GrabBox(5, x); // 使用抓取函数抓取5号位置的货箱，传入当前处理的箱子数量
-    //             break;
+            case 5:
+                LOGINFO("抓取箱子类型5\r\n");
+                MoveToCenter(); // 移动到中间
+                Crawl_GrabBox(5, x); // 使用抓取函数抓取5号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-    //         case 6:
-    //             LOGINFO("抓取箱子类型6\r\n");
-    //             MoveToCenter(); // 移动到中间
-    //             MoveToRight();  // 移动到右侧
-    //             Crawl_GrabBox(6, x); // 使用抓取函数抓取6号位置的货箱，传入当前处理的箱子数量
-    //     }        
-    //     vTaskDelay(500); // 添加一些延时，以便观察运行过程
-    // }
+            case 6:
+                LOGINFO("抓取箱子类型6\r\n");
+                MoveToRight();  // 移动到右侧
+                Crawl_GrabBox(6, x); // 使用抓取函数抓取6号位置的货箱，传入当前处理的箱子数量
+        }        
+        vTaskDelay(500); // 添加一些延时，以便观察运行过程
+    }
 
     // 放置阶段
-    //route：放置的第几个箱子
-    //placementSpecialBox：放置的第几个箱子是特殊箱子
+    // route：放置的第几个箱子
+    // placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = 5 - specialBox;
         switch(route) {
         case 1:
