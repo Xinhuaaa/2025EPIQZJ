@@ -215,7 +215,7 @@ void Chassis_Init(void)
     // 直接创建底盘控制任务
     g_chassis_task_running = true;
     xTaskCreate(Chassis_Task, "Chassis", 512, NULL, 5, &g_chassis_task_handle);
-    xTaskCreate(Encoder_Read_Task, "Encoder_Read", 256, NULL, 6, NULL);
+    // xTaskCreate(Encoder_Read_Task, "Encoder_Read", 256, NULL, 6, NULL);
 }
 
 /**

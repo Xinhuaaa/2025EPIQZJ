@@ -242,7 +242,7 @@ int Crawl_GrabBox(int box_number, int box_count);
  * @param special_box 特殊箱子编号 (0表示无特殊箱子)
  * @retval 0: 成功, -1: 失败
  */
-int Crawl_PlaceBox(int box_count, int special_box);
+int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place);
 
 #ifdef __cplusplus
 }

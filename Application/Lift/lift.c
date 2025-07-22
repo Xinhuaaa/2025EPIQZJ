@@ -428,6 +428,11 @@ void Lift_To_HighB(void)
     lift_status.target_displacement = 340;
     Lift_WaitUntilAtTarget();
 }
+void Lift_To_HighBMove(void)
+{
+    lift_status.target_displacement = 360;
+    Lift_WaitUntilAtTarget();
+}
 void Lift_To_PUT2HIGH(void)
 {
     lift_status.target_displacement = 240;
@@ -441,5 +446,10 @@ void Lift_To_PUTDown(void)
 void Lift_To_PUTspecialDown(void)
 {
     lift_status.target_displacement = 200;
+    Lift_WaitUntilAtTarget();
+}
+void Lift_To_PUTspecialUP(void)
+{
+    lift_status.target_displacement = 260;
     Lift_WaitUntilAtTarget();
 }
