@@ -71,87 +71,87 @@ void Robot_task(void *argument)
     runActionGroup(6,1);//后面舵机放置
     osDelay(500);
     /* 等待一段时间确保所有初始化完成 */
-    // osDelay(500);
+    osDelay(500);
     
-    // LOGINFO("Robot_task: 等待接收USB数据...\r\n");
+    LOGINFO("Robot_task: 等待接收USB数据...\r\n");
     
-    // while (1)
-    // {
-    //     if (USB_RxFlag == 1)
-    //     {
-    //         // 复制接收到的数据
-    //         memcpy(usbData, UserRxBufferFS, USB_RxLen);
-    //         usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
+    while (1)
+    {
+        if (USB_RxFlag == 1)
+        {
+            // 复制接收到的数据
+            memcpy(usbData, UserRxBufferFS, USB_RxLen);
+            usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
       
-    //         // 清除接收标志
-    //         USB_RxFlag = 0;
-    //         USB_RxLen = 0;
+            // 清除接收标志
+            USB_RxFlag = 0;
+            USB_RxLen = 0;
 
-    //         // 解析数据
-    //         if (parseUsbData(usbData, grabSequence, &specialBox, &route) == 0)
-    //         {
+            // 解析数据
+            if (parseUsbData(usbData, grabSequence, &specialBox, &route) == 0)
+            {
 
-    //             for (int i = 0; i < 6; i++)
-    //             {
-    //                 LOGINFO("%d ", grabSequence[i]);
-    //             }
+                for (int i = 0; i < 6; i++)
+                {
+                    LOGINFO("%d ", grabSequence[i]);
+                }
                 
-    //             // 数据解析成功，退出等待循环
-    //             break;
-    //         }
-    //         else
-    //         {
-    //             LOGINFO("数据格式错误，继续等待...\r\n");
-    //         }
-    //     }
+                // 数据解析成功，退出等待循环
+                break;
+            }
+            else
+            {
+                LOGINFO("数据格式错误，继续等待...\r\n");
+            }
+        }
         
-    //     // 短暂延时，避免过度占用CPU
-    //     vTaskDelay(100);
-    // }
+        // 短暂延时，避免过度占用CPU
+        vTaskDelay(100);
+    }
 
     // 抓取阶段
-//     for (int x = 0; x < 6; x++) {
+    for (int x = 0; x < 6; x++) {
         
-//         switch (grabSequence[x]) {
-//             case 1:
-//                 LOGINFO("抓取箱子类型1\r\n");
-//                 MoveToLeft();   // 移动到左侧
-//                 Crawl_GrabBox(1, x); // 使用抓取函数抓取1号位置的货箱，传入当前处理的箱子数量
-//                 break;
+        switch (grabSequence[x]) {
+            case 1:
+                LOGINFO("抓取箱子类型1\r\n");
+                MoveToLeft();   // 移动到左侧
+                Crawl_GrabBox(1, x); // 使用抓取函数抓取1号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-//             case 2:
-//                 LOGINFO("抓取箱子类型2\r\n");
-//                 MoveToCenter(); // 移动到中间
-//                 Crawl_GrabBox(2, x); // 使用抓取函数抓取2号位置的货箱，传入当前处理的箱子数量
-//                 break;
+            case 2:
+                LOGINFO("抓取箱子类型2\r\n");
+                MoveToCenter(); // 移动到中间
+                Crawl_GrabBox(2, x); // 使用抓取函数抓取2号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-//             case 3:
-//                 LOGINFO("抓取箱子类型3\r\n");
-//                 MoveToRight();  // 移动到右侧
-//                 Crawl_GrabBox(3, x); // 使用抓取函数抓取3号位置的货箱，传入当前处理的箱子数量
-//                 break;
+            case 3:
+                LOGINFO("抓取箱子类型3\r\n");
+                MoveToRight();  // 移动到右侧
+                Crawl_GrabBox(3, x); // 使用抓取函数抓取3号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-//             case 4:
-//                 LOGINFO("抓取箱子类型4\r\n");
-//                 MoveToLeft();   // 移动到左侧
-//                 Crawl_GrabBox(4, x); // 使用抓取函数抓取4号位置的货箱，传入当前处理的箱子数量
-//                 break;
+            case 4:
+                LOGINFO("抓取箱子类型4\r\n");
+                MoveToLeft();   // 移动到左侧
+                Crawl_GrabBox(4, x); // 使用抓取函数抓取4号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-//             case 5:
-//                 LOGINFO("抓取箱子类型5\r\n");
-//                 MoveToCenter(); // 移动到中间
-//                 Crawl_GrabBox(5, x); // 使用抓取函数抓取5号位置的货箱，传入当前处理的箱子数量
-//                 break;
+            case 5:
+                LOGINFO("抓取箱子类型5\r\n");
+                MoveToCenter(); // 移动到中间
+                Crawl_GrabBox(5, x); // 使用抓取函数抓取5号位置的货箱，传入当前处理的箱子数量
+                break;
                 
-//             case 6:
-//                 LOGINFO("抓取箱子类型6\r\n");
-//                 MoveToRight();  // 移动到右侧
-//                 Crawl_GrabBox(6, x); // 使用抓取函数抓取6号位置的货箱，传入当前处理的箱子数量
-//         }        
-//         vTaskDelay(500); // 添加一些延时，以便观察运行过程
-//     }
-// Chassis_SetXPIDParams(0.5627781f, 0.001f, 0.0f);
-// Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
+            case 6:
+                LOGINFO("抓取箱子类型6\r\n");
+                MoveToRight();  // 移动到右侧
+                Crawl_GrabBox(6, x); // 使用抓取函数抓取6号位置的货箱，传入当前处理的箱子数量
+        }        
+        vTaskDelay(500); // 添加一些延时，以便观察运行过程
+    }
+Chassis_SetXPIDParams(0.55f, 0.001f, 0.0f);
+Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
     // 放置阶段
     // route：放置的第几个箱子
     // placementSpecialBox：放置的第几个箱子是特殊箱子
@@ -177,11 +177,12 @@ void Robot_task(void *argument)
                             MoveToF();
                             break;
                         case 5:
+                            MoveToA();
                             break;
                     }
                 }
                 // 如果是A位置（路线1的第6个箱子），使用反向放置
-                int is_reverse_place = (i == 5 && route == 1) ? 1 : 0;
+                int is_reverse_place = (i == 4 && route == 1) ? 1 : 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
                 vTaskDelay(500);
             }
@@ -202,6 +203,7 @@ void Robot_task(void *argument)
                             break;
                         case 3:
                             MoveToE(); 
+
                             break;
                         case 4:
                             MoveToF(); 

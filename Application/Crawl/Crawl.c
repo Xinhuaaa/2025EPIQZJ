@@ -836,6 +836,8 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
             osDelay(2000);
             Lift_To_PUTspecialDown();
+            Lift_To_PUTspecialUUP();
+
         } else {
             // 普通箱子使用普通放置高度
             // 移动到货架放置位置（反向）

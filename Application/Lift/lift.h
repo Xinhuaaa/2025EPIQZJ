@@ -124,4 +124,5 @@ void Lift_To_PUTspecialDown(void);  // 添加特殊货箱放置高度函数
 void Lift_To_PUT2HIGH(void);
 void Lift_To_HighBMove(void);
 void Lift_To_PUTspecialUP(void);
+void Lift_To_PUTspecialUUP(void);
 #endif /* __LIFT_H */

@@ -453,3 +453,8 @@ void Lift_To_PUTspecialUP(void)
     lift_status.target_displacement = 260;
     Lift_WaitUntilAtTarget();
 }
+void Lift_To_PUTspecialUUP(void)
+{
+    lift_status.target_displacement = 300;
+    Lift_WaitUntilAtTarget();
+}
