@@ -45,19 +45,15 @@ int Crawl_Init(void)
     crawl_status.error_code = 0;
       printf("抓取系统初始化完成\r\n");
     
-    // // 直接创建抓取控制任务
-    // const osThreadAttr_t crawlTask_attributes = {
-    //     .name = "CrawlTask",
-    //     .stack_size = 512 * 4,
-    //     .priority = (osPriority_t) osPriorityNormal,
-    // };
+    // 直接创建抓取控制任务
+    const osThreadAttr_t crawlTask_attributes = {
+        .name = "CrawlTask",
+        .stack_size = 512 * 4,
+        .priority = (osPriority_t) osPriorityNormal,
+    };
 
     // crawlTaskHandle = osThreadNew(CrawlTask, NULL, &crawlTask_attributes);
-    // if (crawlTaskHandle == NULL)
-    // {
-    //     printf("抓取任务创建失败!\r\n");
-    //     return -1;
-    // }
+
     
     return 0;
 }
@@ -738,7 +734,64 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
     uint8_t direction1, direction2;
     
     // 根据box_count确定车内位置（0-2从上层抓取，3-5从下层抓取）
-    switch (box_count) {
+//从车内抓取箱子：
+    if (is_reverse_place) {
+         switch (box_count) {
+        case 0:
+        case 3:
+            // 一号位
+            grab_position = 56000;
+            direction1 = 1;
+            direction2 = 0;
+            break;
+        case 1:
+        case 4:
+            // 二号位
+            grab_position = 37000;
+            direction1 = 1;
+            direction2 = 0;
+            break;
+        case 2:
+        case 5:
+            // 三号位
+            grab_position = 18000;
+            direction1 = 1;
+            direction2 = 0;
+            break;
+        default:
+            grab_position = 0;
+            direction1 = 1;
+            direction2 = 0;
+            break;
+    }
+        Emm_V5_Pos_Control(1, direction1, 600, 255, grab_position, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, direction2, 600, 255, grab_position, 1, 0);
+        osDelay(2000);
+        
+        // 根据box_count确定抓取高度
+        if (box_count >= 0 && box_count <= 2) {
+            // 抓取上层箱子
+            Lift_To_PUT2HIGH();
+        } else {
+            // 抓取下层箱子
+            Lift_To_StartHeight();
+        }
+        
+        // 使用后方舵机组抓取箱子
+        runActionGroup(4, 1); // 使用反向舵机组抓取
+        osDelay(800);
+        
+        // 升高到运动高度
+        if (box_count >= 0 && box_count <= 2) {
+            Lift_To_High2();
+        } else {
+            Lift_To_High1();
+        }
+    } else {
+        // 常规放置逻辑
+        // 移动伸缩到车内对应位置
+         switch (box_count) {
         case 0:
         case 3:
             // 一号位
@@ -766,36 +819,6 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             direction2 = 0;
             break;
     }
-    
-    // 根据是否为反向放置，选择不同的动作和伸缩方向
-    if (is_reverse_place) {
-        Emm_V5_Pos_Control(1, !direction1, 600, 255, grab_position, 1, 0);
-        osDelay(10);
-        Emm_V5_Pos_Control(2, !direction2, 600, 255, grab_position, 1, 0);
-        osDelay(2000);
-        
-        // 根据box_count确定抓取高度
-        if (box_count >= 0 && box_count <= 2) {
-            // 抓取上层箱子
-            Lift_To_PUT2HIGH();
-        } else {
-            // 抓取下层箱子
-            Lift_To_StartHeight();
-        }
-        
-        // 使用后方舵机组抓取箱子
-        runActionGroup(4, 1); // 使用反向舵机组抓取
-        osDelay(800);
-        
-        // 升高到运动高度
-        if (box_count >= 0 && box_count <= 2) {
-            Lift_To_High2();
-        } else {
-            Lift_To_High1();
-        }
-    } else {
-        // 常规放置逻辑
-        // 移动伸缩到车内对应位置
         Emm_V5_Pos_Control(1, direction1, 600, 255, grab_position, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, direction2, 600, 255, grab_position, 1, 0);
@@ -821,62 +844,69 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Lift_To_High1();
         }
     }
-    
-
-    
-    // 降低到货架放置高度
+    //抓取完后放置
     if (is_reverse_place) {
+        Lift_To_High2();
         // 反向放置逻辑
         if (special_box == box_count) {
-            // 特殊箱子使用叠放高度
-            Lift_To_PUTspecialUP();
-            // 移动到货架放置位置（反向）
-            Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
-            osDelay(10);
-            Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
-            osDelay(2000);
-            Lift_To_PUTspecialDown();
-            Lift_To_PUTspecialUUP();
-
-        } else {
-            // 普通箱子使用普通放置高度
-            // 移动到货架放置位置（反向）
-            Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
-            osDelay(10);
-            Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
-            osDelay(2000);
-            Lift_To_PUTDown();
-        }
-        
-        // 反向舵机放置（松开爪子）
+        // 特殊箱子使用叠放高度
+        Lift_To_PUTspecialUP();
+        Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
+        osDelay(2000);
+        Lift_To_PUTspecialDown();
         runActionGroup(3, 1); // 使用反向舵机组放置
         osDelay(500);
         runActionGroup(6, 1);
         osDelay(2000);
+        Lift_To_PUTspecialUUP();
+
+        } else {
+            // 普通箱子使用普通放置高度
+        Emm_V5_Pos_Control(1, 0, 600, 255, 17400, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, 1, 600, 255, 17400, 1, 0);
+        osDelay(2000);
+        Lift_To_PUTDown();
+         runActionGroup(3, 1); // 使用反向舵机组放置
+        osDelay(500);
+        runActionGroup(6, 1);
+        osDelay(2000);
+        Lift_To_PUTspecialUUP();
+        }
     } else {
         // 正常放置逻辑
         if (special_box == box_count) {
             // 特殊箱子使用叠放高度
-            Lift_To_PUTspecialUP();
-            Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
-            osDelay(10);
-            Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
-            osDelay(2000);
-            Lift_To_PUTspecialDown();
-        } else {
-            // 普通箱子使用普通放置高度
-            Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
-            osDelay(10);
-            Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
-            osDelay(2000);
-            Lift_To_PUTDown();
-        }
-        
-        // 舵机放置（松开爪子）
+        Lift_To_PUTspecialUP();
+        Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
+        osDelay(2000);
+        Lift_To_PUTspecialDown();
         runActionGroup(3, 1);
         osDelay(500);
         runActionGroup(2, 1);
         osDelay(2000);
+        Lift_To_PUTspecialUUP();
+
+
+        } else {
+            // 普通箱子使用普通放置高度
+        Emm_V5_Pos_Control(1, 1, 600, 255, 49100, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, 0, 600, 255, 49100, 1, 0);
+        osDelay(2000);
+        Lift_To_PUTDown();
+        runActionGroup(3, 1);
+        osDelay(500);
+        runActionGroup(2, 1);
+        osDelay(2000);
+        }
+        
+        // 舵机放置（松开爪子）
+
     }
     
     // 升高到运动高度

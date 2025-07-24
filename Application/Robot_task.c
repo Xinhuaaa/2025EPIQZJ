@@ -75,39 +75,39 @@ void Robot_task(void *argument)
     
     LOGINFO("Robot_task: 等待接收USB数据...\r\n");
     
-    while (1)
-    {
-        if (USB_RxFlag == 1)
-        {
-            // 复制接收到的数据
-            memcpy(usbData, UserRxBufferFS, USB_RxLen);
-            usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
+    // while (1)
+    // {
+    //     if (USB_RxFlag == 1)
+    //     {
+    //         // 复制接收到的数据
+    //         memcpy(usbData, UserRxBufferFS, USB_RxLen);
+    //         usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
       
-            // 清除接收标志
-            USB_RxFlag = 0;
-            USB_RxLen = 0;
+    //         // 清除接收标志
+    //         USB_RxFlag = 0;
+    //         USB_RxLen = 0;
 
-            // 解析数据
-            if (parseUsbData(usbData, grabSequence, &specialBox, &route) == 0)
-            {
+    //         // 解析数据
+    //         if (parseUsbData(usbData, grabSequence, &specialBox, &route) == 0)
+    //         {
 
-                for (int i = 0; i < 6; i++)
-                {
-                    LOGINFO("%d ", grabSequence[i]);
-                }
+    //             for (int i = 0; i < 6; i++)
+    //             {
+    //                 LOGINFO("%d ", grabSequence[i]);
+    //             }
                 
-                // 数据解析成功，退出等待循环
-                break;
-            }
-            else
-            {
-                LOGINFO("数据格式错误，继续等待...\r\n");
-            }
-        }
+    //             // 数据解析成功，退出等待循环
+    //             break;
+    //         }
+    //         else
+    //         {
+    //             LOGINFO("数据格式错误，继续等待...\r\n");
+    //         }
+    //     }
         
-        // 短暂延时，避免过度占用CPU
-        vTaskDelay(100);
-    }
+    //     // 短暂延时，避免过度占用CPU
+    //     vTaskDelay(100);
+    // }
 
     // 抓取阶段
     for (int x = 0; x < 6; x++) {
@@ -151,8 +151,9 @@ void Robot_task(void *argument)
         vTaskDelay(500); // 添加一些延时，以便观察运行过程
     }
 Chassis_SetXPIDParams(0.55f, 0.001f, 0.0f);
+Chassis_MoveToY_Blocking(0,0);
 Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
-    // 放置阶段
+//     // 放置阶段
     // route：放置的第几个箱子
     // placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = 5 - specialBox;
@@ -182,9 +183,12 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
                     }
                 }
                 // 如果是A位置（路线1的第6个箱子），使用反向放置
-                int is_reverse_place = (i == 4 && route == 1) ? 1 : 0;
+                int is_reverse_place = (i == 5 && route == 1) ? 1 : 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
                 vTaskDelay(500);
+                if(i == placementSpecialBox) {
+                Lift_To_PUTspecialUUP();
+                }
             }
             break;
             
@@ -214,8 +218,7 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
                     }
                 }
                 
-                // 放置箱子
-                // 路线2不需要反向放置，所有位置都用正向
+
                 int is_reverse_place = 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
                 
