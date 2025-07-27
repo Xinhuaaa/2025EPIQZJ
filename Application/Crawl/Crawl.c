@@ -548,9 +548,10 @@ void CrawlTask(void *argument)
  *                   1 2 3
  *                   4 5 6
  * @param box_count 当前已放置的箱子数量 (0-5)
+ * @param next_box_number 下一个箱子编号 (1-6, 0表示无下一个箱子)
  * @retval 0: 成功, -1: 失败
  */
-int Crawl_GrabBox(int box_number, int box_count)
+int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
 {
     // 参数检查
     if (box_number < 1 || box_number > 6) {
@@ -615,28 +616,84 @@ int Crawl_GrabBox(int box_number, int box_count)
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(2550);
+            
+            // 在电机运动期间移动底盘到下一个位置
+            if (next_box_number > 0) {
+                switch(next_box_number) {
+                    case 1:
+                    case 4:
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        MoveToRight();
+                        break;
+                }
+            }
+            osDelay(2000); // 剩余延时
             Lift_To_High1();
-
             break;
+            
         case 1:
             // 第二个箱子，放到二号位下层
             target_position = 37000;
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(2050);
+            
+            // 在电机运动期间移动底盘到下一个位置
+            if (next_box_number > 0) {
+                switch(next_box_number) {
+                    case 1:
+                    case 4:
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        MoveToRight();
+                        break;
+                }
+            }
+            osDelay(2000); // 剩余延时
             Lift_To_High1();
             break;
+            
         case 2:
             // 第三个箱子，放到三号位下层
             target_position = 18000;
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(1550);
+            
+            // 在电机运动期间移动底盘到下一个位置
+            if (next_box_number > 0) {
+                switch(next_box_number) {
+                    case 1:
+                    case 4:
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        MoveToRight();
+                        break;
+                }
+            }
+            osDelay(2000); // 剩余延时
             Lift_To_High1();
             break;
+            
         case 3:
             // 第四个箱子，放到一号位上层
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
@@ -648,8 +705,27 @@ int Crawl_GrabBox(int box_number, int box_count)
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(2550);
+            
+            // 在电机运动期间移动底盘到下一个位置
+            if (next_box_number > 0) {
+                switch(next_box_number) {
+                    case 1:
+                    case 4:
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        MoveToRight();
+                        break;
+                }
+            }
+            osDelay(2000); // 剩余延时
             break;
+            
         case 4:
             // 第五个箱子，放到二号位上层
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
@@ -661,8 +737,27 @@ int Crawl_GrabBox(int box_number, int box_count)
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(2050);
+            
+            // 在电机运动期间移动底盘到下一个位置
+            if (next_box_number > 0) {
+                switch(next_box_number) {
+                    case 1:
+                    case 4:
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        MoveToRight();
+                        break;
+                }
+            }
+            osDelay(2000); // 剩余延时
             break;
+            
         case 5:
             // 第六个箱子，放到三号位上层
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
@@ -674,8 +769,11 @@ int Crawl_GrabBox(int box_number, int box_count)
             Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
             osDelay(50);
             Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, target_position, 1, 0);
-            osDelay(1550);
+            
+            // 最后一个箱子，不需要移动底盘
+            osDelay(2000); // 剩余延时
             break;
+            
         default:
             crawl_status.is_busy = false;
             return -1;
@@ -920,19 +1018,4 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
     // 清除忙碌状态
     crawl_status.is_busy = false;
     return 0;
-}
-//电机运动到1号位的延时
-void osDelay_1()
-{
-    osDelay(2000);
-}
-//电机运动到2号位的延时
-void osDelay_2()
-{
-    osDelay(2000);
-}
-//电机运动到3号位的延时
-void osDelay_3()
-{
-    osDelay(2000);
 }

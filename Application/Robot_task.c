@@ -105,44 +105,41 @@ void Robot_task(void *argument)
 
     // 抓取阶段
     for (int x = 0; x < 6; x++) {
+        // 确定下一个箱子编号
+        int next_box = (x < 5) ? grabSequence[x + 1] : 0;
         
         switch (grabSequence[x]) {
             case 1:
-                LOGINFO("抓取箱子类型1\r\n");
                 MoveToLeft();   // 移动到左侧
-                Crawl_GrabBox(1, x); // 使用抓取函数抓取1号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(1, x, next_box);
                 break;
                 
             case 2:
-                LOGINFO("抓取箱子类型2\r\n");
                 MoveToCenter(); // 移动到中间
-                Crawl_GrabBox(2, x); // 使用抓取函数抓取2号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(2, x, next_box);
                 break;
                 
             case 3:
-                LOGINFO("抓取箱子类型3\r\n");
                 MoveToRight();  // 移动到右侧
-                Crawl_GrabBox(3, x); // 使用抓取函数抓取3号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(3, x, next_box);
                 break;
                 
             case 4:
-                LOGINFO("抓取箱子类型4\r\n");
                 MoveToLeft();   // 移动到左侧
-                Crawl_GrabBox(4, x); // 使用抓取函数抓取4号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(4, x, next_box);
                 break;
                 
             case 5:
-                LOGINFO("抓取箱子类型5\r\n");
                 MoveToCenter(); // 移动到中间
-                Crawl_GrabBox(5, x); // 使用抓取函数抓取5号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(5, x, next_box);
                 break;
                 
             case 6:
-                LOGINFO("抓取箱子类型6\r\n");
                 MoveToRight();  // 移动到右侧
-                Crawl_GrabBox(6, x); // 使用抓取函数抓取6号位置的货箱，传入当前处理的箱子数量
+                Crawl_GrabBox(6, x, next_box);
+                break;
         }        
-        vTaskDelay(500); // 添加一些延时，以便观察运行过程
+        vTaskDelay(500);
     }
 Chassis_SetXPIDParams(0.55f, 0.001f, 0.0f);
 Chassis_MoveToY_Blocking(0,0);
@@ -201,7 +198,6 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                             break;
                         case 3:
                             MoveToE(); 
-
                             break;
                         case 4:
                             MoveToF(); 
