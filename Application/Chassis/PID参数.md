@@ -36,3 +36,16 @@
         .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
         .IntegralLimit = 0.0f,    // 积分限幅（度）
         .Output_LPF_RC = 0.0f     // 低通滤波常数
+#Y轴 err=0.5情况下：
+    PID_Init_Config_s pid_config_y = {
+        .Kp = 0.83f,               // 比例系数
+        .Ki = 0.01f,              // 积分系数
+        .Kd = 0.000f,               // 微分系数
+        .MaxOut = 1.0f,           // 最大速度0.5m/s
+        .DeadBand = 0.00f,        // 1cm死区
+        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .IntegralLimit = 0.35f,    // 积分限幅
+        .Output_LPF_RC = 0.0f,     // 低通滤波常数
+        .MaxAccel = 0.0f,
+        .MaxJerk = 0.0f,
+    };

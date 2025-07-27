@@ -60,18 +60,12 @@ int Robot_Init(void)
 
 void Robot_task(void *argument)
 {
-    osDelay(100);
     runActionGroup(2,1);
-    osDelay(500);
     runActionGroup(3,1);
-    osDelay(500);
     Lift_To_StartHeight();
     runActionGroup(5,1);//前面舵机放置
-    osDelay(500);
     runActionGroup(6,1);//后面舵机放置
-    osDelay(500);
     /* 等待一段时间确保所有初始化完成 */
-    osDelay(500);
     
     LOGINFO("Robot_task: 等待接收USB数据...\r\n");
     
@@ -152,7 +146,7 @@ void Robot_task(void *argument)
     }
 Chassis_SetXPIDParams(0.55f, 0.001f, 0.0f);
 Chassis_MoveToY_Blocking(0,0);
-Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); // 移动到放置点D
+Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); 
 //     // 放置阶段
     // route：放置的第几个箱子
     // placementSpecialBox：放置的第几个箱子是特殊箱子

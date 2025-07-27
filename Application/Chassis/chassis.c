@@ -116,7 +116,7 @@ void Chassis_Init(void)
     }
     // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_x = {
-        .Kp = 0.81f,               // 比例系数
+        .Kp = 0.567f,               // 比例系数
         .Ki = 0.001f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.3f,           // 最大速度0.5m/s
@@ -128,7 +128,7 @@ void Chassis_Init(void)
         .MaxJerk = 0.0f,
     };
     PID_Init_Config_s pid_config_y = {
-        .Kp = 0.52f,               // 比例系数
+        .Kp = 0.581f,               // 比例系数
         .Ki = 0.01f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.0f,           // 最大速度0.5m/s

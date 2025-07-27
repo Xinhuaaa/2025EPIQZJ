@@ -139,7 +139,7 @@ void runActionGroup(uint8_t numOfAction, uint16_t Times)
     LobotTxBuf[6] = GET_HIGH_BYTE(Times);   //取得要运行次数的高八位
 
     HAL_UART_Transmit(&huart3, LobotTxBuf, 7, 0xFFFF);
-
+    osDelay(400); // 确保数据发送完成
 }
 
 /*********************************************************************************
