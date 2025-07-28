@@ -35,8 +35,8 @@
 #include "stdlib.h"
 #include "CDCDataParser.h" 
 #include "Robot_task.h" 
-uint8_t grabSequence[6] = {4,5,6,1,2,3};  // 6个抓取顺序
-uint8_t specialBox = 2;         // 特殊货箱号
+uint8_t grabSequence[6] = {1,3,5,6,2,4};  // 6个抓取顺序
+uint8_t specialBox = 3;         // 特殊货箱号
 uint8_t route = 1;              // 运行路线
 char usbData[64] = {0};         // USB接收数据缓冲区
 
@@ -104,38 +104,97 @@ void Robot_task(void *argument)
     // }
 
     // 抓取阶段
+    MoveToCenter();
+    MoveToCenter();
+    MoveToCenter();
     for (int x = 0; x < 6; x++) {
         // 确定下一个箱子编号
         int next_box = (x < 5) ? grabSequence[x + 1] : 0;
         
         switch (grabSequence[x]) {
             case 1:
+            if (x == 0)
+            {
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+            }
+            
                 MoveToLeft();   // 移动到左侧
                 Crawl_GrabBox(1, x, next_box);
                 break;
                 
             case 2:
+                        if (x == 0)
+            {
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+            }
                 MoveToCenter(); // 移动到中间
                 Crawl_GrabBox(2, x, next_box);
                 break;
                 
             case 3:
+                if (x == 0)
+            {
                 MoveToRight();  // 移动到右侧
+                MoveToRight();
+                MoveToRight();
+                MoveToRight();  // 移动到右侧
+                MoveToRight();
+                MoveToRight();
+            }
+                MoveToRight();
                 Crawl_GrabBox(3, x, next_box);
                 break;
                 
             case 4:
+                if (x == 0)
+            {
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+                MoveToLeft();
+            }
                 MoveToLeft();   // 移动到左侧
                 Crawl_GrabBox(4, x, next_box);
                 break;
                 
             case 5:
+                if (x == 0)
+            {
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+                MoveToCenter();
+            }
                 MoveToCenter(); // 移动到中间
                 Crawl_GrabBox(5, x, next_box);
                 break;
                 
             case 6:
+                if (x == 0)
+            {
+                MoveToRight();
+                MoveToRight();
+                MoveToRight();
+                MoveToRight();
+                MoveToRight();
+                MoveToRight();
+            }
                 MoveToRight();  // 移动到右侧
+                
                 Crawl_GrabBox(6, x, next_box);
                 break;
         }        
@@ -164,6 +223,7 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                             break;
                         case 3:
                             MoveToE();
+                            Lift_To_PUTspecialUUP();
                             break;
                         case 4:
                             MoveToF();
@@ -174,9 +234,8 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                     }
                 }
                 // 如果是A位置（路线1的第6个箱子），使用反向放置
-                int is_reverse_place = (i == 5 && route == 1) ? 1 : 0;
+                int is_reverse_place = (i == 5 && route == 1 && i != placementSpecialBox) ? 1 : 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
-                vTaskDelay(500);
                 if(i == placementSpecialBox) {
                 Lift_To_PUTspecialUUP();
                 }
@@ -198,6 +257,7 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                             break;
                         case 3:
                             MoveToE(); 
+                            Lift_To_PUTspecialUUP();
                             break;
                         case 4:
                             MoveToF(); 
@@ -207,13 +267,13 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                             break;
                     }
                 }
-                
-
-                int is_reverse_place = 0;
+                int is_reverse_place = (i == 5 && route == 2 && i != placementSpecialBox) ? 1 : 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
-                
-                vTaskDelay(500);
+                if(i == placementSpecialBox) {
+                Lift_To_PUTspecialUUP();
+                }
             }
+
             break;
             
         case 3:
@@ -233,18 +293,20 @@ Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                             MoveToB(); 
                             break;
                         case 4:
+                            Lift_To_PUTspecialUUP();
+                            Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0); 
                             MoveToA(); 
                             break;
                         case 5:
-                                                    break;
+                            MoveToF();
+                        break;
                     }
                 }
-                // 放置箱子
-                // 如果是A位置（路线3的第5或第6个箱子），使用反向放置
-                int is_reverse_place = (i >= 4 && route == 3) ? 1 : 0;
+                int is_reverse_place = (i == 4 && route == 3 && i != placementSpecialBox) ? 1 : 0;
                 Crawl_PlaceBox(i, placementSpecialBox, is_reverse_place);
-                Chassis_SetXPIDParams(0.81f, 0.001f, 0.0f);
-                vTaskDelay(500);
+                if(i == placementSpecialBox) {
+                Lift_To_PUTspecialUUP();
+                }
             }
             break;
             

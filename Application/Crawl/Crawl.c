@@ -15,9 +15,10 @@
 #include "servo.h"
 #include "lift.h"
 #include "bsp_log.h"
+#include "Robot_task.h"
 
-#define CRAWL_SPEED 800 // 默认超时时间5秒
-#define CRAWL_ACC 250 // 默认超时时间5秒
+#define CRAWL_SPEED 800
+#define CRAWL_ACC 250 
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2 
 
@@ -578,19 +579,27 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
     if (box_number >= 1 && box_number <= 3) {
         // 上层箱子 (1-3)
         // 升高到第二层抓取高度
+        Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
+        osDelay(50);
+        Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
+        osDelay(750);
         Lift_To_HighB();
         Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
-        osDelay(1500); //最优
+        osDelay(1800); //最优
         // 舵机抓取
         runActionGroup(4, 1);
         Lift_To_HighBMove();
-        osDelay(1000);
+        osDelay(800);
         
     } else if (box_number >= 4 && box_number <= 6) {
         // 下层箱子 (4-6)
         // 移动伸缩到抓取长度
+        Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
+        osDelay(50);
+        Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
+        osDelay(500);
         Lift_To_StartHeight();
         Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
         osDelay(50);
@@ -740,6 +749,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             
             // 在电机运动期间移动底盘到下一个位置
             if (next_box_number > 0) {
+                // 有下一个箱子，移动到下一个箱子的位置
                 switch(next_box_number) {
                     case 1:
                     case 4:
@@ -751,6 +761,26 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                         break;
                     case 3:
                     case 6:
+                        MoveToRight();
+                        break;
+                }
+            } 
+            else if (next_box_number == 0) {
+                // 最后一个箱子，再次移动到当前位置，确保精确到位
+                switch(box_number) {
+                    case 1:
+                    case 4:
+                        // 1和4号箱子对应左侧位置
+                        MoveToLeft();
+                        break;
+                    case 2:
+                    case 5:
+                        // 2和5号箱子对应中间位置
+                        MoveToCenter();
+                        break;
+                    case 3:
+                    case 6:
+                        // 3和6号箱子对应右侧位置
                         MoveToRight();
                         break;
                 }
@@ -896,6 +926,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             grab_position = 18000;
             direction1 = 1;
             direction2 = 0;
+        Emm_V5_Pos_Control(1, direction1,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, direction2,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(1000);
             break;
         case 1:
         case 4:
@@ -903,6 +937,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             grab_position = 0;
             direction1 = 1;
             direction2 = 0;
+        Emm_V5_Pos_Control(1, direction1,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, direction2,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(1000);
             break;
         case 2:
         case 5:
@@ -910,6 +948,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             grab_position = 18000;
             direction1 = 0;
             direction2 = 1;
+        Emm_V5_Pos_Control(1, direction1,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, direction2,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
+        osDelay(2000);
             break;
         default:
             grab_position = 0;
@@ -917,10 +959,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             direction2 = 0;
             break;
     }
-        Emm_V5_Pos_Control(1, direction1,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
-        osDelay(10);
-        Emm_V5_Pos_Control(2, direction2,CRAWL_SPEED,CRAWL_ACC, grab_position, 1, 0);
-        osDelay(1000);
+
         
         // 根据box_count确定抓取高度
         if (box_count >= 0 && box_count <= 2) {
@@ -934,7 +973,6 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         // 舵机抓取箱子
         runActionGroup(1, 1); // 使用常规舵机组抓取
         
-        // 升高到运动高度
         if (box_count >= 0 && box_count <= 2) {
             Lift_To_High2();
         } else {
@@ -951,7 +989,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
-        osDelay(1000);
+        osDelay(2500);
         Lift_To_PUTspecialDown();
         runActionGroup(3, 1); 
         runActionGroup(6, 1);
@@ -963,7 +1001,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 17400, 1, 0);
-        osDelay(1000);
+        osDelay(2500);
         Lift_To_PUTDown();
          runActionGroup(3, 1); // 使用反向舵机组放置
         runActionGroup(6, 1);
@@ -991,7 +1029,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, 49100, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, 49100, 1, 0);
-        osDelay(1000);
+        osDelay(2500);
         Lift_To_PUTDown();
         runActionGroup(3, 1);
         runActionGroup(2, 1);
@@ -1008,12 +1046,20 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
     } else {
         Lift_To_StartHeight();
     }
+    if (box_count == 5)
+    {
+        // 最后一个箱子，伸缩回程到初始位置
+        Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
+        osDelay(10);
+        Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
+        osDelay(2000);
+    }
+    else
+    {
+        osDelay(1000);
+    }
     
-    // 伸缩回程到初始位置
-    Emm_V5_Pos_Control(1, 0,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
-    osDelay(10);
-    Emm_V5_Pos_Control(2, 1,CRAWL_SPEED,CRAWL_ACC, 0, 1, 0);
-    osDelay(1000);
+
     
     // 清除忙碌状态
     crawl_status.is_busy = false;
