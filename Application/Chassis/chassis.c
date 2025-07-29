@@ -348,9 +348,9 @@ bool Chassis_Control_Loop(void)
     float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
     float vy_global = PIDCalculate(&g_pid.y, g_current_pos.y, g_target_pos.y);
     float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
-    // float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);;
+    // float vx_global = 0;
     // float vy_global = 0;
-    // float vyaw_deg = 0;
+    // float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
     
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
     // 旋转矩阵公式: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_global; vy_global]
