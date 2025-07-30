@@ -60,45 +60,38 @@ void Robot_task(void *argument)
     runActionGroup(6, 1);
     /* 等待一段时间确保所有初始化完成 */
 
-    while (1)
-    {
-            if (USB_RxFlag == 1)
-            {
-            // 复制接收到的数据
-            memcpy(usbData, UserRxBufferFS, USB_RxLen);
-            usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
+bool usb_ready = false;
+bool key_pressed = false;
 
-            // 清除接收标志
-            USB_RxFlag = 0;
-            USB_RxLen = 0;
+while (!(usb_ready && key_pressed)) 
+{
+    // USB 接收处理
+    if (!usb_ready && USB_RxFlag == 1) {
+        memcpy(usbData, UserRxBufferFS, USB_RxLen);
+        usbData[USB_RxLen] = '\0';
 
-            // 解析数据
-            if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0)
-            {
+        USB_RxFlag = 0;
+        USB_RxLen = 0;
 
-                for (int i = 0; i < 6; i++)
-                {
-                    LOGINFO("%d ", grabSequence[i]);
-                }
-
-                // 数据解析成功，退出等待循环
-                break;
+        if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0) {
+            for (int i = 0; i < 6; i++) {
+                LOGINFO("%d ", grabSequence[i]);
             }
-
-            }
-
-            // 短暂延时，避免过度占用CPU
-            vTaskDelay(100);
-    }
-    while (1) 
-    {
-        key_event_t evt;
-        if (osMessageQueueGet(key_event_queue, &evt, NULL, osWaitForever) == osOK) {
-            if (evt.event == KEY_EVENT_PRESSED) {
-                break;
-            }
+            usb_ready = true;
         }
     }
+
+    key_event_t evt;
+    if (!key_pressed && osMessageQueueGet(key_event_queue, &evt, NULL, 0) == osOK) {
+        if (evt.event == KEY_EVENT_PRESSED) {
+            key_pressed = true;
+        }
+    }
+
+    // 短暂延时防止占满 CPU
+    vTaskDelay(pdMS_TO_TICKS(50));
+}
+
     // 抓取阶段
     MoveToCenter();
     MoveToCenter();
