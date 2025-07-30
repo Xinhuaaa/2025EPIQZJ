@@ -363,7 +363,7 @@ static void Lift_UpdateCurrentSpeed(void)
  */
 void Lift_WaitUntilAtTarget(void)
 {
-    const float tolerance = 0.5f; // 位移容差 0.5cm
+    const float tolerance = 1.5f; // 位移容差 0.5cm
     float error;
 
     do {

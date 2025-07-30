@@ -141,6 +141,7 @@ void Chassis_SetADRCESOParams(float beta01_xy, float beta02_xy, float beta03_xy,
   * @retval 无
   */
 void Chassis_ResetController(void);
+bool Chassis_MoveToX_Blocking(float x, uint32_t timeout_ms);
 
 /* 函数声明别名 - 用于兼容性 */
 #define EMM_V5_Init           Emm_V5_Init

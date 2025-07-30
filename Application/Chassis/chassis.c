@@ -636,3 +636,50 @@ bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
 
     return !is_timeout;  // 如果不是因为超时退出，则返回成功
 }
+bool Chassis_MoveToX_Blocking(float x, uint32_t timeout_ms)
+{
+    // 设置目标位置
+    g_target_pos.x = x;
+    
+    // 用于计算超时的变量
+    float start_time = DWT_GetTimeline_ms();
+    bool has_timeout = (timeout_ms > 0);
+    bool is_timeout = false;
+    
+    // 等待直到到达目标位置或超时
+    while (1) {
+        // 检查是否已到达目标位置（只检查位置误差，不执行控制循环）
+        // 计算控制误差
+        float error_x = g_target_pos.x - g_current_pos.x;
+        float error_y = g_target_pos.y - g_current_pos.y;
+        float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
+        
+        // 标准化偏航角误差到[-180, 180]
+        while (error_yaw > 180.0f) error_yaw -= 360.0f;
+        while (error_yaw < -180.0f) error_yaw += 360.0f;
+        
+        // 检测x、y、yaw三个方向是否都到达目标位置
+        bool reached = (fabsf(error_x) < POSITION_TOLERANCE_XY) && 
+                      (fabsf(error_y) < POSITION_TOLERANCE_XY) && 
+                      (fabsf(error_yaw) < POSITION_TOLERANCE_YAW);
+        
+        if (reached) {
+            return true;  // 成功到达目标位置
+        }
+        
+        // 检查是否超时
+        if (has_timeout) {
+            float elapsed = DWT_GetTimeline_ms() - start_time;
+            if (elapsed > (float)timeout_ms) {
+                is_timeout = true;
+                break;  // 超时，退出循环
+            }
+        }
+        
+        // 短暂延时，避免过多CPU占用
+        osDelay(100);  // 100ms延时，可根据需要调整
+    }
+    
+
+    return !is_timeout;  // 如果不是因为超时退出，则返回成功
+}

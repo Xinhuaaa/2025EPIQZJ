@@ -53,16 +53,11 @@ int Robot_Init(void)
 
 void Robot_task(void *argument)
 {
-    runActionGroup(2, 1);
-    runActionGroup(3, 1);
-    Lift_To_StartHeight();
-    runActionGroup(5, 1);
-    runActionGroup(6, 1);
-    /* 等待一段时间确保所有初始化完成 */
 
 bool usb_ready = false;
 bool key_pressed = false;
-
+runActionGroup(2, 1);
+runActionGroup(3, 1);
 while (!(usb_ready && key_pressed)) 
 {
     // USB 接收处理
@@ -92,6 +87,9 @@ while (!(usb_ready && key_pressed))
     vTaskDelay(pdMS_TO_TICKS(50));
 }
 
+    Lift_To_StartHeight();
+    runActionGroup(5, 1);
+    runActionGroup(6, 1);
     // 抓取阶段
     MoveToCenter();
     MoveToCenter();
@@ -328,7 +326,10 @@ while (!(usb_ready && key_pressed))
     }
                 osDelay(2500); // 等待放置完成
                 Lift_To_PUTspecialUUP();
-                Chassis_MoveToPosition_Blocking(0, 0, 0, 0);
+                Chassis_MoveToX_Blocking(1.6,0);
+                Chassis_MoveToPosition_Blocking(0, 0.0, 0, 0);
+
+
     while (1)
     {
         osDelay(1000);
