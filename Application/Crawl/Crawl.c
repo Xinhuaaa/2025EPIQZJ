@@ -1041,11 +1041,8 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
     }
     
     // 升高到运动高度
-    if (box_count >= 0 && box_count <= 2) {
         Lift_To_PUT2HIGH();
-    } else {
-        Lift_To_StartHeight();
-    }
+
     if (box_count == 5)
     {
         // 最后一个箱子，伸缩回程到初始位置
