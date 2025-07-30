@@ -1016,7 +1016,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         Emm_V5_Pos_Control(1, 1,CRAWL_SPEED,CRAWL_ACC, 49100, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, 0,CRAWL_SPEED,CRAWL_ACC, 49100, 1, 0);
-        osDelay(1000);
+        osDelay(2000);
         Lift_To_PUTspecialDown();
         runActionGroup(3, 1);
         runActionGroup(2, 1);

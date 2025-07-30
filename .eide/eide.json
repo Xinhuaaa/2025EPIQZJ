@@ -123,7 +123,8 @@
           "Middlewares/Third_Party/TraceRecorder/include",
           "modules/Encoder",
           "modules/data_parser",
-          "modules/CDCDataParser"
+          "modules/CDCDataParser",
+          "bsp/key"
         ],
         "libList": [],
         "defineList": [

@@ -28,6 +28,7 @@
 #include "stdlib.h"
 #include "CDCDataParser.h"
 #include "Robot_task.h"
+#include "bsp_key.h"
 uint8_t grabSequence[6] = {5, 6, 4, 2, 1, 3}; // 6个抓取顺序
 uint8_t specialBox = 1;                       // 特殊货箱号
 uint8_t spareStack = 2;                       // 轮空纸垛
@@ -39,12 +40,12 @@ int Robot_Init(void)
     DWT_Init(168);
     BSPLogInit();
     __enable_irq();
+     Key_Init();
     DWT_Delay(1);
     HWT101_TaskInit();
     EncoderInit();
     Chassis_Init();
     Lift_Init();
-
     Crawl_Init();
 
     return 0;
@@ -59,42 +60,45 @@ void Robot_task(void *argument)
     runActionGroup(6, 1);
     /* 等待一段时间确保所有初始化完成 */
 
-    LOGINFO("Robot_task: 等待接收USB数据...\r\n");
+    while (1)
+    {
+            if (USB_RxFlag == 1)
+            {
+            // 复制接收到的数据
+            memcpy(usbData, UserRxBufferFS, USB_RxLen);
+            usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
 
-    // while (1)
-    // {
-    //         if (USB_RxFlag == 1)
-    //         {
-    //         // 复制接收到的数据
-    //         memcpy(usbData, UserRxBufferFS, USB_RxLen);
-    //         usbData[USB_RxLen] = '\0'; // 确保字符串以NULL结尾
+            // 清除接收标志
+            USB_RxFlag = 0;
+            USB_RxLen = 0;
 
-    //         // 清除接收标志
-    //         USB_RxFlag = 0;
-    //         USB_RxLen = 0;
+            // 解析数据
+            if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0)
+            {
 
-    //         // 解析数据
-    //         if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0)
-    //         {
+                for (int i = 0; i < 6; i++)
+                {
+                    LOGINFO("%d ", grabSequence[i]);
+                }
 
-    //             for (int i = 0; i < 6; i++)
-    //             {
-    //                 LOGINFO("%d ", grabSequence[i]);
-    //             }
+                // 数据解析成功，退出等待循环
+                break;
+            }
 
-    //             // 数据解析成功，退出等待循环
-    //             break;
-    //         }
-    //         else
-    //         {
-    //             LOGINFO("数据格式错误，继续等待...\r\n");
-    //         }
-    //         }
+            }
 
-    //         // 短暂延时，避免过度占用CPU
-    //         vTaskDelay(100);
-    // }
-
+            // 短暂延时，避免过度占用CPU
+            vTaskDelay(100);
+    }
+    while (1) 
+    {
+        key_event_t evt;
+        if (osMessageQueueGet(key_event_queue, &evt, NULL, osWaitForever) == osOK) {
+            if (evt.event == KEY_EVENT_PRESSED) {
+                break;
+            }
+        }
+    }
     // 抓取阶段
     MoveToCenter();
     MoveToCenter();
@@ -194,7 +198,7 @@ void Robot_task(void *argument)
         }
         vTaskDelay(500);
     }
-    Chassis_SetXPIDParams(0.55f, 0.001f, 0.0f);
+    Chassis_SetXPIDParams(0.25f, 0.001f, 0.0f);
     Chassis_MoveToY_Blocking(0, 0);
     Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
     //  放置阶段
@@ -296,7 +300,7 @@ void Robot_task(void *argument)
                 MoveToE0();
                 break; 
             case 1:
-                MoveToD();
+                MoveToD0();
                 break; 
             case 2:
                 MoveToC0();
