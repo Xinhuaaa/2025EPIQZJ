@@ -237,23 +237,23 @@ void Robot_task(void *argument)
             switch (i)
             {
             case 0:
-                MoveToB();
-                break; // 第1个箱子 -> B区
+                MoveToB1();
+                break;
             case 1:
-                MoveToC();
-                break; // 第2个箱子 -> C区
+                MoveToC1();
+                break;
             case 2:
-                MoveToD();
-                break; // 第3个箱子 -> D区
+                MoveToD1();
+                break;
             case 3:
-                MoveToE();
-                break; // 第4个箱子 -> E区
+                MoveToE1();
+                break;
             case 4:
-                MoveToF();
-                break; // 第5个箱子 -> F区
+                MoveToF1();
+                break;
             case 5:
-                MoveToA();
-                break; // 第6个箱子 -> A区
+                MoveToA1();
+                break;
             }
 
             // 判断是否是反向放置（A位置 i=5 且备用堆栈不是A区）
@@ -293,23 +293,23 @@ void Robot_task(void *argument)
             switch (i)
             {
             case 0:
-                MoveToE();
-                break; // 第1个箱子 -> E区
+                MoveToE0();
+                break; 
             case 1:
                 MoveToD();
-                break; // 第2个箱子 -> D区
+                break; 
             case 2:
-                MoveToC();
-                break; // 第3个箱子 -> C区
+                MoveToC0();
+                break; 
             case 3:
-                MoveToB();
-                break; // 第4个箱子 -> B区
-            case 4:    // 第5个箱子 -> F区 (已跳过)
+                MoveToB0();
+                break; 
+            case 4:    
                 break;
-            case 5: // 第6个箱子 -> A区 (反向放置)
+            case 5: 
                 Lift_To_PUTspecialUUP();
                 Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
-                MoveToA();
+                MoveToA0();
                 break;
             }
 

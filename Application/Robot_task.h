@@ -21,12 +21,20 @@
 #define MoveToRight() Chassis_MoveToPosition_Blocking(1.60, -0.50, 0, 2000)
 /* 位置移动宏定义 */
 // 放置点位置宏定义 A-F
-#define MoveToA() Chassis_MoveToPosition_Blocking(-0.69, -0.18, -90, 0)
-#define MoveToB() Chassis_MoveToPosition_Blocking(-0.70,-0.64, 0, 0)
-#define MoveToC() Chassis_MoveToPosition_Blocking(-0.70,-0.18, 0, 0)
-#define MoveToD() Chassis_MoveToPosition_Blocking(-0.70,0.24, 0, 0)
-#define MoveToE() Chassis_MoveToPosition_Blocking(-0.70,0.695, 0, 0)
-#define MoveToF() Chassis_MoveToPosition_Blocking(-0.69,0.3, -90, 0)
+// 路线1 bcdefa
+#define MoveToA1() Chassis_MoveToPosition_Blocking(-0.69, -0.18, -90, 0)
+#define MoveToB1() Chassis_MoveToPosition_Blocking(-0.70,-0.64, 0, 0)
+#define MoveToC1() Chassis_MoveToPosition_Blocking(-0.70,-0.18, 0, 0)
+#define MoveToD1() Chassis_MoveToPosition_Blocking(-0.70,0.24, 0, 0)
+#define MoveToE1() Chassis_MoveToPosition_Blocking(-0.70,0.695, 0, 0)
+#define MoveToF1() Chassis_MoveToPosition_Blocking(-0.69,0.3, -90, 0)
+// 路线0 edcba
+#define MoveToA0() Chassis_MoveToPosition_Blocking(-0.69, -0.18, -90, 0)
+#define MoveToB0() Chassis_MoveToPosition_Blocking(-0.70,-0.64, 0, 0)
+#define MoveToC0() Chassis_MoveToPosition_Blocking(-0.70,-0.18, 0, 0)
+#define MoveToD0() Chassis_MoveToPosition_Blocking(-0.70,0.24, 0, 0)
+#define MoveToE0() Chassis_MoveToPosition_Blocking(-0.70,0.695, 0, 0)
+#define MoveToF0() Chassis_MoveToPosition_Blocking(-0.69,0.3, -90, 0)
 // 抓取位置宏定义
 // #define MoveToLeft() Chassis_MoveToPosition_Blocking(0, 0, 0, 0)
 // #define MoveToCenter() Chassis_MoveToPosition_Blocking(0, 0, 0, 0)
