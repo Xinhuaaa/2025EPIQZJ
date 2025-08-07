@@ -40,7 +40,7 @@ int Robot_Init(void)
     DWT_Init(168);
     BSPLogInit();
     __enable_irq();
-     Key_Init();
+    Key_Init();
     DWT_Delay(1);
     HWT101_TaskInit();
     EncoderInit();
@@ -53,44 +53,55 @@ int Robot_Init(void)
 
 void Robot_task(void *argument)
 {
+    bool usb_ready = false;
+    bool key_pressed = false;
 
-bool usb_ready = false;
-bool key_pressed = false;
-runActionGroup(2, 1);
-runActionGroup(3, 1);
-while (!(usb_ready && key_pressed)) 
-{
-    // USB 接收处理
-    if (!usb_ready && USB_RxFlag == 1) {
-        memcpy(usbData, UserRxBufferFS, USB_RxLen);
-        usbData[USB_RxLen] = '\0';
-
-        USB_RxFlag = 0;
-        USB_RxLen = 0;
-
-        if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0) {
-            for (int i = 0; i < 6; i++) {
-                LOGINFO("%d ", grabSequence[i]);
-            }
-            usb_ready = true;
-        }
-    }
-
+    runActionGroup(2, 1);
+    runActionGroup(3, 1);
     key_event_t evt;
-    if (!key_pressed && osMessageQueueGet(key_event_queue, &evt, NULL, 0) == osOK) {
-        if (evt.event == KEY_EVENT_PRESSED) {
-            key_pressed = true;
-        }
-    }
 
-    // 短暂延时防止占满 CPU
-    vTaskDelay(pdMS_TO_TICKS(50));
-}
+    while (!(usb_ready && key_pressed))
+    {
+        // USB 接收处理
+        if (!usb_ready && USB_RxFlag == 1)
+        {
+            memcpy(usbData, UserRxBufferFS, USB_RxLen);
+            usbData[USB_RxLen] = '\0';
+
+            USB_RxFlag = 0;
+            USB_RxLen = 0;
+
+            if (parseUsbData(usbData, grabSequence, &specialBox, &spareStack) == 0)
+            {
+                for (int i = 0; i < 6; i++)
+                {
+                    LOGINFO("%d ", grabSequence[i]);
+                }
+                usb_ready = true;
+            }
+        }
+
+        if (osMessageQueueGet(key_event_queue, &evt, NULL, 0) == osOK)
+        {
+            if (evt.event == KEY_EVENT_PRESSED)
+            {
+                key_pressed = true;
+                const char msg = 'T';
+                CDC_Transmit_FS((uint8_t *)&msg, 1);
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(50));
+    }
 
     Lift_To_StartHeight();
     runActionGroup(5, 1);
     runActionGroup(6, 1);
+
     // 抓取阶段
+    MoveToCenter();
+    MoveToCenter();
+    MoveToCenter();
     MoveToCenter();
     MoveToCenter();
     MoveToCenter();
@@ -104,12 +115,9 @@ while (!(usb_ready && key_pressed))
         case 1:
             if (x == 0)
             {
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
+                STARTMoveToLeft();
+                osDelay(2000);
+
             }
 
             MoveToLeft(); // 移动到左侧
@@ -119,12 +127,8 @@ while (!(usb_ready && key_pressed))
         case 2:
             if (x == 0)
             {
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
+                STARTMoveToCenter();
+                osDelay(2000);
             }
             MoveToCenter(); // 移动到中间
             Crawl_GrabBox(2, x, next_box);
@@ -133,12 +137,9 @@ while (!(usb_ready && key_pressed))
         case 3:
             if (x == 0)
             {
-                MoveToRight(); // 移动到右侧
-                MoveToRight();
-                MoveToRight();
-                MoveToRight(); // 移动到右侧
-                MoveToRight();
-                MoveToRight();
+                STARTMoveToRight();
+                osDelay(2000);
+
             }
             MoveToRight();
             Crawl_GrabBox(3, x, next_box);
@@ -147,12 +148,9 @@ while (!(usb_ready && key_pressed))
         case 4:
             if (x == 0)
             {
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
-                MoveToLeft();
+                STARTMoveToLeft();
+                osDelay(2000);
+
             }
             MoveToLeft(); // 移动到左侧
             Crawl_GrabBox(4, x, next_box);
@@ -161,12 +159,9 @@ while (!(usb_ready && key_pressed))
         case 5:
             if (x == 0)
             {
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
-                MoveToCenter();
+                STARTMoveToCenter();
+                 osDelay(2000);
+
             }
             MoveToCenter(); // 移动到中间
             Crawl_GrabBox(5, x, next_box);
@@ -175,12 +170,9 @@ while (!(usb_ready && key_pressed))
         case 6:
             if (x == 0)
             {
-                MoveToRight();
-                MoveToRight();
-                MoveToRight();
-                MoveToRight();
-                MoveToRight();
-                MoveToRight();
+                STARTMoveToRight();
+                osDelay(2000);
+
             }
             MoveToRight(); // 移动到右侧
 
@@ -189,7 +181,6 @@ while (!(usb_ready && key_pressed))
         }
         vTaskDelay(500);
     }
-    Chassis_SetXPIDParams(0.25f, 0.001f, 0.0f);
     Chassis_MoveToY_Blocking(0, 0);
     Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
     //  放置阶段
@@ -289,19 +280,19 @@ while (!(usb_ready && key_pressed))
             {
             case 0:
                 MoveToE0();
-                break; 
+                break;
             case 1:
                 MoveToD0();
-                break; 
+                break;
             case 2:
                 MoveToC0();
-                break; 
+                break;
             case 3:
                 MoveToB0();
-                break; 
-            case 4:    
                 break;
-            case 5: 
+            case 4:
+                break;
+            case 5:
                 Lift_To_PUTspecialUUP();
                 Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                 MoveToA0();
@@ -319,16 +310,14 @@ while (!(usb_ready && key_pressed))
                 Lift_To_PUTspecialUUP();
                 box_counter += 1;
             }
-
         }
 
         break;
     }
-                osDelay(2500); // 等待放置完成
-                Lift_To_PUTspecialUUP();
-                Chassis_MoveToX_Blocking(1.6,0);
-                Chassis_MoveToPosition_Blocking(0, 0.0, 0, 0);
-
+    osDelay(2500); // 等待放置完成
+    Lift_To_PUTspecialUUP();
+    Chassis_MoveToX_Blocking(1.6, 0);
+    Chassis_MoveToPosition_Blocking(0, 0.0, 0, 0);
 
     while (1)
     {

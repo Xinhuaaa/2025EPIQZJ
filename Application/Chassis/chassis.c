@@ -44,7 +44,7 @@ extern float y_position_units;  // 外部Y位置，单位mm
 #define ENCODER_COUNTS_PER_M  (ENCODER_COUNTS_PER_REV / (WHEEL_DIAMETER * PI))
 
 /* 控制参数 */
-#define POSITION_TOLERANCE_XY 0.02f   // 位置允差，单位m
+#define POSITION_TOLERANCE_XY 0.03f   // 位置允差，单位m
 #define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
 #define CHASSIS_TASK_PERIOD   15      // 控制周期，单位ms
 #define ENCODER_TASK_PERIOD  8  // 5ms周期，比底盘控制任务更快
@@ -117,10 +117,10 @@ void Chassis_Init(void)
     // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_x = {
         // .Kp = 0.567f,               // 比例系数
-        .Kp = 0.567f,               // 比例系数
+        .Kp = 0.4536f,               // 比例系数
         .Ki = 0.001f,              // 积分系数
         .Kd = 0.0001f,               // 微分系数
-        .MaxOut = 1.3f,           // 最大速度0.5m/s
+        .MaxOut = 0.728f,           // 最大速度0.5m/s
         .DeadBand = 0.00f,        // 1cm死区
         .Improve = PID_Integral_Limit |PID_OutputFilter,
         .IntegralLimit = 0.35f,    // 积分限幅
@@ -131,8 +131,8 @@ void Chassis_Init(void)
     PID_Init_Config_s pid_config_y = {
         .Kp = 0.581f,               // 比例系数
         .Ki = 0.01f,              // 积分系数
-        .Kd = 0.0001f,               // 微分系数
-        .MaxOut = 1.0f,           // 最大速度0.5m/s
+        .Kd = 0.000f,               // 微分系数
+        .MaxOut = 0.7f,           // 最大速度0.5m/s
         .DeadBand = 0.00f,        // 1cm死区
         .Improve = PID_Integral_Limit |PID_OutputFilter,
         .IntegralLimit = 0.35f,    // 积分限幅
@@ -145,10 +145,10 @@ void Chassis_Init(void)
     
     // 配置偏航角PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_yaw = {
-        .Kp = 0.573f,               // 比例系数
-        .Ki = 0.28f,               // 积分系数
+        .Kp = 0.79f,               // 比例系数
+        .Ki = 0.5f,               // 积分系数
         .Kd = 0.00f,              // 微分系数
-        .MaxOut = 30.0f,          // 最大角速度10度/s
+        .MaxOut = 21.0f,          // 最大角速度21度/s
         .DeadBand = 0.0f,         // 0.5度死区
         .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
         .IntegralLimit = 0.0f,    // 积分限幅（度）
@@ -349,9 +349,9 @@ bool Chassis_Control_Loop(void)
     float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
     float vy_global = PIDCalculate(&g_pid.y, g_current_pos.y, g_target_pos.y);
     float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
-    // float vx_global = 0;
+    // float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
     // float vy_global = 0;
-    // float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
+    // float vyaw_deg = 0;
     
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
     // 旋转矩阵公式: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_global; vy_global]
