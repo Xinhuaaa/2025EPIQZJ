@@ -176,6 +176,6 @@ void EncoderTask(void *argument)
         y_position_units = global_y_pos;
 
         /* 轮询周期 */
-        osDelay(10); // 10ms 周期，即 100Hz 更新频率
+        osDelay(6); // 10ms 周期，即 100Hz 更新频率
     }
 }

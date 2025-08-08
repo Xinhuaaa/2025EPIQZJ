@@ -44,9 +44,9 @@ extern float y_position_units;  // 外部Y位置，单位mm
 #define ENCODER_COUNTS_PER_M  (ENCODER_COUNTS_PER_REV / (WHEEL_DIAMETER * PI))
 
 /* 控制参数 */
-#define POSITION_TOLERANCE_XY 0.03f   // 位置允差，单位m
-#define POSITION_TOLERANCE_YAW 1.5f   // 角度允差，单位度
-#define CHASSIS_TASK_PERIOD   15      // 控制周期，单位ms
+#define POSITION_TOLERANCE_XY 0.015f   // 位置允差，单位m
+#define POSITION_TOLERANCE_YAW 0.5f   // 角度允差，单位度
+#define CHASSIS_TASK_PERIOD   8      // 控制周期，单位ms
 #define ENCODER_TASK_PERIOD  8  // 5ms周期，比底盘控制任务更快
 
 
@@ -116,25 +116,24 @@ void Chassis_Init(void)
     }
     // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_x = {
-        // .Kp = 0.567f,               // 比例系数
-        .Kp = 0.4536f,               // 比例系数
+        .Kp = 0.81f,               // 比例系数
         .Ki = 0.001f,              // 积分系数
-        .Kd = 0.0001f,               // 微分系数
-        .MaxOut = 0.728f,           // 最大速度0.5m/s
+        .Kd = 0.000f,               // 微分系数
+        .MaxOut = 1.3f,           // 最大速度0.5m/s
         .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .Improve = PID_Trapezoid_Intergral,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
         .MaxAccel = 0.0f,
         .MaxJerk = 0.0f,
     };
     PID_Init_Config_s pid_config_y = {
-        .Kp = 0.581f,               // 比例系数
+        .Kp = 0.83f,               // 比例系数
         .Ki = 0.01f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
-        .MaxOut = 0.7f,           // 最大速度0.5m/s
+        .MaxOut = 1.0f,           // 最大速度0.5m/s
         .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Integral_Limit |PID_OutputFilter,
+        .Improve = PID_Trapezoid_Intergral,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
         .MaxAccel = 0.0f,
@@ -145,12 +144,12 @@ void Chassis_Init(void)
     
     // 配置偏航角PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_yaw = {
-        .Kp = 0.79f,               // 比例系数
-        .Ki = 0.5f,               // 积分系数
+        .Kp = 0.573f,               // 比例系数
+        .Ki = 0.28f,               // 积分系数
         .Kd = 0.00f,              // 微分系数
-        .MaxOut = 21.0f,          // 最大角速度21度/s
+        .MaxOut = 30.0f,          // 最大角速度10度/s
         .DeadBand = 0.0f,         // 0.5度死区
-        .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
+        .Improve = PID_Trapezoid_Intergral,
         .IntegralLimit = 0.0f,    // 积分限幅（度）
         .Output_LPF_RC = 0.0f     // 低通滤波常数
     };
@@ -334,9 +333,7 @@ bool Chassis_Control_Loop(void)
     float global_dx = delta_x * cos_yaw + delta_y * sin_yaw;
     float global_dy = delta_x * sin_yaw - delta_y * cos_yaw;
 
-    // 更新全局位置
-    // 注释掉原有的两种方式，使用里程计提供的位置，并确保坐标系一致
-    // 修正：x和y轴的符号需要与全局坐标系定义一致
+
     g_current_pos.x = x_position_units/1000.0; // X轴取反，使前进为正
     g_current_pos.y = y_position_units/1000.0; // Y轴也取反，使左移为正
     
@@ -369,18 +366,13 @@ bool Chassis_Control_Loop(void)
         float rpm = wheel_speed[i] * 60.0f / (2.0f * PI * CHASSIS_WHEEL_RADIUS);
         uint8_t dir = (rpm >= 0) ? 0 : 1;  // 0=CW, 1=CCW
         float speed = fabsf(rpm);
-        uint16_t acc = 100; // 使用数组中的加速度值
+        uint16_t acc = 0; 
 
-        Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 1);
+        Emm_V5_CAN_Vel_Control(motor_ids[i], dir, speed, acc, 0);
         
-        // 在发送之间添加小延时，确保CAN消息不会重叠
-        if (i < 3) {
-            DWT_Delay_ms(2.0f);  // 增加到2ms延时，确保CAN帧不重叠
-        }
+
     }
-    
-    Emm_V5_CAN_Synchronous_motion(0);
-    
+        
     // 计算偏航角误差
     float error_yaw = g_target_pos.yaw - g_current_pos.yaw;
     while (error_yaw > 180.0f) error_yaw -= 360.0f;

@@ -53,7 +53,7 @@ int Robot_Init(void)
 
 void Robot_task(void *argument)
 {
-    bool usb_ready = false;
+    bool usb_ready = true;
     bool key_pressed = false;
 
     runActionGroup(2, 1);

@@ -17,7 +17,7 @@
 #include "bsp_log.h"
 #include "Robot_task.h"
 
-#define CRAWL_SPEED 800
+#define CRAWL_SPEED 1200
 #define CRAWL_ACC 250
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2
