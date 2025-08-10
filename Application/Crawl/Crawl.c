@@ -18,7 +18,7 @@
 #include "Robot_task.h"
 
 #define CRAWL_SPEED 1200
-#define CRAWL_ACC 250
+#define CRAWL_ACC 248
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2
 
@@ -1061,7 +1061,6 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             runActionGroup(3, 1);
             runActionGroup(2, 1);
             osDelay(1000);
-            Lift_To_PUTspecialUUP();
         }
         else
         {

@@ -25,7 +25,8 @@
 #include "cmsis_os.h"
 
 /* 外部声明 */
-extern float Angle;  // 从Hwt101.h中引用角度信息（单位：度）
+extern float Angle;  // HWT101原始（累计）角，单位：度（保留）
+#include "Encoder.h"  // 使用 EKF 输出的位姿（ekf_theta_rad/x_position_units/y_position_units）
 extern float x_position_units;  // 外部X位置，单位mm
 extern float y_position_units;  // 外部Y位置，单位mm
 
@@ -46,8 +47,8 @@ extern float y_position_units;  // 外部Y位置，单位mm
 /* 控制参数 */
 #define POSITION_TOLERANCE_XY 0.015f   // 位置允差，单位m
 #define POSITION_TOLERANCE_YAW 0.5f   // 角度允差，单位度
-#define CHASSIS_TASK_PERIOD   8      // 控制周期，单位ms
-#define ENCODER_TASK_PERIOD  8  // 5ms周期，比底盘控制任务更快
+#define CHASSIS_TASK_PERIOD   12      // 控制周期，单位ms
+#define ENCODER_TASK_PERIOD  10  // 5ms周期，比底盘控制任务更快
 
 
 // X42电机CAN ID
@@ -116,40 +117,40 @@ void Chassis_Init(void)
     }
     // 配置X、Y方向PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_x = {
-        .Kp = 0.81f,               // 比例系数
+        .Kp = 0.68f,               // 比例系数
         .Ki = 0.001f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.3f,           // 最大速度0.5m/s
-        .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Trapezoid_Intergral,
+        .DeadBand = 0.01f,        // 1cm死区
+        .Improve = PID_SCurve_Acceleration,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
-        .MaxAccel = 0.0f,
-        .MaxJerk = 0.0f,
+        .MaxAccel = 1.5f,
+        .MaxJerk = 0.5f,
     };
     PID_Init_Config_s pid_config_y = {
         .Kp = 0.83f,               // 比例系数
         .Ki = 0.01f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.0f,           // 最大速度0.5m/s
-        .DeadBand = 0.00f,        // 1cm死区
-        .Improve = PID_Trapezoid_Intergral,
+        .DeadBand = 0.01f,        // 1cm死区
+        .Improve =  PID_SCurve_Acceleration,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
-        .MaxAccel = 0.0f,
-        .MaxJerk = 0.0f,
+        .MaxAccel = 3.0f,
+        .MaxJerk = 1.0f,
     };
     PIDInit(&g_pid.x, &pid_config_x);
     PIDInit(&g_pid.y, &pid_config_y);
     
     // 配置偏航角PID控制器（保留但不使用，用于兼容）
     PID_Init_Config_s pid_config_yaw = {
-        .Kp = 0.573f,               // 比例系数
+         .Kp = 0.573f,               // 比例系数
         .Ki = 0.28f,               // 积分系数
         .Kd = 0.00f,              // 微分系数
         .MaxOut = 30.0f,          // 最大角速度10度/s
-        .DeadBand = 0.0f,         // 0.5度死区
-        .Improve = PID_Trapezoid_Intergral,
+        .DeadBand = 0.01f,         // 0.5度死区
+        .Improve = PID_Integral_Limit | PID_OutputFilter | PID_Trapezoid_Intergral|PID_ChangingIntegrationRate,
         .IntegralLimit = 0.0f,    // 积分限幅（度）
         .Output_LPF_RC = 0.0f     // 低通滤波常数
     };
@@ -273,10 +274,38 @@ static void Encoder_Read_Task(void *argument)
         
         if (read_success) 
         {
+            // 更新编码器数值
             for (int i = 0; i < 4; i++)
             {
+                current_encoder[i] = temp_encoder[i];
                 g_encoder_values[i] = temp_encoder[i];
             }
+            
+            // 计算每个轮子的位移（米）
+            float wheel_delta[4] = {0};    
+            for(int i = 0; i < 4; i++)
+            {
+                int32_t steps = current_encoder[i] - prev_encoder[i];
+                wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
+                prev_encoder[i] = current_encoder[i];
+            }
+
+            // 麦轮运动学正解：从轮速到底盘速度
+            // 重新修正麦轮运动学正解，确保与我们定义的坐标系一致
+            // 麦轮坐标系：X轴向前，Y轴向左
+            float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
+            float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
+            
+            // 将局部位移转换到全局坐标系（若未来使用轮式里程计自积分时会用到）
+            float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
+            float cos_yaw = cosf(yaw_rad);
+            float sin_yaw = sinf(yaw_rad);
+            
+            // 局部坐标系到全局坐标系的转换
+            // 重新修正旋转矩阵，确保方向一致性
+            float global_dx = delta_x * cos_yaw + delta_y * sin_yaw;
+            float global_dy = delta_x * sin_yaw - delta_y * cos_yaw;
+            
             error_count = 0;  // 重置错误计数
         }
         else
@@ -300,49 +329,21 @@ bool Chassis_Control_Loop(void)
 {
     uint8_t motor_ids[4] = {MOTOR_LF_ID, MOTOR_RF_ID, MOTOR_LB_ID, MOTOR_RB_ID};
     
-    // 1. 更新底盘位置
-    // 更新底盘朝向角度（来自陀螺仪）
-    g_current_pos.yaw = Angle;
+    // 1. 更新底盘位置（采用 EKF 融合结果，角度使用 ekf_theta_rad）
+    // 电机编码器相关处理已在Encoder_Read_Task中完成
+    g_current_pos.yaw = RAD_TO_DEG(ekf_theta_rad);
     
-    for (int i = 0; i < 4; i++) {
-        current_encoder[i] = g_encoder_values[i];
-    }
-    
-    // 计算每个轮子的位移（米）
-    float wheel_delta[4] = {0};    
-    for(int i = 0; i < 4; i++)
-    {
-        int32_t steps = current_encoder[i] - prev_encoder[i];
-        wheel_delta[i] = (float)steps / ENCODER_COUNTS_PER_M;
-        prev_encoder[i] = current_encoder[i];
-    }
-
-    // 麦轮运动学正解：从轮速到底盘速度
-    // 重新修正麦轮运动学正解，确保与我们定义的坐标系一致
-    // 麦轮坐标系：X轴向前，Y轴向左
-    float delta_x = (-wheel_delta[0] + wheel_delta[1] - wheel_delta[2] + wheel_delta[3]) / 4.0f;
-    float delta_y = (wheel_delta[0] + wheel_delta[1] - wheel_delta[2] - wheel_delta[3]) / 4.0f;    
-    
-    // 将局部位移转换到全局坐标系
-    float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
-    float cos_yaw = cosf(yaw_rad);
-    float sin_yaw = sinf(yaw_rad);
-    
-    // 局部坐标系到全局坐标系的转换
-    // 重新修正旋转矩阵，确保方向一致性
-    float global_dx = delta_x * cos_yaw + delta_y * sin_yaw;
-    float global_dy = delta_x * sin_yaw - delta_y * cos_yaw;
-
-
-    g_current_pos.x = x_position_units/1000.0; // X轴取反，使前进为正
-    g_current_pos.y = y_position_units/1000.0; // Y轴也取反，使左移为正
+    // 当前位置使用 EKF 输出（mm -> m）。注意：EKF 已处理坐标正向，故不再取反
+    g_current_pos.x = x_position_units / 1000.0f;
+    g_current_pos.y = y_position_units / 1000.0f;
     
     // 2. 计算位置误差并控制
     // 计算控制误差
     float error_x = g_target_pos.x - g_current_pos.x;
     float error_y = g_target_pos.y - g_current_pos.y;
     
-    // 使用ADRC控制器计算控制量（全局坐标系）
+    // 在世界坐标系进行 PID（方案1）：
+    // X/Y PID 始终在全局系工作，避免因车体旋转导致的串轴
     float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
     float vy_global = PIDCalculate(&g_pid.y, g_current_pos.y, g_target_pos.y);
     float vyaw_deg = PIDCalculate(&g_pid.yaw, g_current_pos.yaw, g_target_pos.yaw);
@@ -351,7 +352,11 @@ bool Chassis_Control_Loop(void)
     // float vyaw_deg = 0;
     
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
-    // 旋转矩阵公式: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_global; vy_global]
+    // 旋转矩阵: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_world; vy_world]
+    float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
+    float cos_yaw = cosf(yaw_rad);
+    float sin_yaw = sinf(yaw_rad);
+    
     float chassis_vx = vx_global * cos_yaw + vy_global * sin_yaw;
     float chassis_vy = -vx_global * sin_yaw + vy_global * cos_yaw; 
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);

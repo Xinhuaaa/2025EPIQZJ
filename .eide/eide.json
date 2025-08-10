@@ -124,7 +124,8 @@
           "modules/Encoder",
           "modules/data_parser",
           "modules/CDCDataParser",
-          "bsp/key"
+          "bsp/key",
+          "modules/Localization"
         ],
         "libList": [],
         "defineList": [

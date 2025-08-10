@@ -29,12 +29,12 @@
 /* 位置移动宏定义 */
 // 放置点位置宏定义 A-F
 // 路线1 bcdefa
-#define MoveToA1() Chassis_MoveToPosition_Blocking(-0.685, -0.195, -90, 0)
+#define MoveToA1() Chassis_MoveToPosition_Blocking(-0.685, -0.205, -90, 0)
 #define MoveToB1() Chassis_MoveToPosition_Blocking(-0.705,-0.65, 0, 0)
-#define MoveToC1() Chassis_MoveToPosition_Blocking(-0.715,-0.203, 0, 0)
-#define MoveToD1() Chassis_MoveToPosition_Blocking(-0.705,0.239, 0, 0)
-#define MoveToE1() Chassis_MoveToPosition_Blocking(-0.705,0.694, 0, 0)
-#define MoveToF1() Chassis_MoveToPosition_Blocking(-0.685,0.29, -90, 0)
+#define MoveToC1() Chassis_MoveToPosition_Blocking(-0.705,-0.213, 0, 0)
+#define MoveToD1() Chassis_MoveToPosition_Blocking(-0.705,0.229, 0, 0)
+#define MoveToE1() Chassis_MoveToPosition_Blocking(-0.705,0.680, 0, 0)
+#define MoveToF1() Chassis_MoveToPosition_Blocking(-0.675,0.28, -90, 0)
 // -----------------------------------------------
 // #define MoveToA1() Chassis_MoveToPosition_Blocking(-0.685, 0, 0, 0)
 // #define MoveToB1() Chassis_MoveToPosition_Blocking(-0.695,0, 0, 0)

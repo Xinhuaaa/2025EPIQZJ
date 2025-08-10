@@ -19,6 +19,9 @@ extern int32_t y_total_ticks;
 extern int32_t x_total_ticks_shadow;
 extern float x_position_units;
 extern float y_position_units;
+extern float ekf_x_mm;
+extern float ekf_y_mm;
+extern float ekf_theta_rad;
 
 /* Exported functions prototypes ---------------------------------------------*/
 void EncoderInit(void);

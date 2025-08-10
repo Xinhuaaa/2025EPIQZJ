@@ -6,6 +6,7 @@
 #include <stdlib.h> // 添加stdlib.h以使用labs()函数
 #define _USE_MATH_DEFINES
 #include <math.h> // for sinf, cosf functions
+#include "Localization/ekf_localization.h"
 
 // 如果 M_PI 仍然没有定义，手动定义它
 #ifndef M_PI
@@ -25,6 +26,19 @@
 // 如果X轴里程计在车辆中心Y轴正方向偏移（即在中心轴线前方），则为正值
 // 例如：如果X轴里程计在车辆中心前方 30mm 处
 #define X_ODOMETER_Y_OFFSET_MM  0.0f // 请根据实际测量值进行调整！
+
+/* ====================== EKF 噪声调参（x/y 分通道） ====================== */
+// 基线参数（通用场景）
+static const float EKF_QX_K_BASE   = 1.2e-3f; // x 每 mm 位移过程噪声系数
+static const float EKF_QY_K_BASE   = 6.0e-4f; // y 更“紧”，抑制侧漂
+static const float EKF_QX_MIN_BASE = 1.0e-4f;
+static const float EKF_QY_MIN_BASE = 5.0e-5f;
+
+// 沿 x 直行场景（进一步降低 y 的过程噪声）
+static const float EKF_QX_K_XDOM   = 1.5e-3f;
+static const float EKF_QY_K_XDOM   = 3.0e-4f;
+static const float EKF_QX_MIN_XDOM = 1.0e-4f;
+static const float EKF_QY_MIN_XDOM = 3.0e-5f;
 
 /* ====================== 外部全局变量声明 ====================== */
 // 声明陀螺仪的全局角度增量变量
@@ -51,6 +65,11 @@ float delta_y_car_mm = 0.0f; // 车辆在自身Y轴方向的增量位移
 float global_x_pos = 0.0f;
 float global_y_pos = 0.0f;
 float global_angle = 0.0f; // 车辆当前Z轴角度，以弧度表示，从0开始累加
+
+// EKF 导出变量（可供其他模块读取）
+float ekf_x_mm = 0.0f;
+float ekf_y_mm = 0.0f;
+float ekf_theta_rad = 0.0f;
 
 // 导出给其他模块使用的位置变量（单位：毫米）
 float x_position_units = 0.0f;
@@ -81,6 +100,17 @@ void EncoderInit(void)
 
     // 初始化 prev_angle_deg 为当前 Angle 的值，确保第一次计算 delta_angle_rad 为 0
     prev_angle_deg = Angle; 
+
+    // 初始化 EKF（以当前原点为 0,0,0）
+    ekf_init(0.0f, 0.0f, 0.0f);
+    // 可按需调整过程/观测噪声（经验初值）
+    // 平移过程噪声与运动量成正比，角度过程噪声与角速度成正比
+    ekf_set_process_noise(1e-3f, 2e-3f, 1e-4f, 1e-4f);
+    // 启用 x/y 分通道过程噪声（基线）
+    ekf_set_process_noise_xy(EKF_QX_K_BASE, EKF_QY_K_BASE,
+                             EKF_QX_MIN_BASE, EKF_QY_MIN_BASE);
+    // 陀螺仪测量噪声方差（rad^2），数值越小表示越相信陀螺仪角度
+    ekf_set_measurement_noise(0.01f);
 }
 
 /* ====================== 编码器任务实现 ====================== */
@@ -151,29 +181,45 @@ void EncoderTask(void *argument)
         // 且车辆逆时针旋转 (delta_angle_rad > 0) 会导致 Y里程计向正Y方向移动，所以需要从读数中减去
         delta_y_car_mm = ((float)delta_ticks_y / ENCODER_TICKS_PER_UNIT) - (Y_ODOMETER_X_OFFSET_MM * delta_angle_rad);
 
-        /* 更新全局角度 */
-        global_angle += delta_angle_rad;
-
-        // 规范化 global_angle 到 -PI 到 PI 之间 (仍然推荐，防止浮点数溢出和累积误差)
-        if (global_angle > M_PI) {
-            global_angle -= 2 * M_PI;
-        } else if (global_angle < -M_PI) {
-            global_angle += 2 * M_PI;
+        /* 根据运动形态自适应 x/y 噪声：沿 x 直行时，收紧 y 通道噪声 */
+        {
+            float ax = fabsf(delta_x_car_mm);
+            float ay = fabsf(delta_y_car_mm);
+            float ath = fabsf(delta_angle_rad);
+            // 判定“沿 x 直行”：x 位移显著大于 y，且转角很小
+            if (ax > (3.0f * ay) && ath < 0.02f) { // 约 <1.15°
+                ekf_set_process_noise_xy(EKF_QX_K_XDOM, EKF_QY_K_XDOM,
+                                         EKF_QX_MIN_XDOM, EKF_QY_MIN_XDOM);
+            } else {
+                ekf_set_process_noise_xy(EKF_QX_K_BASE, EKF_QY_K_BASE,
+                                         EKF_QX_MIN_BASE, EKF_QY_MIN_BASE);
+            }
         }
 
-        /* 将自身坐标系增量位移转换到全局坐标系并更新全局位姿 */
-        float cos_current_global_angle = cosf(global_angle);
-        float sin_current_global_angle = sinf(global_angle);
+        /* EKF 预测：使用车体坐标系位移与航向增量
+           注意：项目约定“前进时 X 里程计减小”，为与标准机体系一致，这里对 dx 取反 */
+        ekf_predict(-delta_x_car_mm, delta_y_car_mm, delta_angle_rad);
 
-        float delta_x_global = -delta_x_car_mm * cos_current_global_angle - delta_y_car_mm * sin_current_global_angle;
-        float delta_y_global = -delta_x_car_mm * sin_current_global_angle + delta_y_car_mm * cos_current_global_angle;
+        /* EKF 观测：使用陀螺仪角度（将 Angle(度) 转为弧度）*/
+        float yaw_meas_rad = Angle * (M_PI / 180.0f);
+        // 将测量包裹到 [-pi, pi]，避免累积角导致数值过大
+        if (yaw_meas_rad > M_PI || yaw_meas_rad < -M_PI) {
+            float two_pi = 2.0f * (float)M_PI;
+            yaw_meas_rad = fmodf(yaw_meas_rad + (float)M_PI, two_pi);
+            if (yaw_meas_rad < 0) yaw_meas_rad += two_pi;
+            yaw_meas_rad -= (float)M_PI;
+        }
+        ekf_update_yaw(yaw_meas_rad);
 
-        global_x_pos += delta_x_global;
-        global_y_pos += delta_y_global;
+        /* 读取滤波结果并导出 */
+        ekf_get_state(&ekf_x_mm, &ekf_y_mm, &ekf_theta_rad);
 
-        // 更新导出的位置变量
-        x_position_units = global_x_pos;
-        y_position_units = global_y_pos;
+        global_x_pos = ekf_x_mm;
+        global_y_pos = ekf_y_mm;
+        global_angle = ekf_theta_rad;
+
+        x_position_units = ekf_x_mm;
+        y_position_units = ekf_y_mm;
 
         /* 轮询周期 */
         osDelay(6); // 10ms 周期，即 100Hz 更新频率

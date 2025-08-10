@@ -29,9 +29,9 @@
 #include "CDCDataParser.h"
 #include "Robot_task.h"
 #include "bsp_key.h"
-uint8_t grabSequence[6] = {5, 6, 4, 2, 1, 3}; // 6个抓取顺序
+uint8_t grabSequence[6] = {1, 6, 4, 2, 5, 3}; // 6个抓取顺序
 uint8_t specialBox = 1;                       // 特殊货箱号
-uint8_t spareStack = 2;                       // 轮空纸垛
+uint8_t spareStack = 1;                       // 轮空纸垛
 char usbData[64] = {0};                       // USB接收数据缓冲区
 
 int Robot_Init(void)
@@ -99,12 +99,7 @@ void Robot_task(void *argument)
     runActionGroup(6, 1);
 
     // 抓取阶段
-    MoveToCenter();
-    MoveToCenter();
-    MoveToCenter();
-    MoveToCenter();
-    MoveToCenter();
-    MoveToCenter();
+
     for (int x = 0; x < 6; x++)
     {
         // 确定下一个箱子编号
@@ -181,8 +176,6 @@ void Robot_task(void *argument)
         }
         vTaskDelay(500);
     }
-    Chassis_MoveToY_Blocking(0, 0);
-    Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
     //  放置阶段
     //     placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = specialBox;
@@ -258,7 +251,7 @@ void Robot_task(void *argument)
             if (i == 3)
             {
                 Lift_To_PUTspecialUUP();
-                Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
+                Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 4500);
             }
         }
 
@@ -316,9 +309,9 @@ void Robot_task(void *argument)
     }
     osDelay(2500); // 等待放置完成
     Lift_To_PUTspecialUUP();
-    Chassis_MoveToX_Blocking(1.6, 0);
-    Chassis_MoveToPosition_Blocking(0, 0.0, 0, 0);
-
+    Chassis_SetXPIDParams(0.83f,0.01f,0.0f );
+    Chassis_MoveToPosition_Blocking(0, 0.0, 0, 30000);
+    lift_status.target_displacement = 12;
     while (1)
     {
         osDelay(1000);

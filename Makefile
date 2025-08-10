@@ -88,7 +88,8 @@ Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.c \
 Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Src/usbd_cdc.c \
 Src/sysmem.c \
 Src/syscalls.c \
-Src/tim.c
+Src/tim.c \
+modules/Localization/ekf_localization.c
 
 # ASM sources
 ASM_SOURCES =  \
@@ -159,6 +160,8 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
 -IDrivers/CMSIS/Include
+ \
+ -Imodules/Localization
 
 
 # compile gcc flags

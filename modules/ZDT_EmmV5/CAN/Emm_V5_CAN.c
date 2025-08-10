@@ -6,7 +6,7 @@
 #include "stdbool.h"
 #include "bsp_dwt.h"  
 
-#define CAN_SEND_DELAY_MS   3
+#define CAN_SEND_DELAY_MS   2
 #define CAN_TX_TIMEOUT_MS   10.0f
 #define MOTOR_LF_ID 5  // 左前轮ID
 #define MOTOR_RF_ID 6  // 右前轮ID
@@ -589,9 +589,8 @@ int32_t Emm_V5_CAN_Read_Encoder(uint8_t addr)
     
     // 发送读取编码器命令
     Emm_V5_CAN_Read_Sys_Params(addr, S_ENCL);
-    
-    // 等待接收到响应，最多等待50ms
-    uint32_t wait_result = osEventFlagsWait(target->rx_event, 0x01, osFlagsWaitAny, 50);
+    // 等待接收到响应，最多等待100ms
+    uint32_t wait_result = osEventFlagsWait(target->rx_event, 0x01, osFlagsWaitAny, 100);
     if (wait_result == osFlagsErrorTimeout) {
 #if CAN_CMD_LOG_LEVEL >= 1
         LOGERROR("[CAN] 电机地址0x%02X 读取编码器超时", addr);
@@ -688,7 +687,7 @@ bool Emm_V5_CAN_Get_All_Encoders(int32_t *encoders)
     if (!all_success) {
         retry_count++;
         if (retry_count > 3) {
-            osDelay(1);  // 短暂延时，避免过于频繁的重试
+            osDelay(4);  // 短暂延时，避免过于频繁的重试
             retry_count = 0;
         }
     }
