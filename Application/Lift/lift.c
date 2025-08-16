@@ -57,19 +57,19 @@ int Lift_Init(void)
         .motor_type = M2006,
         .controller_param_init_config = {
             .angle_PID = {
-                .Kp = 8.0f, 
-                .Ki = 0.3f, 
+                .Kp = 8.6f, 
+                .Ki = 0.0f, 
                 .Kd = 0.0f, 
-                .MaxOut = 30000.0f, 
+                .MaxOut = 45000.0f, 
                 .DeadBand = 1.0f, 
-                .Improve = PID_Integral_Limit | PID_DerivativeFilter, 
+                .Improve =  PID_DerivativeFilter, 
                 .IntegralLimit = 10.0f, 
                 .Derivative_LPF_RC = 0.01f
             }, 
             .speed_PID = {
-                .Kp = 0.28f, 
-                .Ki = 0.01f, 
-                .Kd = 0.0f, 
+                .Kp = 0.68f, 
+                .Ki = 0.03f, 
+                .Kd = 0.01f, 
                 .MaxOut = 30000.0f, 
                 .DeadBand = 0.5f, 
                 .Improve = PID_Integral_Limit, 
@@ -106,41 +106,41 @@ int Lift_Init(void)
         {
             // 设置速度PID参数
             m2006_config.controller_param_init_config.speed_PID.Kp = 0.7f;
-            m2006_config.controller_param_init_config.speed_PID.Ki = 0.01f;
-            m2006_config.controller_param_init_config.speed_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.speed_PID.Ki = 0.03f;
+            m2006_config.controller_param_init_config.speed_PID.Kd = 0.01f;
             m2006_config.controller_param_init_config.speed_PID.MaxOut = 30000.0f;
             m2006_config.controller_param_init_config.speed_PID.DeadBand = 0.5f;
             m2006_config.controller_param_init_config.speed_PID.Improve = PID_Integral_Limit;
             m2006_config.controller_param_init_config.speed_PID.IntegralLimit = 3000.0f;
             
             // 设置角度PID参数
-            m2006_config.controller_param_init_config.angle_PID.Kp = 10.0f;
-            m2006_config.controller_param_init_config.angle_PID.Ki = 0.3f;
+            m2006_config.controller_param_init_config.angle_PID.Kp = 8.6f;
+            m2006_config.controller_param_init_config.angle_PID.Ki = 0.0f;
             m2006_config.controller_param_init_config.angle_PID.Kd = 0.0f;
-            m2006_config.controller_param_init_config.angle_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.angle_PID.MaxOut = 45000.0f;
             m2006_config.controller_param_init_config.angle_PID.DeadBand = 1.0f;
-            m2006_config.controller_param_init_config.angle_PID.Improve = PID_Integral_Limit | PID_DerivativeFilter;
+            m2006_config.controller_param_init_config.angle_PID.Improve =  PID_DerivativeFilter;
             m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
             m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
         }
         if(i == 1) // ID 2的电机 (数组索引1)
         {
             // 设置速度PID参数
-            m2006_config.controller_param_init_config.speed_PID.Kp = 0.8f;
-            m2006_config.controller_param_init_config.speed_PID.Ki = 0.01f;
-            m2006_config.controller_param_init_config.speed_PID.Kd = 0.0f;
+            m2006_config.controller_param_init_config.speed_PID.Kp = 0.80f;
+            m2006_config.controller_param_init_config.speed_PID.Ki = 0.03f;
+            m2006_config.controller_param_init_config.speed_PID.Kd = 0.01f;
             m2006_config.controller_param_init_config.speed_PID.MaxOut = 30000.0f;
             m2006_config.controller_param_init_config.speed_PID.DeadBand = 0.5f;
             m2006_config.controller_param_init_config.speed_PID.Improve = PID_Integral_Limit;
             m2006_config.controller_param_init_config.speed_PID.IntegralLimit = 3000.0f;
             
             // 设置角度PID参数
-            m2006_config.controller_param_init_config.angle_PID.Kp = 10.0f;
-            m2006_config.controller_param_init_config.angle_PID.Ki = 0.3f;
+            m2006_config.controller_param_init_config.angle_PID.Kp = 8.6f;
+            m2006_config.controller_param_init_config.angle_PID.Ki = 0.0f;
             m2006_config.controller_param_init_config.angle_PID.Kd = 0.0f;
-            m2006_config.controller_param_init_config.angle_PID.MaxOut = 30000.0f;
+            m2006_config.controller_param_init_config.angle_PID.MaxOut = 45000.0f;
             m2006_config.controller_param_init_config.angle_PID.DeadBand = 1.0f;
-            m2006_config.controller_param_init_config.angle_PID.Improve = PID_Integral_Limit | PID_DerivativeFilter;
+            m2006_config.controller_param_init_config.angle_PID.Improve = PID_DerivativeFilter;
             m2006_config.controller_param_init_config.angle_PID.IntegralLimit = 10.0f;
             m2006_config.controller_param_init_config.angle_PID.Derivative_LPF_RC = 0.01f;
         }

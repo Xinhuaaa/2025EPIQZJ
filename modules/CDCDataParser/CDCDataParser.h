@@ -29,4 +29,14 @@
  */
 int parseUsbData(char* usbData, uint8_t* grabSequence, uint8_t* specialBox, uint8_t* route);
 
+/**
+ * @brief 解析偏置调节命令，格式示例：x+0.30/y-0.10/yaw-1.5
+ * 支持空白和正负号，单位：x,y（米），yaw（度）。不完全匹配则返回 -1，不修改输出。
+ * @param str 输入字符串（以'\0'结束）
+ * @param dx  若成功解析赋值 x 偏置（相对值累加或绝对覆盖由上层决定，此函数只解析数值）
+ * @param dy  若成功解析赋值 y 偏置
+ * @param dyaw 若成功解析赋值 yaw 偏置
+ * @return 0 成功；-1 失败/格式不匹配
+ */
+int parseOffsetCommand_raw(const char *buf, size_t len, float *dx, float *dy, float *dyaw);
 #endif /* __DATA_PARSER_H */

@@ -5,17 +5,17 @@ GraphedExpression="((g_pid).x).Err", Color=#a00909
 GraphedExpression="(g_current_pos).x", Color=#09a01b
 GraphedExpression="(g_current_pos).y", Color=#09a087
 GraphedExpression="(g_current_pos).yaw", Color=#0984a0
-OpenDocument="main.c", FilePath="c:/Users/Xinke/TKX/Src/main.c", Line=63
-OpenDocument="Robot_task.c", FilePath="c:/Users/Xinke/TKX/Application/Robot_task.c", Line=208
+OpenDocument="main.c", FilePath="c:/Users/Xinke/TKX/Src/main.c", Line=56
+OpenDocument="Robot_task.c", FilePath="c:/Users/Xinke/TKX/Application/Robot_task.c", Line=236
 OpenDocument="stm32f4xx_hal_uart.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.c", Line=0
-OpenDocument="bsp_dwt.c", FilePath="c:/Users/Xinke/TKX/bsp/dwt/bsp_dwt.c", Line=97
+OpenDocument="bsp_dwt.c", FilePath="c:/Users/Xinke/TKX/bsp/dwt/bsp_dwt.c", Line=69
 OpenDocument="Encoder.c", FilePath="c:/Users/Xinke/TKX/modules/Encoder/Encoder.c", Line=0
 OpenDocument="Crawl.c", FilePath="c:/Users/Xinke/TKX/Application/Crawl/Crawl.c", Line=0
-OpenDocument="chassis.c", FilePath="c:/Users/Xinke/TKX/Application/Chassis/chassis.c", Line=285
+OpenDocument="chassis.c", FilePath="c:/Users/Xinke/TKX/Application/Chassis/chassis.c", Line=49
 OpenDocument="queue.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/queue.c", Line=0
 OpenDocument="cmsis_os2.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c", Line=868
-OpenDocument="stm32f4xx_it.c", FilePath="c:/Users/Xinke/TKX/Src/stm32f4xx_it.c", Line=68
-OpenDocument="startup_stm32f407xx.s", FilePath="c:/Users/Xinke/TKX/startup_stm32f407xx.s", Line=51
+OpenDocument="stm32f4xx_it.c", FilePath="c:/Users/Xinke/TKX/Src/stm32f4xx_it.c", Line=88
+OpenDocument="startup_stm32f407xx.s", FilePath="c:/Users/Xinke/TKX/startup_stm32f407xx.s", Line=44
 OpenDocument="bsp_can.c", FilePath="c:/Users/Xinke/TKX/bsp/can/bsp_can.c", Line=0
 OpenDocument="port.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.c", Line=405
 OpenDocument="tasks.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/FreeRTOS/Source/tasks.c", Line=3633
@@ -28,21 +28,21 @@ OpenDocument="timers.c", FilePath="c:/Users/Xinke/TKX/Middlewares/Third_Party/Fr
 OpenDocument="stm32f4xx_hal_dma.c", FilePath="c:/Users/Xinke/TKX/Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.c", Line=0
 OpenDocument="freertos.c", FilePath="c:/Users/Xinke/TKX/Src/freertos.c", Line=79
 OpenToolbar="Debug", Floating=0, x=0, y=0
-OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=0, w=523, h=150, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Global Data", DockArea=RIGHT, x=0, y=1, w=523, h=387, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Local Data", DockArea=RIGHT, x=0, y=2, w=523, h=218, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=591, h=282, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
-OpenWindow="Code Profile", DockArea=LEFT, x=0, y=3, w=591, h=170, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, GroupByFiles=0, SortRespectsFilters=0, ParentRelativeLoad=0
+OpenWindow="Disassembly", DockArea=RIGHT, x=0, y=1, w=523, h=276, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Global Data", DockArea=RIGHT, x=0, y=2, w=523, h=285, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Local Data", DockArea=RIGHT, x=0, y=0, w=523, h=733, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Watched Data 1", DockArea=LEFT, x=0, y=0, w=591, h=741, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0
+OpenWindow="Code Profile", DockArea=LEFT, x=0, y=3, w=591, h=250, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, GroupByFiles=0, SortRespectsFilters=0, ParentRelativeLoad=0
 OpenWindow="Data Sampling", DockArea=LEFT, x=0, y=1, w=591, h=152, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=0, VisibleTab=0, UniformSampleSpacing=0
-OpenWindow="Timeline", DockArea=LEFT, x=0, y=2, w=591, h=150, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="100 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="20;-91", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="364;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="379;0"
+OpenWindow="Timeline", DockArea=LEFT, x=0, y=2, w=591, h=150, FilterBarShown=0, TotalValueBarShown=0, ToolBarShown=1, DataPaneShown=1, PowerPaneShown=0, CodePaneShown=0, PinCursor="Cursor Movable", TimePerDiv="100 s / Div", TimeStampFormat="Time", DataGraphDrawAsPoints=0, DataGraphLegendShown=1, DataGraphUniformSampleSpacing=0, DataGraphLegendPosition="20;-91", PowerGraphDrawAsPoints=0, PowerGraphLegendShown=0, PowerGraphAvgFilterTime=Off, PowerGraphAvgFilterLen=Off, PowerGraphUniformSampleSpacing=0, PowerGraphLegendPosition="364;-69", CodeGraphLegendShown=0, CodeGraphLegendPosition="380;0"
 TableHeader="Global Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[311;209;102;100;100;100]
 TableHeader="Local Data", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Location";"Size";"Type";"Scope"], ColWidths=[195;100;102;100;100;100]
 TableHeader="Code Profile", SortCol="File / Function", SortOrder="ASCENDING", VisibleCols=["File / Function";"Source Coverage";"Inst. Coverage";"Run Count";"Fetch Count";"Load"], ColWidths=[1655;158;174;110;126;104]
 TableHeader="Data Sampling Table", SortCol="None", SortOrder="ASCENDING", VisibleCols=["Index";"Time";" ((g_pid).x).Err";" (g_current_pos).x";" (g_current_pos).y";" (g_current_pos).yaw"], ColWidths=[100;100;100;100;100;100]
-TableHeader="Data Sampling Setup", SortCol="Value", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;100;100;100;100;110;126;126]
+TableHeader="Data Sampling Setup", SortCol="Value", SortOrder="ASCENDING", VisibleCols=["Expression";"Type";"Value";"Min";"Max";"Average";"# Changes";"Min. Change";"Max. Change"], ColWidths=[430;100;164;164;154;164;110;164;154]
 TableHeader="Power Sampling", SortCol="Index", SortOrder="ASCENDING", VisibleCols=["Index";"Time";"Ch 0"], ColWidths=[100;100;100]
-TableHeader="Task List", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State";"Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[110;110;110;110;110;110;110;110;110;110;100;100;100;100;100;100;100;100;100;100]
-TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;254;134]
+TableHeader="Task List", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Run Count";"Priority";"Status";"Timeout";"Stack Info (Free / Size)";"ID";"Mutex Count";"Notified Value";"Notify State"], ColWidths=[110;110;110;110;110;110;110;110;110;110]
+TableHeader="Watched Data 1", SortCol="Expression", SortOrder="ASCENDING", VisibleCols=["Expression";"Value";"Location"], ColWidths=[201;336;134]
 TableHeader="RegisterSelectionDialog", SortCol="None", SortOrder="ASCENDING", VisibleCols=[], ColWidths=[]
 TableHeader="TargetExceptionDialog", SortCol="Name", SortOrder="ASCENDING", VisibleCols=["Name";"Value";"Address";"Description"], ColWidths=[200;100;100;340]
 WatchedExpression="5", Window=Watched Data 1
@@ -78,3 +78,7 @@ WatchedExpression="specialBox", Window=Watched Data 1
 WatchedExpression="route", Window=Watched Data 1
 WatchedExpression="prev_x_hw_count", Window=Watched Data 1
 WatchedExpression="prev_y_hw_count", Window=Watched Data 1
+WatchedExpression="ErrX", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="ErrY", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="ErrYaw", RefreshRate=1, Window=Watched Data 1
+WatchedExpression="USB_RxLen", Window=Watched Data 1

@@ -15,13 +15,19 @@
 
 #include "main.h"
 #include "chassis.h"
+
+// 位置误差（偏置/在线修正量），通过 CDC 指令动态更新：x+.../y.../yaw...
+extern float ErrX;   // 单位与底盘接口一致（米）
+extern float ErrY;   // 单位与底盘接口一致（米）
+extern float ErrYaw; // 单位：度（与现有 Chassis_MoveToPosition_Blocking 第三个参数一致）
+
 // 抓取位置宏定义
-#define MoveToLeft() Chassis_MoveToPosition_Blocking(1.60, 0.5, 0, 6000)
-#define MoveToCenter() Chassis_MoveToPosition_Blocking(1.60, 0, 0, 6000)
-#define MoveToRight() Chassis_MoveToPosition_Blocking(1.60, -0.50, 0, 6000)
-#define STARTMoveToLeft() Chassis_MoveToPosition_Blocking(1.60, 0.5, 0, 60000)
-#define STARTMoveToCenter() Chassis_MoveToPosition_Blocking(1.60, 0, 0, 60000)
-#define STARTMoveToRight() Chassis_MoveToPosition_Blocking(1.60, -0.50, 0, 60000)
+#define MoveToLeft()       Chassis_MoveToPosition_Blocking((1.60f + ErrX), (0.50f + ErrY), (0.0f + ErrYaw), 7000)
+#define MoveToCenter()     Chassis_MoveToPosition_Blocking((1.60f + ErrX), (0.00f + ErrY), (0.0f + ErrYaw), 7000)
+#define MoveToRight()      Chassis_MoveToPosition_Blocking((1.60f + ErrX), (-0.50f + ErrY), (0.0f + ErrYaw), 7000)
+#define STARTMoveToLeft()  Chassis_MoveToPosition_Blocking((1.60f + ErrX), (0.50f + ErrY), (0.0f + ErrYaw), 0)
+#define STARTMoveToCenter() Chassis_MoveToPosition_Blocking((1.60f + ErrX), (0.00f + ErrY), (0.0f + ErrYaw), 0)
+#define STARTMoveToRight() Chassis_MoveToPosition_Blocking((1.60f + ErrX), (-0.50f + ErrY), (0.0f + ErrYaw), 0)
 // -----------------------------------------------
 // #define MoveToLeft() Chassis_MoveToPosition_Blocking(1.60, 0, 0, 6000)
 // #define MoveToCenter() Chassis_MoveToPosition_Blocking(1.60, 0, 0, 6000)
@@ -29,12 +35,18 @@
 /* 位置移动宏定义 */
 // 放置点位置宏定义 A-F
 // 路线1 bcdefa
-#define MoveToA1() Chassis_MoveToPosition_Blocking(-0.685, -0.205, -90, 0)
-#define MoveToB1() Chassis_MoveToPosition_Blocking(-0.705,-0.65, 0, 0)
-#define MoveToC1() Chassis_MoveToPosition_Blocking(-0.705,-0.213, 0, 0)
-#define MoveToD1() Chassis_MoveToPosition_Blocking(-0.705,0.229, 0, 0)
-#define MoveToE1() Chassis_MoveToPosition_Blocking(-0.705,0.680, 0, 0)
-#define MoveToF1() Chassis_MoveToPosition_Blocking(-0.675,0.28, -90, 0)
+#define MoveToA1() Chassis_MoveToPosition_Blocking((-0.685f + ErrX), (-0.205f + ErrY), (-90.0f + ErrYaw), 0)
+#define MoveToB1() Chassis_MoveToPosition_Blocking((-0.705f + ErrX), (-0.650f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToC1() Chassis_MoveToPosition_Blocking((-0.700f + ErrX), (-0.203f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToD1() Chassis_MoveToPosition_Blocking((-0.695f + ErrX), (0.239f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToE1() Chassis_MoveToPosition_Blocking((-0.690f + ErrX), (0.690f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToF1() Chassis_MoveToPosition_Blocking((-0.675f + ErrX), (0.280f + ErrY), (-90.0f + ErrYaw), 0)
+// #define MoveToA1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
+// #define MoveToB1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
+// #define MoveToC1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
+// #define MoveToD1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
+// #define MoveToE1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
+// #define MoveToF1() Chassis_MoveToPosition_Blocking((0.0f + ErrX), (0.0f + ErrY), (0.0f + ErrYaw), 0)
 // -----------------------------------------------
 // #define MoveToA1() Chassis_MoveToPosition_Blocking(-0.685, 0, 0, 0)
 // #define MoveToB1() Chassis_MoveToPosition_Blocking(-0.695,0, 0, 0)
@@ -43,12 +55,12 @@
 // #define MoveToE1() Chassis_MoveToPosition_Blocking(-0.70,0, 0, 0)
 // #define MoveToF1() Chassis_MoveToPosition_Blocking(-0.685,0, 0, 0)
 // 路线0 edcba
-#define MoveToA0() Chassis_MoveToPosition_Blocking(-0.675, -0.188, -90, 0)
-#define MoveToB0() Chassis_MoveToPosition_Blocking(-0.70,-0.687, 0, 0)
-#define MoveToC0() Chassis_MoveToPosition_Blocking(-0.70,-0.20, 0, 0)
-#define MoveToD0() Chassis_MoveToPosition_Blocking(-0.70,0.235, 0, 0)
-#define MoveToE0() Chassis_MoveToPosition_Blocking(-0.70,0.695, 0, 0)
-#define MoveToF0() Chassis_MoveToPosition_Blocking(-0.69,0.3, -90, 0)
+#define MoveToA0() Chassis_MoveToPosition_Blocking((-0.675f + ErrX), (-0.188f + ErrY), (-90.0f + ErrYaw), 0)
+#define MoveToB0() Chassis_MoveToPosition_Blocking((-0.700f + ErrX), (-0.687f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToC0() Chassis_MoveToPosition_Blocking((-0.700f + ErrX), (-0.200f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToD0() Chassis_MoveToPosition_Blocking((-0.700f + ErrX), (0.235f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToE0() Chassis_MoveToPosition_Blocking((-0.700f + ErrX), (0.695f + ErrY), (0.0f + ErrYaw), 0)
+#define MoveToF0() Chassis_MoveToPosition_Blocking((-0.690f + ErrX), (0.300f + ErrY), (-90.0f + ErrYaw), 0)
 // 抓取位置宏定义
 // #define MoveToLeft() Chassis_MoveToPosition_Blocking(0, 0, 0, 0)
 // #define MoveToCenter() Chassis_MoveToPosition_Blocking(0, 0, 0, 0)

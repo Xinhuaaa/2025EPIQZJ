@@ -52,7 +52,7 @@
 osThreadId_t robotTaskHandle;
 const osThreadAttr_t robotTask_attributes = {
   .name = "robotTask",
-  .stack_size = 256 * 4,  /* 根据任务需求可调整栈大小 */
+  .stack_size = 256 * 8,  /* 根据任务需求可调整栈大小 */
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE END Variables */

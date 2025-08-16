@@ -24,7 +24,7 @@ static float Q_min_x = 1e-4f;
 static float Q_min_y = 1e-4f;
 
 // 观测噪声（只观测 theta）
-static float R_yaw = 0.001f; // rad^2，可按陀螺仪稳定性调参
+static float R_yaw = 0.01f; // rad^2，可按陀螺仪稳定性调参
 
 static float wrap_pi(float a){
     while(a > (float)M_PI) a -= 2.0f*(float)M_PI;

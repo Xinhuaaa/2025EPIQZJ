@@ -19,6 +19,16 @@
 
 #define HWT101_ANGLE_RANGE     360.0f  // HWT101角度传感器范围
 
+/* 类型定义 */
+typedef struct {
+    float x;      // X坐标，单位米
+    float y;      // Y坐标，单位米
+    float yaw;    // 偏航角，单位度，范围[-180, 180]
+} ChassisState_t;
+
+/* 外部变量声明 */
+extern ChassisState_t g_target_pos; // 目标位置
+
 /**
   * @brief  底盘初始化
   * @note   初始化底盘控制所需的各项参数和组件，并启动底盘控制任务

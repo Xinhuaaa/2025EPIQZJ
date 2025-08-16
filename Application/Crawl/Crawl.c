@@ -18,7 +18,7 @@
 #include "Robot_task.h"
 
 #define CRAWL_SPEED 1200
-#define CRAWL_ACC 248
+#define CRAWL_ACC 250
 #define CRAWL_STEPPER_LEFT_ID 1
 #define CRAWL_STEPPER_RIGHT_ID 2
 
@@ -72,8 +72,6 @@ void CrawlTask(void *argument)
         osDelay(10);
         Emm_V5_Pos_Control(2, 0, 600, 0, num, 1, 0);
         osDelay(2000);
-
-        osDelay(100); // 适当的延时
     }
 }
 //     runActionGroup(2,1);
@@ -584,16 +582,15 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
         Emm_V5_Pos_Control(1, 0, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
-        osDelay(750);
+        osDelay(850);
         Lift_To_HighB();
         Emm_V5_Pos_Control(1, 0, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
-        osDelay(1800); // 最优
+        osDelay(1600); // 最优
         // 舵机抓取
         runActionGroup(4, 1);
         Lift_To_HighBMove();
-        osDelay(800);
     }
     else if (box_number >= 4 && box_number <= 6)
     {
@@ -608,7 +605,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
         osDelay(50);
         Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
         // 升高到第一层抓取高度
-        osDelay(1800);
+        osDelay(1000);
         Lift_To_HighA();
         runActionGroup(4, 1);
         osDelay(100);
@@ -649,8 +646,10 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                 break;
             }
         }
-        osDelay(2000); // 剩余延时
+        osDelay(600);
         Lift_To_High1();
+        osDelay(1600); // 剩余延时
+        
         break;
 
     case 1:
@@ -679,8 +678,8 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                 break;
             }
         }
-        osDelay(2000); // 剩余延时
         Lift_To_High1();
+        osDelay(1600); // 剩余延时
         break;
 
     case 2:
@@ -709,8 +708,9 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                 break;
             }
         }
-        osDelay(2000); // 剩余延时
         Lift_To_High1();
+        osDelay(1600); // 剩余延时
+        
         break;
 
     case 3:
@@ -801,7 +801,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                 break;
             }
         }
-        osDelay(2000); // 剩余延时
+        osDelay(1800); // 剩余延时
         break;
 
     case 5:
@@ -809,15 +809,15 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
-        osDelay(550);
+        osDelay(800);
         Lift_To_High2();
         target_position = 18000;
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
+        osDelay(1050);
 
         // 最后一个箱子，不需要移动底盘
-        osDelay(2000); // 剩余延时
         break;
 
     default:
@@ -883,7 +883,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         case 1:
         case 4:
@@ -894,7 +894,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         case 2:
         case 5:
@@ -905,7 +905,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         default:
             grab_position = 0;
@@ -914,7 +914,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         }
 
@@ -958,7 +958,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         case 1:
         case 4:
@@ -969,7 +969,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(1000);
+            osDelay(600);
             break;
         case 2:
         case 5:
@@ -980,7 +980,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, direction2, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
-            osDelay(2000);
+            osDelay(1400);
             break;
         default:
             grab_position = 0;
@@ -1025,11 +1025,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, 0, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
-            osDelay(2500);
+            osDelay(2300);
             Lift_To_PUTspecialDown();
             runActionGroup(3, 1);
             runActionGroup(6, 1);
-            osDelay(1000);
             Lift_To_PUTspecialUUP();
         }
         else
@@ -1038,11 +1037,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, 0, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 17400, 1, 0);
-            osDelay(2500);
+            osDelay(2100);
             Lift_To_PUTDown();
             runActionGroup(3, 1); // 使用反向舵机组放置
             runActionGroup(6, 1);
-            osDelay(1000);
             Lift_To_PUTspecialUUP();
         }
     }
@@ -1056,11 +1054,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, 49100, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, 49100, 1, 0);
-            osDelay(2000);
+            osDelay(1600);
             Lift_To_PUTspecialDown();
             runActionGroup(3, 1);
             runActionGroup(2, 1);
-            osDelay(1000);
         }
         else
         {
@@ -1068,11 +1065,10 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
             Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, 49100, 1, 0);
             osDelay(10);
             Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, 49100, 1, 0);
-            osDelay(2500);
+            osDelay(2300);
             Lift_To_PUTDown();
             runActionGroup(3, 1);
             runActionGroup(2, 1);
-            osDelay(1000);
         }
 
         // 舵机放置（松开爪子）
@@ -1087,11 +1083,9 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         Emm_V5_Pos_Control(1, 0, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
         osDelay(10);
         Emm_V5_Pos_Control(2, 1, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
-        osDelay(800);
     }
     else
     {
-        osDelay(800);
     }
 
     // 清除忙碌状态

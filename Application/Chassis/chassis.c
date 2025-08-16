@@ -46,7 +46,7 @@ extern float y_position_units;  // 外部Y位置，单位mm
 
 /* 控制参数 */
 #define POSITION_TOLERANCE_XY 0.015f   // 位置允差，单位m
-#define POSITION_TOLERANCE_YAW 0.5f   // 角度允差，单位度
+#define POSITION_TOLERANCE_YAW 0.07f   // 角度允差，单位度
 #define CHASSIS_TASK_PERIOD   12      // 控制周期，单位ms
 #define ENCODER_TASK_PERIOD  10  // 5ms周期，比底盘控制任务更快
 
@@ -59,12 +59,6 @@ extern float y_position_units;  // 外部Y位置，单位mm
 
 int32_t current_encoder[4] = {0};  // 改为int32_t类型以存储累积编码器值
 float wheel_speed[4] = {0};
-/* 类型定义 */
-typedef struct {
-    float x;      // X坐标，单位米
-    float y;      // Y坐标，单位米
-    float yaw;    // 偏航角，单位度，范围[-180, 180]
-} ChassisState_t;
 
 typedef struct {
     PIDInstance    x;      // X方向PID控制器
@@ -81,7 +75,7 @@ typedef struct {
 
 /* 全局变量 */
 static ChassisState_t  g_current_pos = {0};     // 当前位置
-static ChassisState_t  g_target_pos = {0};      // 目标位置
+ChassisState_t  g_target_pos = {0};              // 目标位置 (移除static以便外部访问)
 static ChassisPID_t    g_pid = {0};             // PID控制器（保留用于兼容）
 static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
 static volatile int32_t g_encoder_values[4] = {0}; // 编码器累积值，由编码器任务更新
@@ -121,7 +115,7 @@ void Chassis_Init(void)
         .Ki = 0.001f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.3f,           // 最大速度0.5m/s
-        .DeadBand = 0.01f,        // 1cm死区
+        .DeadBand = 0.00f,        // 1cm死区
         .Improve = PID_SCurve_Acceleration,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
@@ -133,11 +127,11 @@ void Chassis_Init(void)
         .Ki = 0.01f,              // 积分系数
         .Kd = 0.000f,               // 微分系数
         .MaxOut = 1.0f,           // 最大速度0.5m/s
-        .DeadBand = 0.01f,        // 1cm死区
+        .DeadBand = 0.00f,        // 1cm死区
         .Improve =  PID_SCurve_Acceleration,
         .IntegralLimit = 0.35f,    // 积分限幅
         .Output_LPF_RC = 0.0f,     // 低通滤波常数
-        .MaxAccel = 3.0f,
+        .MaxAccel = 2.5f,
         .MaxJerk = 1.0f,
     };
     PIDInit(&g_pid.x, &pid_config_x);
@@ -341,7 +335,6 @@ bool Chassis_Control_Loop(void)
     // 计算控制误差
     float error_x = g_target_pos.x - g_current_pos.x;
     float error_y = g_target_pos.y - g_current_pos.y;
-    
     // 在世界坐标系进行 PID（方案1）：
     // X/Y PID 始终在全局系工作，避免因车体旋转导致的串轴
     float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
@@ -350,15 +343,18 @@ bool Chassis_Control_Loop(void)
     // float vx_global = PIDCalculate(&g_pid.x, g_current_pos.x, g_target_pos.x);
     // float vy_global = 0;
     // float vyaw_deg = 0;
-    
+   
     // 3. 将全局坐标系速度转换到底盘局部坐标系进行轮速计算
     // 旋转矩阵: [cos(θ) sin(θ); -sin(θ) cos(θ)] * [vx_world; vy_world]
     float yaw_rad = DEG_TO_RAD(g_current_pos.yaw);
     float cos_yaw = cosf(yaw_rad);
     float sin_yaw = sinf(yaw_rad);
+
     
     float chassis_vx = vx_global * cos_yaw + vy_global * sin_yaw;
     float chassis_vy = -vx_global * sin_yaw + vy_global * cos_yaw; 
+
+    
     float vyaw_rad = DEG_TO_RAD(vyaw_deg);
 
     for (int i = 0; i < 4; i++) {
@@ -548,7 +544,7 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
     Chassis_SetTargetPosition(x, y, yaw);
     
     // 用于计算超时的变量
-    float start_time = DWT_GetTimeline_ms();
+    TickType_t start_tick = xTaskGetTickCount();
     bool has_timeout = (timeout_ms > 0);
     bool is_timeout = false;
     
@@ -575,8 +571,9 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
         
         // 检查是否超时
         if (has_timeout) {
-            float elapsed = DWT_GetTimeline_ms() - start_time;
-            if (elapsed > (float)timeout_ms) {
+            TickType_t elapsed_ticks = xTaskGetTickCount() - start_tick;
+            uint32_t elapsed_ms = elapsed_ticks * portTICK_PERIOD_MS;
+            if (elapsed_ms > timeout_ms) {
                 is_timeout = true;
                 break;  // 超时，退出循环
             }
@@ -585,6 +582,8 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
         // 短暂延时，避免过多CPU占用
         osDelay(100);  // 100ms延时，可根据需要调整
     }
+    
+    return !is_timeout;  // 如果不是因为超时退出，则返回成功
 }
 bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
 {
@@ -592,7 +591,7 @@ bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
     g_target_pos.y = y;
     
     // 用于计算超时的变量
-    float start_time = DWT_GetTimeline_ms();
+    TickType_t start_tick = xTaskGetTickCount();
     bool has_timeout = (timeout_ms > 0);
     bool is_timeout = false;
     
@@ -619,8 +618,9 @@ bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
         
         // 检查是否超时
         if (has_timeout) {
-            float elapsed = DWT_GetTimeline_ms() - start_time;
-            if (elapsed > (float)timeout_ms) {
+            TickType_t elapsed_ticks = xTaskGetTickCount() - start_tick;
+            uint32_t elapsed_ms = elapsed_ticks * portTICK_PERIOD_MS;
+            if (elapsed_ms > timeout_ms) {
                 is_timeout = true;
                 break;  // 超时，退出循环
             }
@@ -639,7 +639,7 @@ bool Chassis_MoveToX_Blocking(float x, uint32_t timeout_ms)
     g_target_pos.x = x;
     
     // 用于计算超时的变量
-    float start_time = DWT_GetTimeline_ms();
+    TickType_t start_tick = xTaskGetTickCount();
     bool has_timeout = (timeout_ms > 0);
     bool is_timeout = false;
     
@@ -666,8 +666,9 @@ bool Chassis_MoveToX_Blocking(float x, uint32_t timeout_ms)
         
         // 检查是否超时
         if (has_timeout) {
-            float elapsed = DWT_GetTimeline_ms() - start_time;
-            if (elapsed > (float)timeout_ms) {
+            TickType_t elapsed_ticks = xTaskGetTickCount() - start_tick;
+            uint32_t elapsed_ms = elapsed_ticks * portTICK_PERIOD_MS;
+            if (elapsed_ms > timeout_ms) {
                 is_timeout = true;
                 break;  // 超时，退出循环
             }
