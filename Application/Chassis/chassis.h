@@ -27,7 +27,12 @@ typedef struct {
 } ChassisState_t;
 
 /* 外部变量声明 */
-extern ChassisState_t g_target_pos; // 目标位置
+extern ChassisState_t g_target_pos; // (base + offset) 实际控制用目标位置
+
+/* 偏移接口：用于校准微调避免直接覆盖基准路径 */
+void Chassis_ResetOffset(void);                 // 清空全部偏移
+void Chassis_AddOffset(float dx, float dy, float dyaw); // 累加偏移
+void Chassis_GetOffset(float *dx, float *dy, float *dyaw); // 读取当前偏移
 
 /**
   * @brief  底盘初始化

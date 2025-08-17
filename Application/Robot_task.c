@@ -40,6 +40,9 @@ uint8_t spareStack = 1;                       // 轮空纸垛
 char usbData[64] = {0};                       // USB接收数据缓冲区
 static bool placement_calibrated = false;     // 放置阶段是否已完成首次校准
 
+// 校准最终微调补偿基准 (每次 y 指令计数 * 该基准值)
+#define CALI_COMP_BASE 0.002f
+
 int Robot_Init(void)
 {
     __disable_irq();
@@ -80,7 +83,6 @@ void Robot_task(void *argument)
             {
                 for (int i = 0; i < 6; i++)
                 {
-                    LOGINFO("%d ", grabSequence[i]);
                 }
                 usb_ready = true;
             }
@@ -175,15 +177,17 @@ void Robot_task(void *argument)
         }
         vTaskDelay(500);
     }
+    lift_status.target_displacement = 240;
+    runActionGroup(1, 1); // 使用常规舵机组抓取
 
     //  放置阶段
     //     placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = specialBox;
     int skip_position = 0;
     int box_counter = 0;
+    bool mid_recal_triggered = false; // 中段(索引2或3)只触发一次复位
     switch (spareStack <= 5)
     {
-
     case 1: // spareStack = 1-5 (区域A-E)
         Chassis_MoveToPosition_Blocking(-0.700, -0.203, 0, 135000);
         for (int i = 0; i < 6; i++)
@@ -236,145 +240,224 @@ void Robot_task(void *argument)
                 MoveToA1();
                 break;
             }
-
-            // 仅在 case1 中的第一个未跳过位置执行两步校准
-            if (!placement_calibrated)
+            // 在第一次遇到索引 2 或 3 (且未被跳过) 时，触发一次重新校准
+            if (!mid_recal_triggered && i != skip_position && i != 5)
             {
-                const char Startmsg[] = "Start\n";
-                CDC_Transmit_FS((uint8_t *)Startmsg, sizeof(Startmsg) - 1);
+                placement_calibrated = false; // 允许再次进入校准流程
+            }
+            // 只对实际参与放置的第一个纸垛位置执行校准（如果 i==0 被跳过则在下一个有效 i 校准）
+            if (i != skip_position && !placement_calibrated && i != 5)
+            {
+                placement_calibrated = true; // 标记已完成首次校准
+                const char yoffset_msg[] = "offset\n";
+                CDC_Transmit_FS((uint8_t *)yoffset_msg, sizeof(yoffset_msg) - 1);
 
-                if (i != skip_position)
+                // 记录初始目标值
+                float initial_target_y;
+                if (i == 4)
                 {
-                    // --- Y 校准 ---
-                    LOGINFO("[CAL] Starting Y offset calibration\r\n");
+                    // F位置(i=4)或A位置(i=5)时，记录X目标值
+                    initial_target_y = g_target_pos.x;
+                }
+                else
+                {
+                    // 其他位置记录Y目标值
+                    initial_target_y = g_target_pos.y;
+                }
 
-                    // 发送 Yoffset 到上位机
-                    const char yoffset_msg[] = "Yoffset\n";
-                    CDC_Transmit_FS((uint8_t *)yoffset_msg, sizeof(yoffset_msg) - 1);
+                // Y校准状态：0=等待指令, 1=左移中, 2=右移中, 3=完成
+                int calibration_state = 0;
+                int y_cmd_count = 0; // 收到 'y' 指令次数（步数权重）
 
-                    float initial_target_y = g_target_pos.y; // 记录初始Y目标值
+                while (1)
+                {
+                    // 临界区保护USB数据读取
 
-                    while (1)
+                    bool usb_received = (USB_RxFlag == 1);
+                    uint8_t rx_len = USB_RxLen;
+                    if (usb_received && rx_len > 0)
                     {
-                        if (USB_RxFlag == 1)
+                        memcpy(usbData, UserRxBufferFS, rx_len);
+                        usbData[rx_len] = '\0';
+                        USB_RxFlag = 0;
+                        USB_RxLen = 0;
+                    }
+
+                    // 处理接收到的USB数据
+                    if (usb_received && rx_len > 0)
+                    {
+                        if (strstr(usbData, "OffsetOK") != NULL)
                         {
-                            // 清空接收数据末尾，确保字符串结束
-                            UserRxBufferFS[USB_RxLen] = '\0';
-
-                            if (strncmp((char *)UserRxBufferFS, "OffsetOK", 8) == 0)
+                            // 根据 y_cmd_count 动态计算补偿幅值
+                            float comp = y_cmd_count * CALI_COMP_BASE; // 动态补偿
+                            if (comp > 0.02f)
+                                comp = 0.02f; // 保险限幅（可调）
+                            if (calibration_state == 1)
                             {
-                                // 校准完成，计算Y轴变化量作为ErrY
-                                ErrY = g_target_pos.y - initial_target_y;
-                                LOGINFO("[CAL] Y calibration complete, ErrY=%.3f\r\n", ErrY);
-
-                                // 重新执行移动到对应位置
-                                switch (i)
+                                // 左移过程：F/A 位走 X，其他位走 Y，结束向反方向回一点
+                                if (i == 4)
                                 {
-                                case 0:
-                                    MoveToB1();
-                                    break;
-                                case 1:
-                                    MoveToC1();
-                                    break;
-                                case 2:
-                                    MoveToD1();
-                                    break;
-                                case 3:
-                                    MoveToE1();
-                                    break;
-                                case 4:
-                                    MoveToF1();
-                                    break;
-                                case 5:
-                                    MoveToA1();
-                                    break;
+                                    Chassis_AddOffset(-comp, 0.0f, 0.0f); // 左移(X-) 结束向右(X+)
                                 }
-
-                                const char okmsg[] = "OK\n";
-                                CDC_Transmit_FS((uint8_t *)okmsg, sizeof(okmsg) - 1);
-
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                break;
+                                else
+                                {
+                                    Chassis_AddOffset(0.0f, -comp, 0.0f); // 左移(Y+) 结束向右(Y-)
+                                }
                             }
-                            else if (strncmp((char *)UserRxBufferFS, "Left", 4) == 0)
+                            else if (calibration_state == 2)
                             {
-                                // 左移：Y轴目标值减少
-                                g_target_pos.y -= 0.001f;
-                                LOGINFO("[CAL] Left command, target_y=%.3f\r\n", g_target_pos.y);
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                osDelay(100); // 等待0.1秒
+                                if (i == 4)
+                                {
+                                    Chassis_AddOffset(comp, 0.0f, 0.0f); // 右移(X+) 结束向左(X-)
+                                }
+                                else
+                                {
+                                    Chassis_AddOffset(0.0f, comp, 0.0f); // 右移(Y-) 结束向左(Y+)
+                                }
                             }
-                            else if (strncmp((char *)UserRxBufferFS, "Right", 5) == 0)
+                            // 校准完成，计算轴变化量作为误差
+                            if (i == 4 || i == 5)
                             {
-                                // 右移：Y轴目标值增加
-                                g_target_pos.y += 0.001f;
-                                LOGINFO("[CAL] Right command, target_y=%.3f\r\n", g_target_pos.y);
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                osDelay(100); // 等待0.1秒
+                                // F位置(i=4)或A位置(i=5)时，计算X轴变化量作为ErrX
+                                ErrX = g_target_pos.x - initial_target_y;
                             }
                             else
                             {
-                                // 未识别的命令，清空标志位
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
+                                // 其他位置正常计算Y轴变化量作为ErrY
+                                ErrY = g_target_pos.y - initial_target_y;
                             }
-                        }
-                        osDelay(10);
-                    }
 
-                    // --- X+Yaw 校准 ---
-                    LOGINFO("[CAL] Wait X+Yaw offset: x<dx>/y0/yaw<dYaw>\r\n");
-                    while (1)
-                    {
-                        if (USB_RxFlag == 1)
-                        {
-                            float dx, dy, dyaw;
-                            if (parseOffsetCommand_raw(UserRxBufferFS, USB_RxLen, &dx, &dy, &dyaw) == 0)
+                            // 重新执行移动到对应位置
+                            switch (i)
                             {
-                                ErrX -= dx;
-                                ErrYaw += dyaw;
-                                ErrY += dy;
-                                LOGINFO("[CAL] X,Yaw applied (%.3f, %.3f) => ErrX=%.3f ErrYaw=%.3f\r\n",
-                                        dx, dyaw, ErrX, ErrYaw);
-
-                                // X+Yaw校准后立即重新执行移动到对应位置
-                                switch (i)
-                                {
-                                case 0:
-                                    MoveToB1();
-                                    break;
-                                case 1:
-                                    MoveToC1();
-                                    break;
-                                case 2:
-                                    MoveToD1();
-                                    break;
-                                case 3:
-                                    MoveToE1();
-                                    break;
-                                case 4:
-                                    MoveToF1();
-                                    break;
-                                case 5:
-                                    MoveToA1();
-                                    break;
-                                }
-
-                                const char okmsg2[] = "OK\n";
-                                CDC_Transmit_FS((uint8_t *)okmsg2, sizeof(okmsg2) - 1);
-
-                                placement_calibrated = true;
-
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
+                            case 0:
+                                MoveToB1();
+                                break;
+                            case 1:
+                                MoveToC1();
+                                break;
+                            case 2:
+                                MoveToD1();
+                                break;
+                            case 3:
+                                MoveToE1();
+                                break;
+                            case 4:
+                                MoveToF1();
+                                break;
+                            case 5:
+                                MoveToA1();
                                 break;
                             }
+
+                            // 过调补偿：根据最后一次手动方向，反向微调0.005
+                            // calibration_state: 1=最后在左移, 2=最后在右移
+
+                            const char okmsg[] = "OK\n";
+                            CDC_Transmit_FS((uint8_t *)okmsg, sizeof(okmsg) - 1);
+                            break; // 校准完成，退出循环
                         }
-                        osDelay(10);
+                        else if (strstr(usbData, "Left") != NULL)
+                        {
+                            calibration_state = 1; // 设置为左移状态
+                        }
+                        else if (strstr(usbData, "Right") != NULL)
+                        {
+                            calibration_state = 2; // 设置为右移状态
+                        }
+                        else if (strstr(usbData, "y") != NULL)
+                        {
+                            // 收到Y指令，根据当前状态移动1cm
+                            if (calibration_state == 1) // 左移
+                            {
+                                // 在MoveToA和MoveToF位置（i=4或i=5），由于旋转-90度，x和y坐标轴互换
+                                if (i == 4)
+                                {
+
+                                    // F位置(i=4)或A位置(i=5)时，左移应该调整x而不是y
+                                    // F位：用x轴偏移
+                                    Chassis_AddOffset(0.005f, 0.0f, 0.0f);
+                                    y_cmd_count++;
+                                }
+                                else
+                                {
+                                    // 其他位置正常调整y
+
+                                    Chassis_AddOffset(0.0f, 0.005f, 0.0f);
+                                    y_cmd_count++;
+                                }
+                            }
+                            else if (calibration_state == 2) // 右移
+                            {
+                                // 在MoveToA和MoveToF位置（i=4或i=5），由于旋转-90度，x和y坐标轴互换
+                                if (i == 4)
+                                {
+                                    // F位置(i=4)时，右移应该调整x而不是y
+
+                                    Chassis_AddOffset(-0.005f, 0.0f, 0.0f);
+                                    y_cmd_count++;
+                                }
+                                else
+                                {
+                                    // 其他位置正常调整y
+
+                                    Chassis_AddOffset(0.0f, -0.005f, 0.0f);
+                                    y_cmd_count++;
+                                }
+                            }
+                        }
                     }
+
+                    osDelay(100); // 短暂延时，等待下一次USB数据
+                }
+                // --- X+Yaw 校准 ---
+                while (1)
+                {
+                    if (USB_RxFlag == 1)
+                    {
+                        float dx, dy, dyaw;
+                        if (parseOffsetCommand_raw(UserRxBufferFS, USB_RxLen, &dx, &dy, &dyaw) == 0)
+                        {
+                            /* 统一逻辑：所有校准增量直接通过底盘偏移接口应用。
+                                dx,dy,dyaw 视为本次新增校正量(世界坐标系)，累加到 g_offset。
+                                ErrX/ErrY/ErrYaw 仅用于记录累计校正(调试/上位机显示)。 */
+                            Chassis_AddOffset(-dx, dy, dyaw);
+                            ErrX += dx;
+                            ErrY += dy;
+                            ErrYaw += dyaw;
+                            osDelay(100);
+                            // X+Yaw校准后立即重新执行移动到对应位置
+                            switch (i)
+                            {
+                            case 0:
+                                MoveToB1();
+                                break;
+                            case 1:
+                                MoveToC1();
+                                break;
+                            case 2:
+                                MoveToD1();
+                                break;
+                            case 3:
+                                MoveToE1();
+                                break;
+                            case 4:
+                                MoveToF1();
+                                break;
+                            case 5:
+                                MoveToA1();
+                                break;
+                            }
+
+                            const char okmsg2[] = "OK\n";
+                            CDC_Transmit_FS((uint8_t *)okmsg2, sizeof(okmsg2) - 1);
+
+                            USB_RxFlag = 0;
+                            USB_RxLen = 0;
+                            break;
+                        }
+                    }
+                    osDelay(10);
                 }
             }
 
@@ -394,14 +477,13 @@ void Robot_task(void *argument)
             if (i == 3)
             {
                 lift_status.target_displacement = 300;
-                Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 90000);
+                Chassis_MoveToPosition_Blocking(-0.71, 0.0, 0, 75000);
             }
         }
 
         break;
-    case 0:         // spareStack = 6 (区域F)
-        MoveToD0(); // 移动到D0位置
-
+    case 0: // spareStack = 6 (区域F)
+        MoveToD0();
         for (int i = 0; i < 6; i++)
         {
             // 判断是否是反向放置（A位置 i=5）
@@ -417,103 +499,7 @@ void Robot_task(void *argument)
             {
             case 0:
                 MoveToE0();
-                if (!placement_calibrated)
-                {
-                    const char Startmsg[] = "Start\n";
-                    CDC_Transmit_FS((uint8_t *)Startmsg, sizeof(Startmsg) - 1);
-
-                    // --- Y 校准 ---
-                    LOGINFO("[CAL] Starting Y offset calibration\r\n");
-
-                    // 发送 Yoffset 到上位机
-                    const char yoffset_msg[] = "Yoffset\n";
-                    CDC_Transmit_FS((uint8_t *)yoffset_msg, sizeof(yoffset_msg) - 1);
-
-                    float initial_target_y = g_target_pos.y; // 记录初始Y目标值
-
-                    while (1)
-                    {
-                        if (USB_RxFlag == 1)
-                        {
-                            // 清空接收数据末尾，确保字符串结束
-                            UserRxBufferFS[USB_RxLen] = '\0';
-
-                            if (strncmp((char *)UserRxBufferFS, "OffsetOK", 8) == 0)
-                            {
-                                // 校准完成，计算Y轴变化量作为ErrY
-                                ErrY = g_target_pos.y - initial_target_y;
-                                LOGINFO("[CAL] Y calibration complete, ErrY=%.3f\r\n", ErrY);
-
-                                // Y校准后立即重新执行移动到E0位置
-                                MoveToE0();
-
-                                const char okmsg[] = "OK\n";
-                                CDC_Transmit_FS((uint8_t *)okmsg, sizeof(okmsg) - 1);
-
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                break; // Y 校准完成
-                            }
-                            else if (strncmp((char *)UserRxBufferFS, "Left", 4) == 0)
-                            {
-                                // 左移：Y轴目标值减少
-                                g_target_pos.y -= 0.001f;
-                                LOGINFO("[CAL] Left command, target_y=%.3f\r\n", g_target_pos.y);
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                osDelay(100); // 等待0.1秒
-                            }
-                            else if (strncmp((char *)UserRxBufferFS, "Right", 5) == 0)
-                            {
-                                // 右移：Y轴目标值增加
-                                g_target_pos.y += 0.001f;
-                                LOGINFO("[CAL] Right command, target_y=%.3f\r\n", g_target_pos.y);
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                osDelay(100); // 等待0.1秒
-                            }
-                            else
-                            {
-                                // 未识别的命令，清空标志位
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                            }
-                        }
-                        osDelay(10);
-                    }
-
-                    // --- X+Yaw 校准 ---
-                    LOGINFO("[CAL] Wait X+Yaw offset: x<dx>/y0/yaw<dYaw>\r\n");
-                    while (1)
-                    {
-                        if (USB_RxFlag == 1)
-                        {
-                            float dx, dy, dyaw;
-                            if (parseOffsetCommand_raw(UserRxBufferFS, USB_RxLen, &dx, &dy, &dyaw) == 0)
-                            {
-                                ErrX -= dx;
-                                ErrYaw += dyaw;
-                                ErrY += dy;
-                                LOGINFO("[CAL] X,Yaw applied (%.3f, %.3f) => ErrX=%.3f ErrYaw=%.3f\r\n",
-                                        dx, dyaw, ErrX, ErrYaw);
-
-                                // X+Yaw校准后立即重新执行移动到E0位置
-                                MoveToE0();
-
-                                const char okmsg2[] = "OK\n";
-                                CDC_Transmit_FS((uint8_t *)okmsg2, sizeof(okmsg2) - 1);
-
-                                placement_calibrated = true;
-
-                                USB_RxFlag = 0;
-                                USB_RxLen = 0;
-                                break; // X+Yaw 校准完成
-                            }
-                        }
-                        osDelay(10);
-                    }
-                }
-
+                break;
             case 1:
                 MoveToD0();
                 break;
@@ -530,6 +516,155 @@ void Robot_task(void *argument)
                 Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
                 MoveToA0();
                 break;
+            }
+
+            // 在第一次遇到索引 2 或 3 (且未被跳过) 时，触发一次重新校准
+            if (!mid_recal_triggered && i != 5)
+            {
+                placement_calibrated = false; // 允许再次进入校准流程
+            }
+
+            // 只对实际参与放置的第一个纸垛位置执行校准（如果 i==0 被跳过则在下一个有效 i 校准）
+            // 不对A区(i=5)进行校准
+            if (i != 5 && !placement_calibrated)
+            {
+                placement_calibrated = true; // 标记已完成首次校准
+                const char yoffset_msg[] = "offset\n";
+                CDC_Transmit_FS((uint8_t *)yoffset_msg, sizeof(yoffset_msg) - 1);
+
+                // 记录初始目标值
+                float initial_target_y = g_target_pos.y;
+
+                // Y校准状态：0=等待指令, 1=左移中, 2=右移中, 3=完成
+                int calibration_state = 0;
+                int y_cmd_count = 0; // 收到 'y' 指令次数（步数权重）
+
+                while (1)
+                {
+                    // 临界区保护USB数据读取
+                    bool usb_received = (USB_RxFlag == 1);
+                    uint8_t rx_len = USB_RxLen;
+                    if (usb_received && rx_len > 0)
+                    {
+                        memcpy(usbData, UserRxBufferFS, rx_len);
+                        usbData[rx_len] = '\0';
+                        USB_RxFlag = 0;
+                        USB_RxLen = 0;
+                    }
+
+                    // 处理接收到的USB数据
+                    if (usb_received && rx_len > 0)
+                    {
+                        if (strstr(usbData, "OffsetOK") != NULL)
+                        {
+                            // 根据 y_cmd_count 动态计算补偿幅值
+                            float comp = y_cmd_count * CALI_COMP_BASE; // 动态补偿
+                            if (comp > 0.02f)
+                                comp = 0.02f; // 保险限幅（可调）
+                            if (calibration_state == 1)
+                            {
+                                // 左移过程结束向反方向回一点
+                                Chassis_AddOffset(0.0f, -comp, 0.0f); // 左移(Y+) 结束向右(Y-)
+                            }
+                            else if (calibration_state == 2)
+                            {
+                                Chassis_AddOffset(0.0f, comp, 0.0f); // 右移(Y-) 结束向左(Y+)
+                            }
+                            // 校准完成，计算轴变化量作为误差
+                            ErrY = g_target_pos.y - initial_target_y;
+
+                            // 重新执行移动到对应位置
+                            switch (i)
+                            {
+                            case 0:
+                                MoveToE0();
+                                break;
+                            case 1:
+                                MoveToD0();
+                                break;
+                            case 2:
+                                MoveToC0();
+                                break;
+                            case 3:
+                                MoveToB0();
+                                break;
+                            }
+
+                            const char okmsg[] = "OK\n";
+                            CDC_Transmit_FS((uint8_t *)okmsg, sizeof(okmsg) - 1);
+                            break; // 校准完成，退出循环
+                        }
+                        else if (strstr(usbData, "Left") != NULL)
+                        {
+                            calibration_state = 1; // 设置为左移状态
+                        }
+                        else if (strstr(usbData, "Right") != NULL)
+                        {
+                            calibration_state = 2; // 设置为右移状态
+                        }
+                        else if (strstr(usbData, "y") != NULL)
+                        {
+                            // 收到Y指令，根据当前状态移动1cm
+                            if (calibration_state == 1) // 左移
+                            {
+                                // 正常调整y
+                                Chassis_AddOffset(0.0f, 0.005f, 0.0f);
+                                y_cmd_count++;
+                            }
+                            else if (calibration_state == 2) // 右移
+                            {
+                                // 正常调整y
+                                Chassis_AddOffset(0.0f, -0.005f, 0.0f);
+                                y_cmd_count++;
+                            }
+                        }
+                    }
+
+                    osDelay(100); // 短暂延时，等待下一次USB数据
+                }
+                // --- X+Yaw 校准 ---
+                while (1)
+                {
+                    if (USB_RxFlag == 1)
+                    {
+                        float dx, dy, dyaw;
+                        if (parseOffsetCommand_raw(UserRxBufferFS, USB_RxLen, &dx, &dy, &dyaw) == 0)
+                        {
+                            /* 统一逻辑：所有校准增量直接通过底盘偏移接口应用。
+                                dx,dy,dyaw 视为本次新增校正量(世界坐标系)，累加到 g_offset。
+                                ErrX/ErrY/ErrYaw 仅用于记录累计校正(调试/上位机显示)。 */
+                            Chassis_AddOffset(-dx, dy, dyaw);
+                            ErrX += dx;
+                            ErrY += dy;
+                            ErrYaw += dyaw;
+                            osDelay(100);
+                            // X+Yaw校准后立即重新执行移动到对应位置
+                            switch (i)
+                            {
+                            case 0:
+                                MoveToE0();
+                                break;
+                            case 1:
+                                MoveToD0();
+                                break;
+                            case 2:
+                                MoveToC0();
+                                break;
+                            case 3:
+                                MoveToB0();
+                                break;
+                            }
+
+                            const char okmsg2[] = "OK\n";
+                            CDC_Transmit_FS((uint8_t *)okmsg2, sizeof(okmsg2) - 1);
+
+                            USB_RxFlag = 0;
+                            USB_RxLen = 0;
+                            break;
+                        }
+                    }
+                    osDelay(10);
+                }
             }
 
             // 执行普通放置

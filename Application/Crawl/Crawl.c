@@ -635,21 +635,27 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 1:
             case 4:
                 MoveToLeft();
+                osDelay(400);
+
                 break;
             case 2:
             case 5:
                 MoveToCenter();
+                osDelay(400);
+
                 break;
             case 3:
             case 6:
                 MoveToRight();
+                osDelay(400);
+
                 break;
             }
         }
         osDelay(600);
         Lift_To_High1();
         osDelay(1600); // 剩余延时
-        
+
         break;
 
     case 1:
@@ -667,14 +673,17 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 1:
             case 4:
                 MoveToLeft();
+                osDelay(400);
                 break;
             case 2:
             case 5:
                 MoveToCenter();
+                osDelay(400);
                 break;
             case 3:
             case 6:
                 MoveToRight();
+                osDelay(400);
                 break;
             }
         }
@@ -697,20 +706,26 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 1:
             case 4:
                 MoveToLeft();
+                osDelay(400);
+
                 break;
             case 2:
             case 5:
                 MoveToCenter();
+                osDelay(400);
+
                 break;
             case 3:
             case 6:
                 MoveToRight();
+                osDelay(400);
+
                 break;
             }
         }
         Lift_To_High1();
         osDelay(1600); // 剩余延时
-        
+
         break;
 
     case 3:
@@ -733,14 +748,20 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 1:
             case 4:
                 MoveToLeft();
+                osDelay(400);
+
                 break;
             case 2:
             case 5:
                 MoveToCenter();
+                osDelay(400);
+
                 break;
             case 3:
             case 6:
                 MoveToRight();
+                osDelay(400);
+
                 break;
             }
         }
@@ -768,14 +789,20 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 1:
             case 4:
                 MoveToLeft();
+                osDelay(400);
+
                 break;
             case 2:
             case 5:
                 MoveToCenter();
+                osDelay(400);
+
                 break;
             case 3:
             case 6:
                 MoveToRight();
+                osDelay(400);
+
                 break;
             }
         }
@@ -788,16 +815,22 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
             case 4:
                 // 1和4号箱子对应左侧位置
                 MoveToLeft();
+                osDelay(400);
+
                 break;
             case 2:
             case 5:
                 // 2和5号箱子对应中间位置
                 MoveToCenter();
+                osDelay(400);
+
                 break;
             case 3:
             case 6:
                 // 3和6号箱子对应右侧位置
                 MoveToRight();
+                osDelay(400);
+
                 break;
             }
         }

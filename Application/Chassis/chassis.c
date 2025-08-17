@@ -56,7 +56,7 @@ extern float y_position_units;  // 外部Y位置，单位mm
 #define MOTOR_RF_ID 6  // 右前轮ID
 #define MOTOR_LB_ID 7  // 左后轮ID
 #define MOTOR_RB_ID 8  // 右后轮ID
-
+        
 int32_t current_encoder[4] = {0};  // 改为int32_t类型以存储累积编码器值
 float wheel_speed[4] = {0};
 
@@ -75,7 +75,9 @@ typedef struct {
 
 /* 全局变量 */
 static ChassisState_t  g_current_pos = {0};     // 当前位置
-ChassisState_t  g_target_pos = {0};              // 目标位置 (移除static以便外部访问)
+static ChassisState_t  g_base_target = {0};     // 基础目标（路径/逻辑位置）
+static ChassisState_t  g_offset = {0};          // 校准偏移（由上位机/人工微调）
+ChassisState_t  g_target_pos = {0};             // 实际控制目标 = base + offset
 static ChassisPID_t    g_pid = {0};             // PID控制器（保留用于兼容）
 static ChassisADRC_t   g_adrc = {0};            // ADRC控制器
 static volatile int32_t g_encoder_values[4] = {0}; // 编码器累积值，由编码器任务更新
@@ -221,9 +223,13 @@ void Chassis_Init(void)
   */
 void  Chassis_SetTargetPosition(float x, float y, float yaw)
 {
-    g_target_pos.x = x;
-    g_target_pos.y = y;
-    g_target_pos.yaw = yaw; // 标准化目标角度
+    g_base_target.x = x;
+    g_base_target.y = y;
+    g_base_target.yaw = yaw;
+    // 应用偏移生成实际控制目标
+    g_target_pos.x = g_base_target.x + g_offset.x;
+    g_target_pos.y = g_base_target.y + g_offset.y;
+    g_target_pos.yaw = g_base_target.yaw + g_offset.yaw;
 }
 
 /**
@@ -331,6 +337,11 @@ bool Chassis_Control_Loop(void)
     g_current_pos.x = x_position_units / 1000.0f;
     g_current_pos.y = y_position_units / 1000.0f;
     
+    // 每周期更新实际控制目标(允许基准在其他地方被改动后立即叠加偏移)
+    g_target_pos.x = g_base_target.x + g_offset.x;
+    g_target_pos.y = g_base_target.y + g_offset.y;
+    g_target_pos.yaw = g_base_target.yaw + g_offset.yaw;
+
     // 2. 计算位置误差并控制
     // 计算控制误差
     float error_x = g_target_pos.x - g_current_pos.x;
@@ -379,7 +390,7 @@ bool Chassis_Control_Loop(void)
     while (error_yaw > 180.0f) error_yaw -= 360.0f;
     while (error_yaw < -180.0f) error_yaw += 360.0f;
     
-    // 检测x、y、yaw三个方向是否都到达目标位置
+    // 检测x、y、yaw三个方向是否都到达目标位置 
     bool reached_target = (fabsf(error_x) < POSITION_TOLERANCE_XY) && 
                          (fabsf(error_y) < POSITION_TOLERANCE_XY) && 
                          (fabsf(error_yaw) < POSITION_TOLERANCE_YAW);
@@ -409,6 +420,36 @@ void Chassis_ResetPosition(void)
     g_current_pos.x = 0.0f;
     g_current_pos.y = 0.0f;
     g_current_pos.yaw = 0.0f;
+}
+
+/* --- 偏移相关接口实现 --- */
+void Chassis_ResetOffset(void)
+{
+    g_offset.x = 0.0f;
+    g_offset.y = 0.0f;
+    g_offset.yaw = 0.0f;
+    // 立即刷新实际目标
+    g_target_pos.x = g_base_target.x;
+    g_target_pos.y = g_base_target.y;
+    g_target_pos.yaw = g_base_target.yaw;
+}
+
+void Chassis_AddOffset(float dx, float dy, float dyaw)
+{
+    g_offset.x += dx;
+    g_offset.y += dy;
+    g_offset.yaw += dyaw;
+    // 立即刷新实际目标
+    g_target_pos.x = g_base_target.x + g_offset.x;
+    g_target_pos.y = g_base_target.y + g_offset.y;
+    g_target_pos.yaw = g_base_target.yaw + g_offset.yaw;
+}
+
+void Chassis_GetOffset(float *dx, float *dy, float *dyaw)
+{
+    if (dx) *dx = g_offset.x;
+    if (dy) *dy = g_offset.y;
+    if (dyaw) *dyaw = g_offset.yaw;
 }
 
 /**
@@ -587,8 +628,8 @@ bool Chassis_MoveToPosition_Blocking(float x, float y, float yaw, uint32_t timeo
 }
 bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
 {
-    // 设置目标位置
-    g_target_pos.y = y;
+    // 仅设置基准Y
+    g_base_target.y = y;
     
     // 用于计算超时的变量
     TickType_t start_tick = xTaskGetTickCount();
@@ -635,8 +676,8 @@ bool Chassis_MoveToY_Blocking(float y, uint32_t timeout_ms)
 }
 bool Chassis_MoveToX_Blocking(float x, uint32_t timeout_ms)
 {
-    // 设置目标位置
-    g_target_pos.x = x;
+    // 仅设置基准X
+    g_base_target.x = x;
     
     // 用于计算超时的变量
     TickType_t start_tick = xTaskGetTickCount();
