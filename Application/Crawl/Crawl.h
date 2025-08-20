@@ -240,7 +240,7 @@ bool Crawl_IsStepperReached(void);
  * @param next_box_number 下一个箱子编号 (1-6, 0表示无下一个箱子)
  * @retval 0: 成功, -1: 失败
  */
-int Crawl_GrabBox(int box_number, int box_count, int next_box_number);
+int Crawl_GrabBox(int box_number, int box_count, int next_box_number,int spareStack);
 /**
  * @brief 放置箱子接口函数
  * @param box_count 当前已放置的箱子数量 (0-5)

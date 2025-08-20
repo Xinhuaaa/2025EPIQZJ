@@ -41,7 +41,7 @@ char usbData[64] = {0};                       // USB接收数据缓冲区
 static bool placement_calibrated = false;     // 放置阶段是否已完成首次校准
 
 // 校准最终微调补偿基准 (每次 y 指令计数 * 该基准值)
-#define CALI_COMP_BASE 0.002f
+#define CALI_COMP_BASE 0.003f
 
 int Robot_Init(void)
 {
@@ -64,8 +64,8 @@ void Robot_task(void *argument)
 {
     bool usb_ready = false;
     bool key_pressed = false;
-    runActionGroup(2, 1);
-    runActionGroup(3, 1);
+    // runActionGroup(2, 1);
+    // runActionGroup(3, 1);
     key_event_t evt;
 
     while (!(usb_ready && key_pressed))
@@ -122,7 +122,7 @@ void Robot_task(void *argument)
             }
 
             MoveToLeft(); // 移动到左侧
-            Crawl_GrabBox(1, x, next_box);
+            Crawl_GrabBox(1, x, next_box,spareStack);
             break;
 
         case 2:
@@ -131,7 +131,7 @@ void Robot_task(void *argument)
                 STARTMoveToCenter();
             }
             MoveToCenter(); // 移动到中间
-            Crawl_GrabBox(2, x, next_box);
+            Crawl_GrabBox(2, x, next_box,spareStack);
             break;
 
         case 3:
@@ -141,7 +141,7 @@ void Robot_task(void *argument)
                 osDelay(2000);
             }
             MoveToRight();
-            Crawl_GrabBox(3, x, next_box);
+            Crawl_GrabBox(3, x, next_box,spareStack);
             break;
 
         case 4:
@@ -151,7 +151,7 @@ void Robot_task(void *argument)
                 osDelay(2000);
             }
             MoveToLeft(); // 移动到左侧
-            Crawl_GrabBox(4, x, next_box);
+            Crawl_GrabBox(4, x, next_box,spareStack);
             break;
 
         case 5:
@@ -161,7 +161,7 @@ void Robot_task(void *argument)
                 osDelay(2000);
             }
             MoveToCenter(); // 移动到中间
-            Crawl_GrabBox(5, x, next_box);
+            Crawl_GrabBox(5, x, next_box,spareStack);
             break;
 
         case 6:
@@ -172,14 +172,14 @@ void Robot_task(void *argument)
             }
             MoveToRight(); // 移动到右侧
 
-            Crawl_GrabBox(6, x, next_box);
+            Crawl_GrabBox(6, x, next_box,spareStack);
             break;
         }
         vTaskDelay(500);
     }
     lift_status.target_displacement = 240;
     runActionGroup(1, 1); // 使用常规舵机组抓取
-
+    osDelay(1500);
     //  放置阶段
     //     placementSpecialBox：放置的第几个箱子是特殊箱子
     uint8_t placementSpecialBox = specialBox;
@@ -189,7 +189,6 @@ void Robot_task(void *argument)
     switch (spareStack <= 5)
     {
     case 1: // spareStack = 1-5 (区域A-E)
-        Chassis_MoveToPosition_Blocking(-0.700, -0.203, 0, 135000);
         for (int i = 0; i < 6; i++)
         {
             int is_reverse_place = (i == 5 && spareStack != 1) ? 1 : 0;
@@ -477,13 +476,12 @@ void Robot_task(void *argument)
             if (i == 3)
             {
                 lift_status.target_displacement = 300;
-                Chassis_MoveToPosition_Blocking(-0.71, 0.0, 0, 75000);
+                Chassis_MoveToPosition_Blocking(-0.71, 0.0, 0, 8000);
             }
         }
 
         break;
     case 0: // spareStack = 6 (区域F)
-        MoveToD0();
         for (int i = 0; i < 6; i++)
         {
             // 判断是否是反向放置（A位置 i=5）
@@ -513,7 +511,7 @@ void Robot_task(void *argument)
                 break;
             case 5:
                 Lift_To_PUTspecialUUP();
-                Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 0);
+                Chassis_MoveToPosition_Blocking(-0.74, 0.0, 0, 6000);
                 MoveToA0();
                 break;
             }

@@ -65,7 +65,11 @@ int Crawl_Init(void)
 //  * @param argument 任务参数
 //  */
 void CrawlTask(void *argument)
-{
+
+    {
+    Lift_To_High1();
+    runActionGroup(1,1);
+    runActionGroup(4,1);
     while (1)
     {
         Emm_V5_Pos_Control(1, 1, 600, 0, num, 1, 0);
@@ -74,11 +78,7 @@ void CrawlTask(void *argument)
         osDelay(2000);
     }
 }
-//     runActionGroup(2,1);
-//     osDelay(500);
-//     runActionGroup(3,1);
-//     osDelay(4500);
-//     Lift_To_StartHeight();
+
 
 //     while (1)
 //     {
@@ -145,9 +145,9 @@ void CrawlTask(void *argument)
 //         Lift_To_High1();
 //         osDelay(50);
 //         //移动伸缩到车内二号位长度
-//         Emm_V5_Pos_Control(1,1,600,255,37000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,37200,1,0);
 //         osDelay(50);
-//         Emm_V5_Pos_Control(2,0,600,255,37000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,37200,1,0);
 //         osDelay(5550);
 //         //舵机放置
 //         runActionGroup(3,1); //舵机放置
@@ -177,9 +177,9 @@ void CrawlTask(void *argument)
 //         Lift_To_High1();
 //         osDelay(50);
 //         //移动伸缩到车内三号位长度
-//         Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,18100,1,0);
 //         osDelay(50);
-//         Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,18100,1,0);
 //         osDelay(5550);
 //         //舵机放置
 //         runActionGroup(3,1);
@@ -236,9 +236,9 @@ void CrawlTask(void *argument)
 //         runActionGroup(4,1); //舵机抓取
 //         osDelay(1000);
 //         //伸缩移动到车内二号位放置长度
-//         Emm_V5_Pos_Control(1,1,600,255,37000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,37200,1,0);
 //         osDelay(50);
-//         Emm_V5_Pos_Control(2,0,600,255,37000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,37200,1,0);
 //         osDelay(5550);
 //         //降低到2层放置高度
 //         Lift_To_High2();
@@ -267,9 +267,9 @@ void CrawlTask(void *argument)
 //         osDelay(1000);
 //         osDelay(50);
 //         //移动伸缩到车内三号位长度
-//         Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,18100,1,0);
 //         osDelay(50);
-//         Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,18100,1,0);
 //         osDelay(5550);
 //         //降低到2层放置高度
 //         Lift_To_High2(); //升高到2层高度
@@ -299,9 +299,9 @@ void CrawlTask(void *argument)
 //         osDelay(500);
 //         runActionGroup(2,1);
 //         //移动伸缩到车内一号位长度
-//         Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,18100,1,0);
 //         osDelay(10);
-//         Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,18100,1,0);
 //         osDelay(2000);
 //         //升高到二层抓取高度
 //         Lift_To_PUT2HIGH();
@@ -379,9 +379,9 @@ void CrawlTask(void *argument)
 //         osDelay(500);
 //         runActionGroup(2,1);
 //         //移动伸缩到车内三号位长度
-//         Emm_V5_Pos_Control(1,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,0,600,255,18100,1,0);
 //         osDelay(10);
-//         Emm_V5_Pos_Control(2,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,1,600,255,18100,1,0);
 //         osDelay(2000);
 //         //升高到二层抓取高度
 //         Lift_To_PUT2HIGH();
@@ -419,9 +419,9 @@ void CrawlTask(void *argument)
 //         osDelay(500);
 //         runActionGroup(2,1);
 //         //移动伸缩到车内一号位长度
-//         Emm_V5_Pos_Control(1,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,1,600,255,18100,1,0);
 //         osDelay(10);
-//         Emm_V5_Pos_Control(2,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,0,600,255,18100,1,0);
 //         osDelay(2000);
 //         //升高到一层抓取高度
 //         Lift_To_StartHeight();
@@ -497,9 +497,9 @@ void CrawlTask(void *argument)
 //         osDelay(500);
 //         runActionGroup(2,1);
 //         //移动伸缩到车内三号位长度
-//         Emm_V5_Pos_Control(1,0,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(1,0,600,255,18100,1,0);
 //         osDelay(10);
-//         Emm_V5_Pos_Control(2,1,600,255,18000,1,0);
+//         Emm_V5_Pos_Control(2,1,600,255,18100,1,0);
 //         osDelay(2000);
 //         //升高到一层抓取高度
 //         Lift_To_StartHeight();
@@ -548,7 +548,7 @@ void CrawlTask(void *argument)
  * @param next_box_number 下一个箱子编号 (1-6, 0表示无下一个箱子)
  * @retval 0: 成功, -1: 失败
  */
-int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
+int Crawl_GrabBox(int box_number, int box_count, int next_box_number,int spareStack)
 {
     // 参数检查
     if (box_number < 1 || box_number > 6)
@@ -660,7 +660,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
 
     case 1:
         // 第二个箱子，放到二号位下层
-        target_position = 37000;
+        target_position = 37200;
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
@@ -693,7 +693,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
 
     case 2:
         // 第三个箱子，放到三号位下层
-        target_position = 18000;
+        target_position = 18100;
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
@@ -775,7 +775,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
         osDelay(550);
         Lift_To_High2();
-        target_position = 37000;
+        target_position = 37200;
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
@@ -800,6 +800,7 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
                 break;
             case 3:
             case 6:
+            
                 MoveToRight();
                 osDelay(400);
 
@@ -839,12 +840,24 @@ int Crawl_GrabBox(int box_number, int box_count, int next_box_number)
 
     case 5:
         // 第六个箱子，放到三号位上层
+
+        
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, 0, 1, 0);
-        osDelay(800);
+        
+        if (spareStack<=5)
+        {
+        Chassis_MoveToPosition_Blocking(-0.700, -0.203, 0, 1);
+        }
+        else
+        {
+            Chassis_MoveToPosition_Blocking(-0.700f,  0.249f,   0.0f, 1);
+        }
+        osDelay(500);
         Lift_To_High2();
-        target_position = 18000;
+
+        target_position = 18100;
         Emm_V5_Pos_Control(1, 1, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
         osDelay(50);
         Emm_V5_Pos_Control(2, 0, CRAWL_SPEED, CRAWL_ACC, target_position, 1, 0);
@@ -910,7 +923,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         case 0:
         case 3:
             // 一号位
-            grab_position = 56000;
+            grab_position = 55300;
             direction1 = 1;
             direction2 = 0;
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
@@ -921,7 +934,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         case 1:
         case 4:
             // 二号位
-            grab_position = 37000;
+            grab_position = 37200;
             direction1 = 1;
             direction2 = 0;
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
@@ -932,7 +945,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         case 2:
         case 5:
             // 三号位
-            grab_position = 18000;
+            grab_position = 18100;
             direction1 = 1;
             direction2 = 0;
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
@@ -985,7 +998,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         case 0:
         case 3:
             // 一号位
-            grab_position = 18000;
+            grab_position = 18100;
             direction1 = 1;
             direction2 = 0;
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
@@ -1007,7 +1020,7 @@ int Crawl_PlaceBox(int box_count, int special_box, int is_reverse_place)
         case 2:
         case 5:
             // 三号位
-            grab_position = 18000;
+            grab_position = 18100;
             direction1 = 0;
             direction2 = 1;
             Emm_V5_Pos_Control(1, direction1, CRAWL_SPEED, CRAWL_ACC, grab_position, 1, 0);
