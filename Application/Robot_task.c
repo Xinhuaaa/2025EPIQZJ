@@ -64,8 +64,8 @@ void Robot_task(void *argument)
 {
     bool usb_ready = false;
     bool key_pressed = false;
-    // runActionGroup(2, 1);
-    // runActionGroup(3, 1);
+    runActionGroup(2, 1);
+    runActionGroup(3, 1);
     key_event_t evt;
 
     while (!(usb_ready && key_pressed))
