@@ -159,9 +159,8 @@ C_INCLUDES =  \
 -IMiddlewares/ST/STM32_USB_Device_Library/Core/Inc \
 -IMiddlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc \
 -IDrivers/CMSIS/Device/ST/STM32F4xx/Include \
--IDrivers/CMSIS/Include
- \
- -Imodules/Localization
+-IDrivers/CMSIS/Include \
+-Imodules/Localization
 
 
 # compile gcc flags
