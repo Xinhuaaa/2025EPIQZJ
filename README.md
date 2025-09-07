@@ -5,13 +5,14 @@
 [![Platform](https://img.shields.io/badge/platform-STM32F407VET6-orange)]()
 [![Stars](https://img.shields.io/github/stars/Xinhuaaa/2025EPIQZJ?style=social)]()
 
-基于 **STM32F407VET6** 的移动抓取机器人控制系统。  
+基于 **STM32F407VET6** 的移动抓取机器人控制系统。 
 这是东莞理工学院EPI实验室为 **2025 年起重机竞赛** 开发的一套电控与软件，目标是稳定可靠地实现底盘运动、升降和抓取功能。  
 
 ---
 
 ## 项目简介
-
+- 本系统基于 STM32F407VET6 平台，底层已成功移植 FreeRTOS 实时操作系统，  
+  提供多任务调度、实时响应和任务间通信机制，为移动底盘控制、升降系统和抓取机构提供可靠的软件运行环境
 - 底盘：三自由度全向运动 (X / Y / Yaw)，基于 ADRC 控制  
 - 升降：4 个 M2006 电机 (CAN 总线)，联动控制  
 - 抓取：状态机实现顺序动作（升降 → 伸展 → 抓取 → 收缩 → 放下）  
